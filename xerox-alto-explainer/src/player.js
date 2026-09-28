@@ -48,6 +48,8 @@ async function load() {
   state.t = Math.min(T.duration, timeFromHash() ?? 0);
   draw(true);
   window.framesReady = true;
+  // render.js drives the page frame by frame and makes the sound itself.
+  if (new URLSearchParams(location.search).has('render')) return status('Rendering.');
 
   status('Decoding the narration…');
   const decoder = new OfflineAudioContext(1, 1, RATE);

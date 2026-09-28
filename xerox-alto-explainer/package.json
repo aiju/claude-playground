@@ -7,7 +7,8 @@
     "preview": "node serve.js",
     "frames": "node frames.js",
     "mix": "node mix.js",
-    "tts": "node tts.js"
+    "tts": "node tts.js",
+    "render": "node render.js"
   },
   "license": "MIT",
   "devDependencies": {

@@ -2,7 +2,7 @@
 
 An explainer video about the Xerox Alto (Xerox PARC, 1973), made for technically minded viewers who aren't hardware engineers. The pictures, sound effects and music are generated in JavaScript and the narration with Gemini TTS.
 
-The chosen direction is **Task Zero**: a two-minute 9:16 short that is all about the Alto's microcoded processor. The script and storyboard are in [`script.md`](script.md). The whole short plays in a real-time preview; there's no renderer for the final video file yet, on purpose, until the cut is final.
+The chosen direction is **Task Zero**: a two-minute 9:16 short that is all about the Alto's microcoded processor. The script and storyboard are in [`script.md`](script.md). The whole short plays in a real-time preview, and `render.js` renders it to an MP4. The video itself isn't in the repo (no videos here); render it, or ask for a copy.
 
 ## Watch the preview
 
@@ -16,6 +16,16 @@ No install needed. The preview draws every frame live at 30 fps, in sync with th
 - <kbd>1</kbd>–<kbd>8</kbd> or <kbd>[</kbd> <kbd>]</kbd> jump between sections; <kbd>L</kbd> loops the current one.
 - <kbd>V</kbd> <kbd>E</kbd> <kbd>M</kbd> mute the voice, effects and music; <kbd>C</kbd> hides the captions, to see what's under them.
 - "Copy timestamp" copies the time, section, line and word, for feedback. A link ending in `#t62.5` opens at 62.5 s.
+
+## Render the video
+
+```sh
+npm install        # Playwright, for headless Chromium
+node render.js     # out/task-zero.mp4: 1080 x 1920, 30 fps, H.264 + AAC, about 10 minutes
+node render.js --from 86 --to 96 --out out/scanline.mp4   # just a stretch
+```
+
+It draws each frame with the preview's own code in headless Chromium, builds the soundtrack the way `mix.js` does, and pipes both into ffmpeg. The frames are scaled up 2× with nearest-neighbour, so every pixel of the 540 × 960 drawing becomes a clean 2 × 2 block, and flat pixel art compresses well: the whole short is around 10 MB. `--crf` sets the quality (default 16; lower is better and bigger).
 
 ## How it's made
 
@@ -57,6 +67,7 @@ node mix.js --stems              # the soundtrack as WAV, with levels (needs ffm
 | `src/audio/` | Soundtrack: DSP, instruments, music and the mix |
 | `src/fonts/` | Subsets of DejaVu Sans and Sans Mono, so text renders the same everywhere ([licence](src/fonts/LICENSE)) |
 | `tts.js`, [`voice/`](voice) | The narration: Gemini TTS per line with a transcription check and word timings, and the clips it made |
+| `render.js` | The final render: frames from headless Chromium plus the soundtrack, encoded with ffmpeg |
 | `frames.js`, `mix.js` | Checks: frames and contact sheets in headless Chromium, and the soundtrack in Node |
 | [`reports/Xerox Alto explainer research.md`](reports/Xerox%20Alto%20explainer%20research.md) | The research report: history, hardware, software, networking and printing, influence, restoration, conflicting sources, myths, story hooks and numbers to double-check |
 | [`research_notes/`](research_notes) | Raw research notes: the general round, and a processor deep dive from primary sources |
