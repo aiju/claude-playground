@@ -3,8 +3,8 @@
 A music video for a Heart Sutra song (Japanese verses, Sanskrit chant) made from
 watercolour inkblots. It is painted live in the browser by WebGL shaders: folded
 Rorschach blots, gold ink on indigo paper, sumi-e bamboo, a lotus at sunrise and
-a closing ensō. The lyrics are brushed onto the page in calligraphic Japanese and
-Devanagari as they're sung.
+a closing ensō. The lyrics write themselves onto the page as they're sung,
+stroke by stroke in calligraphic Japanese and letter by letter in Devanagari.
 
 The scene-by-scene plan is in [OUTLINE.md](OUTLINE.md).
 
@@ -15,7 +15,23 @@ node tools/serve.mjs      # then open http://localhost:8080
 ```
 
 Click or press space to play. ← and → skip 5 s, and F goes fullscreen. You can
-start somewhere specific with `?t=83`. You'll need a browser with WebGL2.
+jump to a scene from the menu or start at a time with `?t=83`. There's a
+resolution menu if a scene stutters. You'll need a browser with WebGL2.
+
+`node tools/build-preview.mjs` packages the player into `out/preview/` so it can
+be hosted as a static page.
+
+## Render the video
+
+```sh
+npm install
+node tools/render.mjs                                   # the whole song, into out/heart-sutra.mp4
+node tools/render.mjs --from 209.5 --to 226 --out out/shot-18.mp4
+node tools/render.mjs --gpu --fps 60                    # use this machine's GPU
+```
+
+You need ffmpeg (or set `FFMPEG=/path/to/ffmpeg`). Without `--gpu` it renders
+on the CPU with SwiftShader, at about 2 s per 1080p frame.
 
 ## Render stills
 
@@ -38,10 +54,12 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/glsl/composite.js` | Builds a shader per scene (or per pair during a transition): paint, transition, lyric ink, paper |
 | `src/timeline.js` | Scene list and transitions |
 | `src/lyrics.js` | Lyric cues: time, text, placement, ink |
-| `src/text.js` | Brushes lyrics into a canvas character by character; the shader turns that into ink |
+| `src/text.js` | Lays out the lyrics and paces the writing to the singing, syllable by syllable |
+| `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: KanjiVG stroke order for Japanese, a flowing fill with the headline last for Devanagari |
+| `src/strokes.js` | Stroke paths for the lyric characters, generated from KanjiVG by `tools/fetch-strokes.mjs` |
 | `src/audio.js` | Decodes the song and finds loudness, drum hits and the beat for the visuals to react to |
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
-| `tools/` | Static server, still renderer, font fetcher |
+| `tools/` | Static server, still and video renderers, preview packager, font and stroke fetchers |
 
 Paint is tracked as optical density, so washes glaze over each other the way
 transparent pigment does. Gold, white gouache and the lyrics sit on top as
@@ -55,3 +73,7 @@ deterministic.
   [Yatra One](https://fonts.google.com/specimen/Yatra+One), both under the SIL
   Open Font License. They're cut down to just the characters in the lyrics; run
   `node tools/fetch-fonts.mjs` after changing them.
+- `src/strokes.js`: stroke order from [KanjiVG](https://kanjivg.tagaini.net) by
+  Ulrich Apel and contributors, under CC BY-SA 3.0. Run
+  `node tools/fetch-strokes.mjs` after changing the lyrics. If you publish the
+  video, credit KanjiVG for the stroke-order data.

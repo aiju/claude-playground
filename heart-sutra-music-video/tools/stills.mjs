@@ -2,13 +2,13 @@
 //
 //   node tools/stills.mjs 83.5 150 212      # frames at those times
 //   node tools/stills.mjs --storyboard      # one frame per storyboard shot
-//   options: --out dir (default out/stills), --w 1920 --h 1080
+//   options: --out dir (default out/stills), --w 1920 --h 1080, --gpu
 //
-// Needs Chromium; set CHROMIUM to its path if Playwright can't find one.
 
 import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { serve } from './serve.mjs';
+import { launchOptions } from './browser.mjs';
 
 export const STORYBOARD = [
   [6.0, 'singing-bowl'],
@@ -43,10 +43,7 @@ const shots = board ? STORYBOARD : args.filter(a => !a.startsWith('--')).map(t =
 
 await mkdir(out, { recursive: true });
 const server = await serve(8765);
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = await chromium.launch(launchOptions({ gpu: args.includes('--gpu') }));
 const page = await browser.newPage({ viewport: { width: w, height: h } });
 page.on('console', m => console.log('[page]', m.text()));
 page.on('pageerror', e => console.error('[page error]', e.message));

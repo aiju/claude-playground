@@ -25,7 +25,7 @@ uniform float uLevel, uPulse, uBeat;
 uniform vec2 uHits[8];
 uniform float uFade;          // 0 = paper white, 1 = full picture (start and end)
 uniform sampler2D uText;      // lyric glyphs: colour + alpha
-uniform sampler2D uTextCtl;   // r: reveal, g: wetness, b: gold
+uniform sampler2D uTextCtl;   // r: how much is written, g: how wet it is
 `;
 
 const main = /* glsl */ `
@@ -74,10 +74,12 @@ void main() {
     float bleed = blurA * vis * (0.12 + 0.35 * ctl.g);
     float grain = 0.86 + 0.14 * tooth(p * 1.1);
     vec3 ink = tc.rgb;   // uploaded with straight (not premultiplied) alpha
-    vec3 col = ink * (1.0 - 0.35 * rim);
+    // fresh ink is darker and glossier until it soaks in
+    vec3 col = ink * (1.0 - 0.35 * rim) * (1.0 - 0.3 * ctl.g);
     vec3 halo = ink;
-    if (ctl.b > 0.5) {
-      col = mix(goldCol(p * 1.5, uTime), ink, 0.25) * (1.0 - 0.4 * rim);
+    bool gold = ink.r - ink.b > 0.3 && ink.g > 0.5;
+    if (gold) {
+      col = mix(goldCol(p * 1.5, uTime), ink, 0.25) * (1.0 - 0.4 * rim) * (1.0 + 0.2 * ctl.g);
       halo = vec3(0.3, 0.2, 0.07);
     }
     addOpaque(P, halo, bleed * 0.5);

@@ -1,12 +1,13 @@
 // Draws the lyrics that are on screen at time t into two canvases the
 // shader reads:
 //   colour: the glyphs in their ink colour
-//   control: r = how far each character has been brushed in (0..1),
-//            g = how wet it still is, b = 1 for gold ink
-// Characters are brushed in one after another, top to bottom, and dissolve
-// when the line ends; the shader turns those values into ink.
+//   control: r = how much of each pixel has been written, g = how wet it is
+// Each line is written at the pace it's sung: characters one after another,
+// stroke by stroke (see writing.js). When the line ends it dissolves back
+// into the paper.
 
-import { CUES } from './lyrics.js';
+import { CUES, moraOf, syllables } from './lyrics.js';
+import { charMap, lineMap, writeControl, MAP_FONT } from './writing.js';
 
 export const FONT_JA = 'BrushJa';
 export const FONT_SA = 'BrushSa';
@@ -20,18 +21,53 @@ const INKS = {
 };
 
 const SMALL_KANA = new Set('ゃゅょっぁぃぅぇぉャュョッァィゥェォ');
+const SECONDS_PER_MORA = 0.34;
 
+// Fonts are fetched and handed over as bytes, which works under strict
+// content security policies too.
 export async function loadFonts(base = '') {
-  const faces = [
-    new FontFace(FONT_JA, `url(${base}fonts/brush-ja.ttf)`),
-    new FontFace(FONT_SA, `url(${base}fonts/devanagari.ttf)`),
-  ];
-  for (const f of faces) { await f.load(); document.fonts.add(f); }
+  for (const [name, file] of [[FONT_JA, 'fonts/brush-ja.ttf'], [FONT_SA, 'fonts/devanagari.ttf']]) {
+    const data = await (await fetch(base + file)).arrayBuffer();
+    const face = new FontFace(name, data);
+    await face.load();
+    document.fonts.add(face);
+  }
 }
 
 const clamp01 = x => Math.min(1, Math.max(0, x));
-const smooth = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
 const rgb = (r, g, b, a = 1) => `rgba(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)},${a})`;
+
+const paintChar = ch => (ctx, size) => { ctx.font = `${size}px ${FONT_JA}`; ctx.fillText(ch, 0, 0); };
+const paintLine = text => (ctx, size) => { ctx.font = `${size}px ${FONT_SA}`; ctx.fillText(text, 0, size * 0.1); };
+
+let measurer = null;
+function widthEm(text) {
+  measurer = measurer || new OffscreenCanvas(8, 8).getContext('2d');
+  measurer.font = `100px ${FONT_SA}`;
+  return measurer.measureText(text).width / 100;
+}
+
+// Build every time map up front so playback never stalls on one.
+export async function prepareWriting(onProgress = () => {}) {
+  const jobs = [];
+  const seen = new Set();
+  for (const cue of CUES) {
+    if (cue.script === 'sa') {
+      if (!seen.has(cue.text)) { seen.add(cue.text); jobs.push(() => lineMap(cue.text, paintLine(cue.text), widthEm(cue.text))); }
+    } else {
+      for (const ch of cue.text) {
+        if (ch === ' ' || seen.has(ch)) continue;
+        seen.add(ch);
+        jobs.push(() => charMap(ch, paintChar(ch)));
+      }
+    }
+  }
+  for (let i = 0; i < jobs.length; i++) {
+    jobs[i]();
+    if (i % 4 === 3) { onProgress((i + 1) / jobs.length); await new Promise(r => setTimeout(r, 0)); }
+  }
+  onProgress(1);
+}
 
 export class TextLayer {
   constructor(width, height) {
@@ -40,6 +76,7 @@ export class TextLayer {
     this.control = new OffscreenCanvas(width, height);
     this.c = this.colour.getContext('2d');
     this.k = this.control.getContext('2d');
+    this.scratch = new Map();   // map size -> { canvas, ctx, img }
   }
 
   draw(t) {
@@ -52,52 +89,50 @@ export class TextLayer {
     }
   }
 
-  // Positions of each character: [{ch, x, y, rot}], in pixels.
+  // Positions of each character, in pixels, plus when each one is written.
   layout(cue) {
     const { w, h } = this;
     const size = cue.size * h;
     const out = [];
     if (cue.script === 'sa') {
-      out.push({ ch: cue.text, x: cue.x * w, y: cue.y * h, rot: 0, whole: true });
-      return { size, glyphs: out };
-    }
-    const chars = [...cue.text];
-    if (cue.dir === 'h') {
-      const adv = size * 1.04, gap = size * 0.5;
-      let total = 0;
-      for (const ch of chars) total += ch === ' ' ? gap : adv;
-      let x = cue.x * w - total / 2;
-      for (const ch of chars) {
-        if (ch === ' ') { x += gap; continue; }
-        out.push({ ch, x: x + adv / 2, y: cue.y * h, rot: 0 });
-        x += adv;
-      }
+      out.push({ ch: cue.text, x: cue.x * w, y: cue.y * h, whole: true, units: syllables(cue.text), gap: 0 });
     } else if (cue.dir === 'ring') {
-      const r = cue.radius * h, adv = size * 1.12, gap = size * 0.6;
-      let a = 0;
-      for (const ch of chars) {
-        if (ch === ' ') { a += gap / r; continue; }
-        out.push({ ch, a: a + adv / 2 / r });
-        a += adv / r;
+      const r = cue.radius * h, adv = size * 1.12, space = size * 0.6;
+      let a = 0, gap = 0;
+      for (const ch of cue.text) {
+        if (ch === ' ') { a += space / r; gap += 0.6; continue; }
+        out.push({ ch, a: a + adv / 2 / r, units: moraOf(ch), gap });
+        a += adv / r; gap = 0;
       }
       for (const g of out) g.a -= a / 2;   // centre the text on the top of the ring
+      this.schedule(cue, out);
       return { size, glyphs: out, ring: { cx: cue.x * w, cy: cue.y * h, r } };
+    } else if (cue.dir === 'h') {
+      const adv = size * 1.04, space = size * 0.5;
+      let total = 0;
+      for (const ch of cue.text) total += ch === ' ' ? space : adv;
+      let x = cue.x * w - total / 2, gap = 0;
+      for (const ch of cue.text) {
+        if (ch === ' ') { x += space; gap += 0.6; continue; }
+        out.push({ ch, x: x + adv / 2, y: cue.y * h, units: moraOf(ch), gap });
+        x += adv; gap = 0;
+      }
     } else {
       // vertical columns, right to left, breaking at spaces when a column is full
-      const adv = size * 1.06, gap = size * 0.42;
+      const adv = size * 1.06, space = size * 0.42;
       const maxY = (cue.mirror ? cue.mirror - 0.04 : 0.92) * h;
       const phrases = cue.text.split(' ');
       let x = cue.x * w, y = cue.y * h;
       for (let i = 0; i < phrases.length; i++) {
         const len = [...phrases[i]].length * adv;
-        if (i > 0 && y + gap + len > maxY) { x -= size * 1.35; y = cue.y * h; }
-        else if (i > 0) y += gap;
-        for (const ch of phrases[i]) {
+        if (i > 0 && y + space + len > maxY) { x -= size * 1.35; y = cue.y * h; }
+        else if (i > 0) y += space;
+        [...phrases[i]].forEach((ch, j) => {
           let gx = x, gy = y + adv / 2;
           if (SMALL_KANA.has(ch)) { gx += size * 0.12; gy -= size * 0.12; }
-          out.push({ ch, x: gx, y: gy, rot: 0 });
+          out.push({ ch, x: gx, y: gy, units: moraOf(ch), gap: i > 0 && j === 0 ? 0.6 : 0 });
           y += adv;
-        }
+        });
       }
       // columns flow leftwards from the anchor; keep the block on screen
       const minX = Math.min(...out.map(g => g.x));
@@ -106,27 +141,34 @@ export class TextLayer {
         if (shift > 0) for (const g of out) g.x += shift;
       }
     }
+    this.schedule(cue, out);
     return { size, glyphs: out };
+  }
+
+  // Spread the writing over the sung part of the line, weighted by syllables.
+  schedule(cue, glyphs) {
+    if (cue.seal) { glyphs[0].w0 = cue.t0; glyphs[0].w1 = cue.t0 + 0.15; return; }
+    const units = glyphs.reduce((s, g) => s + g.units + g.gap, 0);
+    const [s0, s1] = cue.sing || [cue.t0, cue.t0 + Math.min(Math.max(0.6, 0.85 * (cue.t1 - cue.t0) - 0.3), units * SECONDS_PER_MORA)];
+    let acc = 0;
+    for (const g of glyphs) {
+      acc += g.gap;
+      g.w0 = s0 + (s1 - s0) * acc / units;
+      acc += g.units;
+      g.w1 = Math.max(g.w0 + 0.22, s0 + (s1 - s0) * acc / units);
+    }
   }
 
   drawCue(cue, t) {
     const { c, k, h } = this;
     const L = cue._layout || (cue._layout = this.layout(cue));
-    const n = L.glyphs.length;
     const dur = cue.t1 - cue.t0;
-    const reveal = Math.min(2.6, dur * 0.42);
-    const step = n > 1 ? reveal / n : 0;
     const out = clamp01((cue.t1 - t) / 0.9);
     const ink = INKS[cue.ink] || INKS.sumi;
     const alpha = cue.echo ? 0.7 : 1;
-    const gold = cue.ink === 'gold' ? 1 : 0;
     // a slow drift over the life of the line, like a camera moving past
-    const life = (t - cue.t0) / dur;
-    const drift = (life - 0.5) * h * 0.012;
-
-    const fontFor = cue.script === 'sa' ? FONT_SA : FONT_JA;
-    c.font = `${L.size}px ${fontFor}`;
-    k.font = c.font;
+    const drift = ((t - cue.t0) / dur - 0.5) * h * 0.012;
+    c.font = `${L.size}px ${cue.script === 'sa' ? FONT_SA : FONT_JA}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
 
@@ -140,14 +182,12 @@ export class TextLayer {
       }
       const pa = flip < 0 ? 0.32 : 1;
       L.glyphs.forEach((g, i) => {
-        const t0 = cue.t0 + i * step;
-        const prog = clamp01((t - t0) / 0.55);
-        if (prog <= 0) return;
-        const wet = 1 - smooth((t - t0) / 0.9);
+        if (t < g.w0) return;
+        const prog = clamp01((t - g.w0) / (g.w1 - g.w0));
+        const dry = clamp01((t - g.w1) / 1.2);
         let x, y, rot = 0;
         if (L.ring) {
-          const spin = (t - cue.t0) * 0.05;
-          const a = g.a + spin - Math.PI / 2;
+          const a = g.a + (t - cue.t0) * 0.05 - Math.PI / 2;
           x = L.ring.cx + Math.cos(a) * L.ring.r;
           y = L.ring.cy + Math.sin(a) * L.ring.r;
           rot = a + Math.PI / 2;
@@ -156,37 +196,30 @@ export class TextLayer {
         }
         let presence = out;
         if (cue.unravel) {
-          const age = Math.max(0, t - (cue.t0 + reveal + 1.2 + i * 0.28));
+          const lineDone = L.glyphs[L.glyphs.length - 1].w1;
+          const age = Math.max(0, t - (lineDone + 1.0 + i * 0.28));
           x += Math.pow(age, 1.6) * h * 0.03;
           y -= Math.pow(age, 1.4) * h * 0.012 * Math.sin(i * 1.7 + 1);
           rot += age * 0.25 * Math.sin(i * 2.3);
           presence *= clamp01(1 - age / 3.5);
         }
-        this.glyph(g, x, y, rot, L.size, prog, presence, wet, ink, alpha * pa, gold, cue);
+        this.glyph(cue, g, x, y, rot, L.size, prog, presence, dry, ink, alpha * pa);
       });
       c.restore(); k.restore();
     }
   }
 
-  glyph(g, x, y, rot, size, prog, presence, wet, ink, alpha, gold, cue) {
+  glyph(cue, g, x, y, rot, size, prog, presence, dry, ink, alpha) {
     const { c, k } = this;
     c.save(); k.save();
     c.translate(x, y); k.translate(x, y);
     if (rot) { c.rotate(rot); k.rotate(rot); }
-    const s = 1 + 0.05 * wet;
-    c.scale(s, s);
-
-    let bw, bh;
-    if (g.whole) {
-      bw = c.measureText(g.ch).width * 1.1 + size * 0.4;
-      bh = size * 1.7;
-    } else {
-      bw = size * 1.3; bh = size * 1.3;
-    }
 
     if (cue.seal) {
-      // a carved vermilion seal: red block with the glyph cut out of it
+      // a carved vermilion seal, stamped all at once: red block, glyph cut out
       const r = size * 0.62;
+      const s = 1 + 0.08 * (1 - prog);
+      c.scale(s, s);
       c.fillStyle = rgb(...ink, alpha);
       c.beginPath();
       c.roundRect(-r, -r, 2 * r, 2 * r, r * 0.12);
@@ -195,22 +228,34 @@ export class TextLayer {
       c.fillStyle = '#000';
       c.fillText(g.ch, 0, size * 0.04);
       c.globalCompositeOperation = 'source-over';
-      bw = bh = 2.4 * r;
-    } else {
-      c.fillStyle = rgb(...ink, alpha);
-      c.fillText(g.ch, 0, g.whole ? size * 0.1 : 0);
+      k.fillStyle = rgb(prog * presence, 0.4 * (1 - dry), 0);
+      k.fillRect(-1.2 * r, -1.2 * r, 2.4 * r, 2.4 * r);
+      c.restore(); k.restore();
+      return;
     }
 
-    // control: reveal sweeps top to bottom (left to right for Devanagari)
-    const v0 = clamp01(prog * 1.6) * presence;
-    const v1 = clamp01(prog * 1.6 - 0.6) * presence;
-    const grad = g.whole
-      ? k.createLinearGradient(-bw / 2, 0, bw / 2, 0)
-      : k.createLinearGradient(0, -bh / 2, 0, bh / 2);
-    grad.addColorStop(0, rgb(v0, wet, gold));
-    grad.addColorStop(1, rgb(v1, wet, gold));
-    k.fillStyle = grad;
-    k.fillRect(-bw / 2, -bh / 2, bw, bh);
+    c.fillStyle = rgb(...ink, alpha);
+    c.fillText(g.ch, 0, g.whole ? size * 0.1 : 0);
+
+    const map = g.whole ? lineMap(g.ch, paintLine(g.ch), widthEm(g.ch)) : charMap(g.ch, paintChar(g.ch));
+    const sc = size / MAP_FONT;
+    const dw = map.w * sc, dh = map.h * sc;
+    if (prog >= 1 && dry >= 1) {
+      k.fillStyle = rgb(presence, 0, 0);
+      k.fillRect(-dw / 2, -dh / 2, dw, dh);
+    } else {
+      const key = `${map.w}x${map.h}`;
+      let s = this.scratch.get(key);
+      if (!s) {
+        const canvas = new OffscreenCanvas(map.w, map.h);
+        const ctx = canvas.getContext('2d');
+        s = { canvas, ctx, img: ctx.createImageData(map.w, map.h) };
+        this.scratch.set(key, s);
+      }
+      writeControl(map, s.img, prog, presence, dry);
+      s.ctx.putImageData(s.img, 0, 0);
+      k.drawImage(s.canvas, -dw / 2, -dh / 2, dw, dh);
+    }
     c.restore(); k.restore();
   }
 }

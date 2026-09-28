@@ -14,9 +14,10 @@ estimates and will be tightened once the look is agreed.
   (intro to pre-chorus). Just before the first chorus the indigo rinses away,
   leaving white washi and full watercolour. At the end everything drains back to
   bare paper and a single ensō.
-- **Lyrics are brushed in, not typed.** Each character appears top to bottom,
-  still wet (bleeding slightly and wobbling). When its line ends it dissolves into
-  the paper. Japanese is mostly vertical (縦書き) and moves around the frame from
+- **Lyrics write themselves as they're sung.** Japanese characters are written
+  stroke by stroke in the proper stroke order, and Devanagari letter by letter
+  with the headline drawn across last. The ink is wet as it goes down, and when
+  a line ends it dissolves into the paper. Japanese is mostly vertical (縦書き) and moves around the frame from
   line to line. Sanskrit is in Devanagari, set horizontally. The sutra quotations
   that are sung as kana readings (しきそくぜくう, ふしょう ふめつ, ぎゃてい…) are
   shown as their kanji: 色即是空, 不生不滅, 羯諦…
@@ -42,8 +43,8 @@ About 136 BPM, 4:18. Section boundaries were found from the audio.
 | 2:03 | Verse 2 |
 | 2:31 | Bridge (call and response) |
 | 2:49 | Build |
-| 3:02 | Climax |
-| 3:28 | Final chorus |
+| 3:02 | Climax (sung to the chorus melody) |
+| 3:28 | Final chorus (a few held notes, then 色即是空 at about 3:31) |
 | 4:00 | Outro: bells |
 
 ## Shots
@@ -178,12 +179,12 @@ the foreground, and every accent bursts gold dust outwards.
 
 ### Final chorus
 
-**18 · Form is emptiness II** 3:28–3:42 📷
+**18 · Form is emptiness II** 3:31–3:44 📷
 *色即是空 / 空即是色*, *रूपं शून्यता शून्यतैव रूपम्*.
 The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
 never the same.
 
-**19 · Unravelling** 3:42–3:50 📷
+**19 · Unravelling** 3:44–3:50 📷
 *彼岸の 風に 私は ほどける*, vertical, right. The characters themselves drift
 apart after they're written.
 A robed figure stands in a pale dawn, and the wind from the other shore takes it

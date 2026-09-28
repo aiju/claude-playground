@@ -34,17 +34,27 @@ export class Renderer {
     this.texCtl = this.makeTexture(1, false);
   }
 
-  program(a, b) {
-    const key = b == null ? `${a}` : `${a}>${b}`;
-    let p = this.programs.get(key);
-    if (p) return p;
+  // Start compiling a program without waiting for the driver.
+  compileAsync(a, b) {
     const gl = this.gl;
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fragmentFor(a, b));
+    gl.compileShader(fs);
     const prog = gl.createProgram();
     gl.attachShader(prog, this.vs);
-    gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, fragmentFor(a, b)));
+    gl.attachShader(prog, fs);
     gl.bindAttribLocation(prog, 0, 'aPos');
     gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    return { prog, fs };
+  }
+
+  // Check a compiled program and look up its uniforms.
+  finalize(key, { prog, fs }) {
+    const gl = this.gl;
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      const log = gl.getShaderInfoLog(fs) || gl.getProgramInfoLog(prog);
+      throw new Error(`shader ${key} failed to build:\n${log}`);
+    }
     const u = {};
     const n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < n; i++) {
@@ -54,9 +64,40 @@ export class Renderer {
     gl.useProgram(prog);
     gl.uniform1i(u.uText, 0);
     gl.uniform1i(u.uTextCtl, 1);
-    p = { prog, u };
+    const p = { prog, u };
     this.programs.set(key, p);
     return p;
+  }
+
+  program(a, b) {
+    const key = b == null ? `${a}` : `${a}>${b}`;
+    return this.programs.get(key) || this.finalize(key, this.compileAsync(a, b));
+  }
+
+  // Compile a list of [a, b] programs ahead of time, in parallel where the
+  // driver allows, so playback never stalls on a compile.
+  async warm(keys, onProgress = () => {}) {
+    const gl = this.gl;
+    const ext = gl.getExtension('KHR_parallel_shader_compile');
+    const todo = keys
+      .map(([a, b]) => ({ key: b == null ? `${a}` : `${a}>${b}`, a, b }))
+      .filter((k, i, all) => !this.programs.has(k.key) && all.findIndex(o => o.key === k.key) === i);
+    if (ext) {
+      const pending = todo.map(k => ({ ...k, job: this.compileAsync(k.a, k.b) }));
+      for (;;) {
+        const ready = pending.filter(p => gl.getProgramParameter(p.job.prog, ext.COMPLETION_STATUS_KHR)).length;
+        onProgress(ready / pending.length);
+        if (ready === pending.length) break;
+        await new Promise(r => setTimeout(r, 30));
+      }
+      for (const p of pending) this.finalize(p.key, p.job);
+    } else {
+      for (let i = 0; i < todo.length; i++) {
+        this.finalize(todo[i].key, this.compileAsync(todo[i].a, todo[i].b));
+        onProgress((i + 1) / todo.length);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
   }
 
   makeTexture(unit, mip) {

@@ -40,7 +40,7 @@ export const CUES = [
 
   // Chorus
   { t0: 79.0, t1: 86.2, text: '色即是空', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi', sung: 'しきそくぜくう' },
-  { t0: 80.8, t1: 86.2, text: '空即是色', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi', sung: 'くうそくぜしき' },
+  { t0: 82.0, t1: 86.2, text: '空即是色', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi', sung: 'くうそくぜしき' },
   { t0: 85.2, t1: 91.6, text: 'रूपं शून्यता शून्यतैव रूपम्', script: 'sa', x: 0.5, y: 0.86, size: 0.075, ink: 'shu' },
   { t0: 91.0, t1: 98.2, text: 'この てのひらに 宇宙が 透ける', script: 'ja', dir: 'v', x: 0.86, y: 0.10, size: 0.068, ink: 'sumi' },
   { t0: 98.0, t1: 106.0, text: 'うまれず ほろびず 光は 巡る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
@@ -72,16 +72,45 @@ export const CUES = [
   { t0: 201.5, t1: 208.0, text: 'पारसंगते बोधि स्वाहा', script: 'sa', x: 0.7, y: 0.72, size: 0.075, ink: 'shu', echo: true },
 
   // Final chorus
-  { t0: 208.0, t1: 215.2, text: '色即是空', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi', sung: 'しきそくぜくう' },
-  { t0: 209.8, t1: 215.2, text: '空即是色', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi', sung: 'くうそくぜしき' },
-  { t0: 215.0, t1: 222.4, text: 'रूपं शून्यता शून्यतैव रूपम्', script: 'sa', x: 0.5, y: 0.14, size: 0.075, ink: 'shu' },
-  { t0: 222.5, t1: 230.6, text: '彼岸の 風に 私は ほどける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
+  { t0: 211.5, t1: 218.0, text: '色即是空', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi', sung: 'しきそくぜくう' },
+  { t0: 214.5, t1: 218.0, text: '空即是色', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi', sung: 'くうそくぜしき' },
+  { t0: 217.6, t1: 223.6, text: 'रूपं शून्यता शून्यतैव रूपम्', script: 'sa', x: 0.5, y: 0.14, size: 0.075, ink: 'shu' },
+  { t0: 223.8, t1: 230.6, text: '彼岸の 風に 私は ほどける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
   { t0: 230.5, t1: 240.4, text: 'うまれず ほろびず 詩は 巡る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 
   // Outro
   { t0: 241.0, t1: 248.5, text: 'बोधि स्वाहा', script: 'sa', x: 0.5, y: 0.78, size: 0.07, ink: 'sumi' },
   { t0: 249.5, t1: 257.8, text: 'ॐ', script: 'sa', x: 0.78, y: 0.72, size: 0.14, ink: 'shu', seal: true },
 ];
+
+// Roughly how many syllables (morae) each kanji is sung as here, so a line
+// can be written at the pace it's sung. Kana count one each.
+const MORA = {
+  深: 2, 智: 1, 慧: 1, 海: 2, 底: 2, 観: 1, 者: 2, 静: 2, 目: 1, 開: 2, 風: 2, 砂: 2,
+  五: 2, 何: 2, 失: 1, 得: 1, 満: 1, 空: 2, 色: 2, 即: 2, 是: 1, 宇: 1, 宙: 2, 透: 1,
+  光: 3, 巡: 2, 恐: 2, 鎖: 3, 夢: 2, 心: 3, 溶: 1, 向: 1, 岸: 2, 誰: 2, 呼: 1, 名: 1,
+  前: 2, 声: 2, 不: 1, 生: 2, 滅: 2, 垢: 1, 浄: 2, 増: 2, 減: 2, 羯: 1, 諦: 2, 波: 1,
+  羅: 1, 僧: 2, 菩: 1, 提: 1, 薩: 1, 婆: 1, 訶: 1, 彼: 1, 私: 3, 詩: 2,
+};
+const SMALL = new Set('ゃゅょぁぃぅぇぉャュョァィゥェォ');
+
+export function moraOf(ch) {
+  if (MORA[ch]) return MORA[ch];
+  if (SMALL.has(ch)) return 0.5;
+  return /[\u3040-\u30ff]/.test(ch) ? 1 : 2;
+}
+
+// Syllables in a Devanagari string: every vowel, written or inherent.
+export function syllables(text) {
+  const cps = [...text];
+  let n = 0;
+  cps.forEach((c, i) => {
+    const k = c.codePointAt(0);
+    const virama = cps[i + 1] === '\u094D';
+    if ((k >= 0x0915 && k <= 0x0939 && !virama) || (k >= 0x0904 && k <= 0x0914)) n++;
+  });
+  return Math.max(1, n);
+}
 
 // Every character the fonts need to cover.
 export function charset(script) {

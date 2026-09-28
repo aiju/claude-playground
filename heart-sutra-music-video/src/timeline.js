@@ -24,8 +24,8 @@ export const SCENES = [
   { name: 'Neither / nor',       t0: 150.7, scene: 14, tr: 0.8, style: 0 },
   { name: 'Crossing',            t0: 169.0, scene: 15, tr: 1.0, style: 1 },
   { name: 'The other shore',     t0: 182.4, scene: 16, tr: 0.8, style: 3 },
-  { name: 'Form is emptiness II', t0: 208.0, scene: 8, v: 1, tr: 1.5, style: 3 },
-  { name: 'Unravelling',         t0: 222.5, scene: 18, tr: 1.5, style: 1 },
+  { name: 'Form is emptiness II', t0: 211.5, scene: 8, v: 1, tr: 1.5, style: 3 },
+  { name: 'Unravelling',         t0: 223.8, scene: 18, tr: 1.5, style: 1 },
   { name: 'Wheel of light II',   t0: 230.5, scene: 10, v: 1, tr: 1.5, style: 3 },
   { name: 'Ensō',                t0: 240.5, scene: 20, tr: 2.0, style: 0 },
 ];

@@ -7,10 +7,19 @@ import { BPM } from './timeline.js';
 
 const RATE = 100;   // feature frames per second
 
-export async function loadAudio(url) {
-  const data = await (await fetch(url)).arrayBuffer();
-  const ctx = new OfflineAudioContext(2, 48000, 48000);
-  return ctx.decodeAudioData(data);
+// Tries each url in turn until one fetches and decodes (not every browser
+// decodes Opus, so a preview build may ship an mp3 instead).
+export async function loadAudio(urls) {
+  let last;
+  for (const url of [].concat(urls)) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`${url}: ${res.status}`);
+      const ctx = new OfflineAudioContext(2, 48000, 48000);
+      return await ctx.decodeAudioData(await res.arrayBuffer());
+    } catch (e) { last = e; }
+  }
+  throw new Error(`couldn't load the song (${last && last.message})`);
 }
 
 // Direct-form biquad, in place.
