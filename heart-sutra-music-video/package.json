@@ -1,0 +1,15 @@
+{
+  "name": "heart-sutra-music-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A watercolour inkblot music video, rendered in the browser with WebGL",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "stills": "node tools/stills.mjs",
+    "fonts": "node tools/fetch-fonts.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
