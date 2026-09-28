@@ -83,6 +83,33 @@ transparent pigment does. Gold, white gouache and the lyrics sit on top as
 opaque paint. Each frame depends only on the song time, so the offline render is
 deterministic.
 
+## Timing data
+
+Everything time-based lives in three files, all in song seconds:
+
+- **`src/alignment.js`**: when each lyric line is sung. `ALIGN` is keyed by
+  the line's sung text plus which occurrence it is (`'ぎゃてい ぎゃてい#1'`,
+  `'praj-nya pa-ra-mi-ta#3'`). Each entry has `start`, `end`, `conf`, `alt`,
+  `unsure`, `note` and `sylls`. `sylls` is every syllable's onset followed by
+  when the last syllable ends, so it holds N + 1 numbers for N syllables.
+  `OTHER_SINGING` lists singing that isn't a lyric line.
+- **`src/lyrics.js`**: the lines themselves. `t0`/`t1` is when a line is on
+  screen, and the text carries readings (`'深[ふか]き'`) or, for Sanskrit, a
+  hyphenated `roman`. Readings decide the syllables: small ゃゅょ join the kana
+  before them, and Sanskrit splits on hyphens and spaces. At import time
+  `lyrics.js` matches each line to its `ALIGN` entry and sets `cue.sylls`.
+  Lines marked `deco` (the skandha kanji) and the `seal` (the last ॐ) aren't
+  sung.
+- **`src/timeline.js`**: `SCENES` (`t0`, handover length `tr`, transition
+  `style`, and `beats`) and `SECTIONS`. Beats are the moments a scene acts on.
+  A scene's first four beats reach its shader in order as `k0` (starts) and
+  `k1` (ends) in scene time, so their order has meaning. For example, in
+  *Full and empty* beat 0 fills the bowl, beat 1 drains it and beat 2 rinses
+  the indigo away. Each beat's `label` says what it does.
+
+`src/schedule.js` turns a line into syllable times and character writing
+times. The video, through `text.js`, and the timing checker both use it.
+
 ## Assets
 
 - `audio/song.m4a`: the song (made with Suno).
