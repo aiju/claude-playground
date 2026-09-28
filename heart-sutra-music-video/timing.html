@@ -37,7 +37,7 @@
     --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24); --sel: #e070d8; --warn: #f0985e;
   }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
-  .wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 14px; }
+  .wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px calc(var(--dock-h, 110px) + 24px); display: grid; gap: 14px; }
   header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
   h1 { margin: 0; font-size: 20px; font-weight: 600; }
   header p { margin: 0; color: var(--ink-2); max-width: 80ch; }
@@ -96,6 +96,9 @@
   .legend ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
   .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
   @media (max-width: 640px) {
+    .dock .transport { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .dock .transport > * { flex: none; }
+    .dock .selbar:has(> span > .hint) { display: none; }
     .now { grid-template-columns: 1fr; }
     .now .hint { text-align: left; }
     .line { font-size: 24px; }
@@ -108,7 +111,12 @@
   #calibText { font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
   #calibText[hidden] { display: none; }
   .editbar .push { margin-left: auto; }
-  .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 36px; padding: 4px 12px;
+  /* the playback controls and the selection stay at the bottom of the window */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--rule);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08); padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .dock-in { max-width: 1480px; margin: 0 auto; display: grid; gap: 6px; }
+  .dock-edit { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+  .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 32px; padding: 2px 12px;
     border-left: 3px solid var(--sel); color: var(--ink-2); font-size: 13.5px; }
   .selbar b { color: var(--ink); font-weight: 600; }
   .selbar .t { font: 13px var(--mono); color: var(--ink); }
@@ -132,35 +140,7 @@
     <h1>Timing editor</h1>
     <p>Every syllable and event where the video currently places it, against the song, to correct by ear. Blue and orange blocks are when each syllable is sung, first measured by aligning the lyrics to the vocals; the grey spectrogram underneath is the actual singing. Drag anything to move it.</p>
   </header>
-  <div class="transport">
-    <button id="play" type="button">Loading…</button>
-    <span class="time" id="time">0:00.00 <small>/ 4:17.80</small></span>
-    <span class="group">Speed
-      <span class="seg" role="radiogroup" aria-label="Playback speed">
-        <label><input type="radio" name="speed" value="1" checked><span>1×</span></label>
-        <label><input type="radio" name="speed" value="0.75"><span>0.75×</span></label>
-        <label><input type="radio" name="speed" value="0.5"><span>0.5×</span></label>
-      </span>
-    </span>
-    <span class="group">Zoom
-      <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
-      <span id="zoomLabel">12 s</span>
-      <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
-    </span>
-    <span class="group" id="listen" hidden>Listen
-      <span class="seg" role="radiogroup" aria-label="What to listen to">
-        <label><input type="radio" name="listen" value="mix" checked><span>Full mix</span></label>
-        <label><input type="radio" name="listen" value="vocals"><span>Vocals only</span></label>
-      </span>
-    </span>
-    <label class="group"><input id="follow" type="checkbox" checked> Follow playhead</label>
-    <span class="loopchip" id="loopchip" hidden><span id="loopText"></span><button id="loopOff" type="button">Stop looping</button></span>
-    <span id="status">Loading the song…</span>
-  </div>
   <div class="editbar">
-    <button id="undo" type="button" disabled>Undo</button>
-    <button id="redo" type="button" disabled>Redo</button>
-    <span id="saveStatus">Connecting…</span>
     <label class="group"><input id="clicks" type="checkbox"> Click at each onset</label>
     <label class="group"><input id="replay" type="checkbox" checked> Replay after an edit</label>
     <span class="group">Tap offset <input id="tapOffset" type="number" step="5" value="0" aria-label="Tap offset in milliseconds"> ms
@@ -173,7 +153,6 @@
     <div class="lines" id="lines"></div>
     <div class="hint">click a syllable to hear it · click a line to loop it</div>
   </section>
-  <div class="selbar" id="selbar" aria-live="polite"></div>
   <div class="roll-wrap">
     <canvas id="roll" aria-label="Timeline of syllables, lyric lines, scenes and audio"></canvas>
     <div id="tip" hidden></div>
@@ -226,6 +205,41 @@
       </ul>
     </div>
   </section>
+</div>
+<div class="dock" id="dock">
+  <div class="dock-in">
+    <div class="selbar" id="selbar" aria-live="polite"></div>
+    <div class="transport">
+      <button id="play" type="button">Loading…</button>
+      <span class="time" id="time">0:00.00 <small>/ 4:17.80</small></span>
+      <span class="group">Speed
+        <span class="seg" role="radiogroup" aria-label="Playback speed">
+          <label><input type="radio" name="speed" value="1" checked><span>1×</span></label>
+          <label><input type="radio" name="speed" value="0.75"><span>0.75×</span></label>
+          <label><input type="radio" name="speed" value="0.5"><span>0.5×</span></label>
+        </span>
+      </span>
+      <span class="group">Zoom
+        <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+        <span id="zoomLabel">12 s</span>
+        <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+      </span>
+      <span class="group" id="listen" hidden>Listen
+        <span class="seg" role="radiogroup" aria-label="What to listen to">
+          <label><input type="radio" name="listen" value="mix" checked><span>Full mix</span></label>
+          <label><input type="radio" name="listen" value="vocals"><span>Vocals only</span></label>
+        </span>
+      </span>
+      <label class="group"><input id="follow" type="checkbox" checked> Follow playhead</label>
+      <span class="loopchip" id="loopchip" hidden><span id="loopText"></span><button id="loopOff" type="button">Stop looping</button></span>
+      <span id="status">Loading the song…</span>
+      <span class="dock-edit">
+        <button id="undo" type="button" disabled>Undo</button>
+        <button id="redo" type="button" disabled>Redo</button>
+        <span id="saveStatus">Connecting…</span>
+      </span>
+    </div>
+  </div>
 </div>
 <audio id="song" preload="auto">
   <source src="audio/song.m4a" type='audio/mp4; codecs="opus"'>

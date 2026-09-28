@@ -42,15 +42,21 @@ let SYLL = [], EVENTS = [];
 const eventRows = new Map();
 const LINE_ROW = 22, SYL_ROW = 42;
 
-function packRows() {
+// Rows in the lines lane don't overlap while the lines are on screen; rows in
+// the syllables lane only while they're sung, which needs far fewer.
+function pack(from, to, key) {
   const ends = [];
-  for (const L of [...LINES].sort((a, b) => a.cue.t0 - b.cue.t0)) {
+  for (const L of [...LINES].sort((a, b) => from(a) - from(b))) {
     let r = 0;
-    while (ends[r] !== undefined && ends[r] > L.cue.t0 - 0.05) r++;
-    ends[r] = L.cue.t1;
-    L.row = r;
+    while (ends[r] !== undefined && ends[r] > from(L) - 0.05) r++;
+    ends[r] = to(L);
+    L[key] = r;
   }
-  LINES.rows = ends.length;
+  return ends.length;
+}
+function packRows() {
+  LINES.rows = pack(L => L.cue.t0, L => L.cue.t1, 'row');
+  LINES.srows = pack(L => L.s.s0, L => L.s.s1, 'srow');
 }
 
 // Rebuilds what's drawn from the (possibly edited) timings. Rows are only
@@ -68,9 +74,9 @@ function refresh(rows = false) {
     e.row = eventRows.get(e.id);
   });
   if (rows) {
-    const before = LINES.rows;
+    const before = [LINES.rows, LINES.srows];
     packRows();
-    if (before !== undefined && before !== LINES.rows) layout();
+    if (before[0] !== undefined && (before[0] !== LINES.rows || before[1] !== LINES.srows)) layout();
   }
   if (loop && loop.line) { loop.a = Math.max(0, loop.line.s.s0 - 1); loop.b = Math.min(DURATION, loop.line.s.s1 + 1); }
 }
@@ -223,7 +229,7 @@ function layout() {
     ['moments', 40, 'Moments'],
     ['other', 20, 'Other singing'],
     ['lines', LINES.rows * LINE_ROW, 'Lines'],
-    ['syll', LINES.rows * SYL_ROW, 'Syllables'],
+    ['syll', LINES.srows * SYL_ROW, 'Syllables'],
     ['spec', 128, 'Audio'],
     ['hits', 38, 'Drums · level'],
   ];
@@ -675,7 +681,7 @@ function draw() {
     const now = clock.mode ? t : -1;
     for (const Ln of LINES) {
       if (xOf(Ln.s.s1) < LW || xOf(Ln.s.s0) > W) continue;
-      const ry = y + Ln.row * SYL_ROW;
+      const ry = y + Ln.srow * SYL_ROW;
       const col = Ln.sa ? C.sa : C.ja, soft = Ln.sa ? C['sa-soft'] : C['ja-soft'];
       const orig = ORIGINAL.lines[Ln.key];
       if (orig && orig.sylls && !same(orig.sylls, getUnit(`line:${Ln.key}`).sylls)) {
@@ -1338,7 +1344,7 @@ roll.addEventListener('pointerup', e => {
     const [t0, t1] = [tOf(Math.min(d.x, x)), tOf(Math.max(d.x, x))];
     const [y0, y1] = [Math.min(d.y, y), Math.max(d.y, y)];
     const items = SYLL.filter(s => sung(s.line.cue) && s.t1 > t0 && s.t0 < t1)
-      .filter(s => { const ry = lanes.syll.y + s.line.row * SYL_ROW; return ry + 36 >= y0 && ry + 17 <= y1; })
+      .filter(s => { const ry = lanes.syll.y + s.line.srow * SYL_ROW; return ry + 36 >= y0 && ry + 17 <= y1; })
       .map(s => ({ L: s.line, k: s.k }));
     select(items.length ? { kind: 'sylls', items, part: 'body' } : null);
     return;
@@ -1502,6 +1508,9 @@ async function download() {
 }
 
 // ---------------------------------------------------------------- start
+
+// keep room at the bottom of the page for the controls fixed there
+new ResizeObserver(([e]) => document.documentElement.style.setProperty('--dock-h', `${Math.ceil(e.target.getBoundingClientRect().height)}px`)).observe($('dock'));
 
 function frame() {
   if (clock.mode) {
