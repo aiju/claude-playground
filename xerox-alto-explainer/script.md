@@ -9,7 +9,7 @@ Facts come from the processor deep-dive notes in [`research_notes/Alto processor
 | | |
 | --- | --- |
 | Frame | 1080 × 1920, drawn at 540 × 960 and scaled up with nearest-neighbour |
-| Length | ~122 s: 331 words of narration take 110 s as generated (~180 wpm), and the gaps between lines add the rest (see [TTS notes](#tts-notes)) |
+| Length | 2:08: 331 words of narration take 110 s as generated (~180 wpm), and the pauses the pictures need add the rest (see [TTS notes](#tts-notes)) |
 | Palette | Ink on paper, plus the Alto's three mouse-button colours |
 | Voice | One narrator (Gemini TTS, voice Iapetus), brisk and dry, a little amused |
 
@@ -26,7 +26,7 @@ Patterns (solid, stripes, dots) tell apart tasks that share a colour.
 
 ## Narration and storyboard
 
-Section times are from the generated narration track (`node narration.js`), before the visuals have any say. Line IDs (N1…) are the units sent to TTS one at a time, so the visual timeline can be laid out from the measured clip lengths.
+Section times are where the preview player puts them; `src/timeline.js` sets the pause before each line. Line IDs (N1…) are the units sent to TTS one at a time, so the visual timeline can be laid out from the measured clip lengths.
 
 ### 1. Hook: first light (0:00–0:09)
 
@@ -81,7 +81,7 @@ Section times are from the generated narration track (`node narration.js`), befo
 - **Visual (N8):** Two buckets under clocks. The disk bucket has 1 slot and a fast drip (a word every ~10 µs); a red LATE lamp sits on it. The Ethernet bucket has 16 slots and a slow drip (a word every 5.44 µs, but 16 deep). The disk's flag always wins the encoder.
 - **Sound:** Each lane has its own pitch, and a task switch is a pitch jump. The disk is a sharp high blip, the Ethernet a softer blip.
 
-### 6. The screen eats the machine (1:11–1:34)
+### 6. The screen eats the machine (1:11–1:36)
 
 > **N9** The screen is a 606 by 808 bitmap — nearly half of main memory.
 >
@@ -108,7 +108,7 @@ Section times are from the generated narration track (`node narration.js`), befo
   - The grid then shrinks into one line of a whole field and repeats fast down the portrait frame, so the screen fills with the stripe pattern.
 - **Sound:** The grid fill is sonified: each slot is a 4 ms tone whose pitch is its task's. The line sounds like a chord that's mostly blue with a dark ink tail, so you can literally hear your program getting the leftovers.
 
-### 7. Everything else is microcode too (1:34–1:51)
+### 7. Everything else is microcode too (1:36–1:52)
 
 > **N12** Even DRAM refresh is microcode — and on its way through, that task counts the mouse.
 >
@@ -127,7 +127,7 @@ Rapid cuts, about 5 s each:
   - Then an 8-bit odometer (the refresh tick counter) is ANDed with a mask that gains one yellow `1` per collision, giving a red countdown bar.
 - **Sound:** The refresh is a soft yellow tick, the disk a chunky head click, the Ethernet a bit-chirp, and a collision a "bonk".
 
-### 8. Payoff (1:51–2:02)
+### 8. Payoff (1:52–2:07)
 
 > **N15** Switch the screen off, and programs run almost three times faster.
 >
@@ -141,7 +141,7 @@ Rapid cuts, about 5 s each:
 
 ## Trims and extras
 
-The narration is 331 words. As generated it's 110 s of speech and a 2:02 track with the gaps, a little over two minutes. To bring it under 120 s, cut in this order:
+The narration is 331 words, 110 s as generated, and the video runs 2:08 with the pauses. That's fine as it is. If it ever needs to be shorter, cut in this order:
 1. N13 (the disk checksum), −13 words.
 2. The last sentence of N5 (the Nova 1200 comparison), −6 words.
 3. In N7, "Each task has its own micro-PC", −6 words. The visual still shows it.
@@ -175,7 +175,8 @@ Optional lines if there's room, or for a longer cut:
 - **Prompt shape.** Given a plain "Read this as…" preamble, the model reads the preamble aloud. `tts.js` sends the style under `### DIRECTOR'S NOTES` and the line under `#### TRANSCRIPT` instead, and only the transcript gets spoken.
 - **Takes go wrong.** About one take in five fails: 11 of 55 so far, across both voices and the sampler. The model invents an opening ("Hey everybody. So if you've got a PC today…" three times on N7, which starts mid-thought; "Okay, so that's where the hardware meets the software." on N13), adds a leading "And", says the whole line twice, or reads out the audio profile. `tts.js` has `gemini-3.8-flash` transcribe each take and redoes any that don't match the line.
 - **Pronunciation.** `tts.js` sends "ALU" as A-L-U and "micro-PC" as micro-P-C. Everything else ("ORs", "Nova 1200", "2.94 megabits", `TASK`) came out right as written.
-- **Measured.** The lines run from 3.2 s (N15) to 11.8 s (N5), 110 s in all. With 0.35 s between lines and 0.8 s between sections, the narration track is 2:02. Charon was about 5 s quicker overall.
+- **Measured.** The lines run from 3.2 s (N15) to 11.8 s (N5), 110 s in all. Charon was about 5 s quicker overall.
+- **Word timings.** The pictures move on particular words ("register", "ALU op"…), so `tts.js` also asks `gemini-3.8-flash` when each word starts and ends. Its times drift a little towards the end of a clip, so they're stretched to the measured speech and snapped to the pauses in the audio; the result is within about a tenth of a second.
 
 ## Fact sheet
 

@@ -1,0 +1,141 @@
+<title>Task Zero Preview</title>
+<style>
+  /* Layout: the video in an ink bezel like the Alto's own portrait display, with the transport and notes beside it (stacked on phones). */
+  @font-face { font-family: 'DejaVu Sans Mono'; src: url('src/fonts/DejaVuSansMono-Bold.woff2') format('woff2'); font-weight: bold; }
+  @font-face { font-family: 'DejaVu Sans Mono'; src: url('src/fonts/DejaVuSansMono.woff2') format('woff2'); font-weight: normal; }
+  @font-face { font-family: 'DejaVu Sans'; src: url('src/fonts/DejaVuSans-Bold.woff2') format('woff2'); font-weight: bold; }
+  @font-face { font-family: 'DejaVu Sans'; src: url('src/fonts/DejaVuSans.woff2') format('woff2'); font-weight: normal; }
+
+  :root {
+    --paper: #eeebe1;
+    --ink: #141416;
+    --red: #d62c34;
+    --yellow: #f4b814;
+    --blue: #225cb0;
+    --bg: #e3dfd2;
+    --fg: #141416;
+    --muted: #5d5a51;
+    --rule: #141416;
+    --panel: #eeebe1;
+    --bezel: #141416;
+    --tab-bg: #141416;
+    --tab-fg: #eeebe1;
+    --mono: 'DejaVu Sans Mono', ui-monospace, Menlo, monospace;
+    --sans: 'DejaVu Sans', system-ui, -apple-system, sans-serif;
+    --step: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e0e10; --fg: #eeebe1; --muted: #a39f92; --rule: #eeebe1; --panel: #18181b;
+      --bezel: #000000; --tab-bg: #eeebe1; --tab-fg: #141416; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e0e10; --fg: #eeebe1; --muted: #a39f92; --rule: #eeebe1; --panel: #18181b;
+    --bezel: #000000; --tab-bg: #eeebe1; --tab-fg: #141416; color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); padding-inline: 16px; padding-block: 16px; box-sizing: border-box; }
+  * { box-sizing: border-box; }
+  button { font: inherit; color: inherit; }
+
+  .app { display: flex; gap: 24px; align-items: flex-start; justify-content: center; max-width: 1100px; margin: 0 auto; }
+  .screen { flex: none; background: var(--bezel); padding: 10px; border-radius: 6px; }
+  .screen canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: var(--paper);
+    height: min(calc(100dvh - 52px), 1100px); width: auto; aspect-ratio: 9 / 16; max-width: 100%; }
+  .panel { flex: 1 1 340px; min-width: 0; max-width: 460px; display: flex; flex-direction: column; gap: 18px; }
+
+  .tab { display: inline-block; background: var(--tab-bg); color: var(--tab-fg); font: bold 15px var(--mono); padding: 3px 8px; letter-spacing: 0.04em; }
+  .head { display: flex; flex-direction: column; gap: 6px; }
+  .head p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+  .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .btn { border: 2px solid var(--rule); background: var(--panel); padding: 5px 10px; font: bold 13px var(--mono); cursor: pointer; min-height: 34px; }
+  .btn:hover { background: var(--bg); }
+  .btn:focus-visible, .scrub:focus-visible, .sec:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .btn.play { background: var(--tab-bg); color: var(--tab-fg); min-width: 84px; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .time { font: bold 22px var(--mono); font-variant-numeric: tabular-nums; margin-left: auto; }
+  .time small { font-size: 13px; color: var(--muted); font-weight: normal; }
+
+  .scrub { position: relative; height: 44px; border: 2px solid var(--rule); background: var(--panel); cursor: pointer; touch-action: none; user-select: none; }
+  .scrub .seg { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--rule); font: bold 11px var(--mono); padding: 2px 4px; color: var(--muted); overflow: hidden; }
+  .scrub .seg.on { background: var(--bg); color: var(--fg); }
+  .scrub .tick { position: absolute; bottom: 0; width: 2px; height: 10px; background: var(--muted); }
+  .scrub .loop { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--yellow) 35%, transparent); pointer-events: none; }
+  .scrub .head-line { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: var(--red); pointer-events: none; }
+
+  .now { border-left: 4px solid var(--red); padding: 2px 0 2px 10px; display: flex; flex-direction: column; gap: 2px; min-height: 58px; }
+  .now .sec-name { font: bold 14px var(--mono); }
+  .now .said { color: var(--muted); overflow-wrap: anywhere; }
+  .now .said b { color: var(--fg); }
+
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .toggle[aria-pressed="false"] { color: var(--muted); border-style: dashed; }
+  .toggle .dot { display: inline-block; width: 9px; height: 9px; margin-right: 6px; vertical-align: 0; }
+
+  .sections { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--rule); }
+  .sec { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--rule) 25%, transparent); padding: 6px 2px; cursor: pointer; }
+  .sec:hover { background: var(--panel); }
+  .sec .n { font: bold 13px var(--mono); }
+  .sec .t { font: 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+  .sec.on { background: var(--panel); }
+  .sec.on .n { color: var(--red); }
+
+  .keys { color: var(--muted); font-size: 12.5px; margin: 0; }
+  .keys kbd { font: bold 11.5px var(--mono); border: 1px solid var(--muted); padding: 0 4px; color: var(--fg); }
+  .status { font: 12.5px var(--mono); color: var(--muted); min-height: 1.4em; }
+  .status.err { color: var(--red); }
+
+  @media (max-width: 760px) {
+    .app { flex-direction: column; align-items: stretch; }
+    .screen { align-self: center; max-width: 100%; }
+    .screen canvas { height: auto; width: min(100%, calc((100dvh - 180px) * 9 / 16)); }
+    .panel { max-width: none; }
+  }
+</style>
+
+<div class="app">
+  <div class="screen"><canvas id="video" width="540" height="960" aria-label="Video preview"></canvas></div>
+  <div class="panel">
+    <div class="head">
+      <div><span class="tab">TASK ZERO</span></div>
+      <p>Real-time preview of the Xerox Alto short. Every frame is drawn live from the timeline, so this is the video itself, not a render.</p>
+    </div>
+
+    <div class="transport">
+      <button class="btn play" id="play" disabled>Play</button>
+      <button class="btn" id="prev" title="Previous section ( [ )">◀ §</button>
+      <button class="btn" id="next" title="Next section ( ] )">§ ▶</button>
+      <span class="time" id="time">0:00.00 <small>/ 0:00</small></span>
+    </div>
+
+    <div class="scrub" id="scrub" tabindex="0" role="slider" aria-label="Position" aria-valuemin="0"></div>
+
+    <div class="now" aria-live="off">
+      <span class="sec-name" id="sec-name">§1 First light</span>
+      <span class="said" id="said">&nbsp;</span>
+    </div>
+
+    <div class="toggles">
+      <button class="btn toggle" id="t-voice" aria-pressed="true"><span class="dot" style="background: var(--red)"></span>Voice</button>
+      <button class="btn toggle" id="t-sfx" aria-pressed="true"><span class="dot" style="background: var(--yellow)"></span>Effects</button>
+      <button class="btn toggle" id="t-music" aria-pressed="true"><span class="dot" style="background: var(--blue)"></span>Music</button>
+      <button class="btn toggle" id="t-captions" aria-pressed="false">Captions</button>
+      <button class="btn toggle" id="t-loop" aria-pressed="false">Loop section</button>
+      <button class="btn" id="copy">Copy timestamp</button>
+    </div>
+    <div class="status" id="status">Loading…</div>
+
+    <ol class="sections" id="sections"></ol>
+
+    <p class="keys">
+      <kbd>Space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> 1 s (<kbd>Shift</kbd> 5 s) · <kbd>,</kbd><kbd>.</kbd> one frame ·
+      <kbd>[</kbd><kbd>]</kbd> or <kbd>1</kbd>–<kbd>8</kbd> sections · <kbd>L</kbd> loop · <kbd>C</kbd> captions ·
+      <kbd>V</kbd><kbd>E</kbd><kbd>M</kbd> voice, effects, music
+    </p>
+  </div>
+</div>
+
+<script type="module" src="src/player.js"></script>

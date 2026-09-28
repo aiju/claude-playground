@@ -7,9 +7,10 @@ import { PALETTE_LIST } from './palette.js';
 
 export const VW = 540; // virtual width
 export const VH = 960; // virtual height (9:16)
+export const FPS = 30;
 
-export function makeVirtual() {
-  const c = document.createElement('canvas');
+export function makeVirtual(canvas) {
+  const c = canvas || document.createElement('canvas');
   c.width = VW;
   c.height = VH;
   const ctx = c.getContext('2d', { willReadFrequently: true });
@@ -17,42 +18,42 @@ export function makeVirtual() {
   return { canvas: c, ctx };
 }
 
-// Snap every pixel to the nearest palette colour. Weighted RGB distance keeps
-// yellow from swallowing light greys.
-export function quantize(ctx) {
-  const img = ctx.getImageData(0, 0, VW, VH);
-  const d = img.data;
-  const pal = PALETTE_LIST;
-  const cache = new Map();
-  for (let i = 0; i < d.length; i += 4) {
-    const key = (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
-    let best = cache.get(key);
-    if (best === undefined) {
-      // Unsaturated pixels (anti-aliased text and lines) snap to ink or paper
-      // by brightness, so edges never pick up a stray accent colour.
-      const mx = Math.max(d[i], d[i + 1], d[i + 2]);
-      const mn = Math.min(d[i], d[i + 1], d[i + 2]);
-      const neutral = mx - mn < 48;
-      let bd = Infinity;
-      for (let k = 0; k < pal.length; k++) {
-        if (neutral && k > 1) break;
-        const p = pal[k];
-        const dr = d[i] - p[0];
-        const dg = d[i + 1] - p[1];
-        const db = d[i + 2] - p[2];
-        const dist = 2 * dr * dr + 4 * dg * dg + 3 * db * db;
-        if (dist < bd) {
-          bd = dist;
-          best = k;
-        }
-      }
-      cache.set(key, best);
+// Which palette entry a colour snaps to. Weighted RGB distance keeps yellow
+// from swallowing light greys, and unsaturated pixels (anti-aliased text and
+// lines) snap to ink or paper by brightness, so edges never pick up a stray
+// accent colour.
+function nearest(r, g, b) {
+  const neutral = Math.max(r, g, b) - Math.min(r, g, b) < 48;
+  let best = 0;
+  let bd = Infinity;
+  for (let k = 0; k < PALETTE_LIST.length; k++) {
+    if (neutral && k > 1) break;
+    const [pr, pg, pb] = PALETTE_LIST[k];
+    const dist = 2 * (r - pr) ** 2 + 4 * (g - pg) ** 2 + 3 * (b - pb) ** 2;
+    if (dist < bd) {
+      bd = dist;
+      best = k;
     }
-    const p = pal[best];
-    d[i] = p[0];
-    d[i + 1] = p[1];
-    d[i + 2] = p[2];
-    d[i + 3] = 255;
+  }
+  return best;
+}
+
+// A lookup table over all 2^24 colours, filled in as colours turn up, so a
+// frame costs one table read per pixel. Entries hold palette index + 1.
+let LUT = null;
+const OUT = new Uint32Array(PALETTE_LIST.length + 1);
+PALETTE_LIST.forEach(([r, g, b], k) => (OUT[k + 1] = (255 << 24) | (b << 16) | (g << 8) | r));
+
+export function quantize(ctx) {
+  LUT ||= new Uint8Array(1 << 24);
+  const img = ctx.getImageData(0, 0, VW, VH);
+  // Little-endian RGBA: the low three bytes of each word are R, G, B.
+  const px = new Uint32Array(img.data.buffer);
+  for (let i = 0; i < px.length; i++) {
+    const key = px[i] & 0xffffff;
+    let k = LUT[key];
+    if (k === 0) k = LUT[key] = nearest(key & 255, (key >> 8) & 255, key >> 16) + 1;
+    px[i] = OUT[k];
   }
   ctx.putImageData(img, 0, 0);
 }
