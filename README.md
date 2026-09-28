@@ -8,6 +8,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 | --- | --- |
 | [glass-tower-hymn](glass-tower-hymn) | An orchestral instrumental in the style of the Ar tonelico II and Umineko openings, synthesized from scratch in JavaScript |
 | [sunken-bell-song](sunken-bell-song) | A layered orchestral, ethnic and electronic instrumental with choir, duduk and erhu, synthesized from scratch in JavaScript |
+| [xerox-alto-explainer](xerox-alto-explainer) | An explainer video about the Xerox Alto: research, story concepts and (eventually) JS-generated visuals |
 
 ## House rules
 
