@@ -12,7 +12,9 @@
 //         '深[ふか]き'; only the characters appear on screen.
 // roman:  for Sanskrit, the sung syllables, hyphenated as on the lyric sheet.
 // t0..t1 is when a line is on screen; when each syllable is sung comes from
-// alignment.js (measured), attached below as `sylls`.
+// alignment.js (measured), attached below as `sylls`. Each cue also gets a
+// `key` that names it in the timing editor: the alignment key for a sung
+// line, and 'deco:色#1' or 'seal:ॐ#1' for the others.
 //
 // The sutra quotations (色即是空…, 不生不滅…, 羯諦…) are sung as their
 // Japanese readings; they are shown in kanji so the screen carries the
@@ -98,13 +100,16 @@ export const CUES = [
 {
   const seen = {};
   for (const c of CUES) {
+    const name = c.deco ? `deco:${plain(c.text)}` : c.seal ? `seal:${plain(c.text)}`
+      : c.script === 'sa' ? c.roman : parseRuby(c.text).map(g => g.reading || g.ch).join('');
+    seen[name] = (seen[name] || 0) + 1;
+    c.key = `${name}#${seen[name]}`;
     if (c.deco || c.seal) continue;
-    const sung = c.script === 'sa' ? c.roman : parseRuby(c.text).map(g => g.reading || g.ch).join('');
-    seen[sung] = (seen[sung] || 0) + 1;
-    const a = ALIGN[`${sung}#${seen[sung]}`];
+    const a = ALIGN[c.key];
     if (!a) continue;
     c.align = a;
-    c.sylls = a.sylls || [a.start, a.end];
+    if (a.sylls) c.sylls = a.sylls;
+    else c.sing = [a.start, a.end];
   }
 }
 

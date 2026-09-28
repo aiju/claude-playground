@@ -7,8 +7,8 @@
 // transcription in `roman`: 'praj-nya pa-ra-mi-ta'.
 //
 // Timing, in order of preference:
-//   `sylls: [start1, start2, ..., startN, end]`  measured times for each
-//     syllable (N + 1 numbers: every start, then when the last one ends);
+//   `sylls: [[start1, end1], ..., [startN, endN]]`  measured times for each
+//     syllable (a syllable can end before the next one starts);
 //   `sing: [start, end]`  syllables spread evenly between the two;
 //   neither: spread from the cue's start at SECONDS_PER_MORA each, with a
 //     short rest at every space.
@@ -76,17 +76,21 @@ export function scheduleCue(cue) {
 
   const syllables = [];
   const count = glyphs.reduce((n, g) => n + g.morae.length, 0);
-  if (cue.sylls && cue.sylls.length === count + 1) {
-    // measured: every syllable has its own start; glyphs span their syllables
+  if (cue.sylls && cue.sylls.length === count) {
+    // measured: every syllable has its own start and end; a glyph is written
+    // from its first syllable's start to its last one's end (a glyph with no
+    // syllable of its own, a lone small kana, is written with the next one)
     let k = 0;
     glyphs.forEach((g, gi) => {
       const first = k;
-      g.morae.forEach(m => { syllables.push({ text: m, t0: cue.sylls[k], t1: cue.sylls[k + 1], glyph: gi }); k++; });
-      const a = cue.sylls[first], b = cue.sylls[Math.max(first + 1, k)];
+      g.morae.forEach(m => { const [t0, t1] = cue.sylls[k]; syllables.push({ text: m, t0, t1, glyph: gi }); k++; });
+      const own = cue.sylls[Math.min(first, count - 1)];
+      const a = first < count ? own[0] : own[1];
+      const b = k > first ? cue.sylls[k - 1][1] : first < count ? own[1] : a;
       g.w0 = a;
       g.w1 = Math.max(a + 0.22, b);
     });
-    return (cue._sched = { s0: cue.sylls[0], s1: cue.sylls[count], glyphs, syllables, measured: true });
+    return (cue._sched = { s0: cue.sylls[0][0], s1: cue.sylls[count - 1][1], glyphs, syllables, measured: true });
   }
   let acc = 0;
   glyphs.forEach((g, gi) => {
