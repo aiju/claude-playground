@@ -6,9 +6,12 @@
 // '深[ふか]き 智[ち]慧[え]の'. Sanskrit lines carry a hyphenated
 // transcription in `roman`: 'praj-nya pa-ra-mi-ta'.
 //
-// Unless a cue says otherwise (`sing: [start, end]`), its syllables are
-// spread evenly from the cue's start at SECONDS_PER_MORA each, with a short
-// rest at every space.
+// Timing, in order of preference:
+//   `sylls: [start1, start2, ..., startN, end]`  measured times for each
+//     syllable (N + 1 numbers: every start, then when the last one ends);
+//   `sing: [start, end]`  syllables spread evenly between the two;
+//   neither: spread from the cue's start at SECONDS_PER_MORA each, with a
+//     short rest at every space.
 
 const SMALL = new Set('ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ');
 export const SECONDS_PER_MORA = 0.34;
@@ -72,6 +75,19 @@ export function scheduleCue(cue) {
   const at = u => s0 + (s1 - s0) * u / total;
 
   const syllables = [];
+  const count = glyphs.reduce((n, g) => n + g.morae.length, 0);
+  if (cue.sylls && cue.sylls.length === count + 1) {
+    // measured: every syllable has its own start; glyphs span their syllables
+    let k = 0;
+    glyphs.forEach((g, gi) => {
+      const first = k;
+      g.morae.forEach(m => { syllables.push({ text: m, t0: cue.sylls[k], t1: cue.sylls[k + 1], glyph: gi }); k++; });
+      const a = cue.sylls[first], b = cue.sylls[Math.max(first + 1, k)];
+      g.w0 = a;
+      g.w1 = Math.max(a + 0.22, b);
+    });
+    return (cue._sched = { s0: cue.sylls[0], s1: cue.sylls[count], glyphs, syllables, measured: true });
+  }
   let acc = 0;
   glyphs.forEach((g, gi) => {
     acc += g.gap;
