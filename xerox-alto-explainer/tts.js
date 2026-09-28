@@ -1,11 +1,12 @@
 // Generates the narration with Gemini TTS, one clip per line of script.md.
-//   node tts.js [--voice Iapetus] [--lines N1,N3] [--out voice] [--takes 4 | --no-check] [--force]
+//   node tts.js [--voice Iapetus] [--lines N1,N3] [--out voice] [--takes 4 | --no-check] [--no-align | --realign] [--force]
 //
 // Writes <out>/N1.mp3 … and <out>/manifest.json with each clip's length and
 // where the speech starts and ends in it, so the timeline can be laid out from
 // the measured clips. Each clip is transcribed and compared with the script,
 // and a take that doesn't match is thrown away and generated again.
-// Lines that already have a clip that passed are skipped; --force redoes them.
+// Each clip that passes also gets word timings (--realign redoes them). Lines
+// that already have a clip that passed are skipped; --force redoes them.
 // The clips in voice/ are committed, because a new run gives different takes.
 // Needs ffmpeg for the MP3s.
 //
@@ -141,6 +142,86 @@ function measure({ rate, samples }) {
   return { duration: r3(samples.length / rate), speechStart: r3((first * win) / rate), speechEnd: r3(Math.min(samples.length, (last + 1) * win) / rate) };
 }
 
+// Stretches of near-silence (every 10 ms window below -35 dBFS) of 50 ms or
+// more inside the speech: the gaps between phrases, and some between words.
+function pauses({ rate, samples }, from, to) {
+  const win = Math.round(rate / 100), quiet = 32768 * 10 ** (-35 / 20), found = [];
+  let run = null;
+  for (let w = Math.floor(from * 100); w < Math.ceil(to * 100); w++) {
+    let m = 0;
+    for (let i = w * win; i < Math.min(samples.length, (w + 1) * win); i++) m = Math.max(m, Math.abs(samples[i]));
+    if (m < quiet) run ??= w;
+    else if (run !== null) {
+      if (w - run >= 5) found.push({ start: run / 100, end: w / 100 });
+      run = null;
+    }
+  }
+  return found;
+}
+
+// When each word starts and ends, so the pictures can move on a given word.
+// Gemini's timestamps are close but drift (they run long towards the end of a
+// clip), so they're stretched to fit the measured speech, and each boundary
+// after punctuation is snapped to the nearest pause.
+async function align(text, audio, { speechStart, speechEnd }) {
+  const words = text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
+  const got = await gemini(CHECK_MODEL, {
+    contents: [{ parts: [
+      { inlineData: { mimeType: 'audio/wav', data: wav(audio).toString('base64') } },
+      { text: `Align these words to the speech in the audio. For each numbered word, give the time in seconds from the start of the clip at which it starts and ends, to the nearest 10 ms.\n\n${words.map((w, i) => `${i}: ${w}`).join('\n')}` },
+    ] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'ARRAY',
+        items: { type: 'OBJECT', properties: { i: { type: 'INTEGER' }, start: { type: 'NUMBER' }, end: { type: 'NUMBER' } }, required: ['i', 'start', 'end'] },
+      },
+    },
+  }, (json) => {
+    try {
+      const byIndex = new Map(JSON.parse(json.candidates[0].content.parts.map((p) => p.text || '').join('')).map((w) => [w.i, w]));
+      const times = words.map((_, i) => byIndex.get(i));
+      return times.every((t) => t && t.end >= t.start) ? times : undefined;
+    } catch { return undefined; }
+  });
+  // Anchors map Gemini's clock to the clip's: the ends of the speech, plus
+  // each pause that a boundary after punctuation snaps to. Times between
+  // anchors are interpolated.
+  const g0 = got[0].start, g1 = got.at(-1).end;
+  const rough = (x) => speechStart + ((x - g0) * (speechEnd - speechStart)) / Math.max(0.1, g1 - g0);
+  const gaps = pauses(audio, speechStart, speechEnd);
+  const anchors = [[g0, speechStart]];
+  for (let i = 0; i + 1 < words.length; i++) {
+    const at = (rough(got[i].end) + rough(got[i + 1].start)) / 2;
+    const punct = /[,.;:!?…—]$/.test(words[i]);
+    let best = null;
+    for (const g of gaps) {
+      const d = Math.abs((g.start + g.end) / 2 - at);
+      if (d <= (punct ? 0.3 : 0.12) && (punct || g.end - g.start >= 0.1) && (!best || d < best.d)) best = { ...g, d };
+    }
+    if (best) anchors.push([got[i].end, best.start], [got[i + 1].start, best.end]);
+  }
+  anchors.push([g1, speechEnd]);
+  const A = anchors.filter((a, i) => i === 0 || (a[0] >= anchors[i - 1][0] && a[1] >= anchors[i - 1][1]));
+  // A word that starts exactly where the previous one ended is nudged past a
+  // tie in Gemini's clock, so it lands after the pause rather than before.
+  const map = (x) => {
+    for (let j = 0; j + 1 < A.length; j++) {
+      const [x0, y0] = A[j], [x1, y1] = A[j + 1];
+      if (x <= x1) return x1 === x0 ? y1 : y0 + ((y1 - y0) * Math.max(0, x - x0)) / (x1 - x0);
+    }
+    return speechEnd;
+  };
+  const r2 = (x) => Math.round(x * 100) / 100;
+  let prev = speechStart;
+  return words.map((w, i) => {
+    const start = Math.max(prev, map(got[i].start + 1e-6));
+    const end = Math.max(start, map(got[i].end));
+    prev = end;
+    return { w, start: r2(start), end: r2(end) };
+  });
+}
+
 fs.mkdirSync(OUT, { recursive: true });
 const manifestFile = path.join(OUT, 'manifest.json');
 const manifest = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : { lines: {} };
@@ -161,27 +242,41 @@ const queue = [...todo];
 await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
   for (let line; (line = queue.shift()); ) {
     const file = path.join(OUT, `${line.id}.mp3`);
-    const have = !args.force && fs.existsSync(file) && same(manifest.lines[line.id], line);
-    if (have && (args['no-check'] || manifest.lines[line.id].check?.ok)) {
+    let entry = manifest.lines[line.id];
+    const have = !args.force && fs.existsSync(file) && same(entry, line);
+    const passed = have && (args['no-check'] || entry.check?.ok);
+    if (passed && ((entry.words && !args.realign) || args['no-align'])) {
       console.log(`${line.id}: have it`);
       continue;
     }
-    // A clip from an earlier run that was never checked gets checked first.
-    let audio = have && !manifest.lines[line.id].check ? readMp3(file) : null;
-    for (let take = 1; take <= TAKES; take++) {
-      if (!audio) audio = await synthesize(line.text);
-      const entry = { text: line.text, model: MODEL, voice: VOICE, ...measure(audio) };
-      if (!args['no-check']) entry.check = await check(line.text, audio);
-      writeMp3(file, audio);
-      manifest.lines[line.id] = entry;
-      save();
-      if (args['no-check'] || entry.check.ok) {
-        console.log(`${line.id}: ${summary(entry)}`);
-        break;
+    let audio = null;
+    if (passed) {
+      audio = readMp3(file); // a good clip that's only missing its word timings
+    } else {
+      // A clip from an earlier run that was never checked gets checked first.
+      if (have && !entry.check) audio = readMp3(file);
+      for (let take = 1; ; take++) {
+        if (!audio) audio = await synthesize(line.text);
+        entry = { text: line.text, model: MODEL, voice: VOICE, ...measure(audio) };
+        if (!args['no-check']) entry.check = await check(line.text, audio);
+        writeMp3(file, audio);
+        manifest.lines[line.id] = entry;
+        save();
+        if (args['no-check'] || entry.check.ok || take === TAKES) break;
+        console.warn(`${line.id}: take ${take} failed the check (${summary(entry)}): ${entry.check.problems.join('; ')}`);
+        audio = null;
       }
-      console.warn(`${line.id}: take ${take} failed the check (${summary(entry)}): ${entry.check.problems.join('; ')}`);
-      if (take === TAKES) failed++;
-      audio = null;
+      if (entry.check && !entry.check.ok) {
+        console.warn(`${line.id}: all ${TAKES} takes failed the check: ${entry.check.problems.join('; ')}`);
+        failed++;
+        continue;
+      }
+      console.log(`${line.id}: ${summary(entry)}`);
+    }
+    if (!args['no-align']) {
+      entry.words = await align(line.text, audio, entry);
+      save();
+      console.log(`${line.id}: aligned ${entry.words.length} words`);
     }
   }
 }));

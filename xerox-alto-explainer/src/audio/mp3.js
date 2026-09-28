@@ -14,4 +14,5 @@ function ffmpeg(args, input) {
 // delay into the file and trims it when decoding, so the timing survives.
 export const writeMp3 = (file, audio) => ffmpeg(['-y', '-f', 'wav', '-i', 'pipe:0', '-c:a', 'libmp3lame', '-q:a', '3', file], wav(audio));
 
-export const readMp3 = (file) => parseWav(ffmpeg(['-i', file, '-ac', '1', '-c:a', 'pcm_s16le', '-bitexact', '-f', 'wav', 'pipe:1']));
+// Decodes at the file's own rate, or resampled to `rate`.
+export const readMp3 = (file, rate) => parseWav(ffmpeg(['-i', file, '-ac', '1', ...(rate ? ['-ar', String(rate)] : []), '-c:a', 'pcm_s16le', '-bitexact', '-f', 'wav', 'pipe:1']));

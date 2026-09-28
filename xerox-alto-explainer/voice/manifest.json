@@ -11,7 +11,124 @@
         "transcript": "April 1973. The first picture on a Xerox Alto: Cookie Monster. Every pixel, fed to the screen by its one and only processor.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "April",
+          "start": 0.17,
+          "end": 0.52
+        },
+        {
+          "w": "1973.",
+          "start": 0.54,
+          "end": 1.43
+        },
+        {
+          "w": "The",
+          "start": 1.61,
+          "end": 1.71
+        },
+        {
+          "w": "first",
+          "start": 1.71,
+          "end": 2
+        },
+        {
+          "w": "picture",
+          "start": 2,
+          "end": 2.35
+        },
+        {
+          "w": "on",
+          "start": 2.35,
+          "end": 2.46
+        },
+        {
+          "w": "a",
+          "start": 2.46,
+          "end": 2.52
+        },
+        {
+          "w": "Xerox",
+          "start": 2.52,
+          "end": 2.97
+        },
+        {
+          "w": "Alto:",
+          "start": 2.97,
+          "end": 3.53
+        },
+        {
+          "w": "Cookie",
+          "start": 3.97,
+          "end": 4.29
+        },
+        {
+          "w": "Monster.",
+          "start": 4.29,
+          "end": 4.89
+        },
+        {
+          "w": "Every",
+          "start": 5.03,
+          "end": 5.03
+        },
+        {
+          "w": "pixel,",
+          "start": 5.03,
+          "end": 5.48
+        },
+        {
+          "w": "fed",
+          "start": 5.63,
+          "end": 5.86
+        },
+        {
+          "w": "to",
+          "start": 5.86,
+          "end": 5.94
+        },
+        {
+          "w": "the",
+          "start": 5.94,
+          "end": 6.03
+        },
+        {
+          "w": "screen",
+          "start": 6.03,
+          "end": 6.39
+        },
+        {
+          "w": "by",
+          "start": 6.39,
+          "end": 6.54
+        },
+        {
+          "w": "its",
+          "start": 6.54,
+          "end": 6.69
+        },
+        {
+          "w": "one",
+          "start": 6.69,
+          "end": 6.93
+        },
+        {
+          "w": "and",
+          "start": 6.93,
+          "end": 7.05
+        },
+        {
+          "w": "only",
+          "start": 7.05,
+          "end": 7.29
+        },
+        {
+          "w": "processor.",
+          "start": 7.29,
+          "end": 8.01
+        }
+      ]
     },
     "N2": {
       "text": "The Alto's device boards are mostly buffers and shift registers. The rest — every disk word, every packet, every scanline — is microcode.",
@@ -24,7 +141,114 @@
         "transcript": "The Alto's device boards are mostly buffers and shift registers. The rest, every disk word, every packet, every scanline, is microcode.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "The",
+          "start": 0.21,
+          "end": 0.29
+        },
+        {
+          "w": "Alto's",
+          "start": 0.29,
+          "end": 0.7
+        },
+        {
+          "w": "device",
+          "start": 0.7,
+          "end": 1.02
+        },
+        {
+          "w": "boards",
+          "start": 1.02,
+          "end": 1.39
+        },
+        {
+          "w": "are",
+          "start": 1.39,
+          "end": 1.52
+        },
+        {
+          "w": "mostly",
+          "start": 1.52,
+          "end": 1.96
+        },
+        {
+          "w": "buffers",
+          "start": 1.96,
+          "end": 2.41
+        },
+        {
+          "w": "and",
+          "start": 2.41,
+          "end": 2.56
+        },
+        {
+          "w": "shift",
+          "start": 2.56,
+          "end": 2.88
+        },
+        {
+          "w": "registers.",
+          "start": 2.88,
+          "end": 3.57
+        },
+        {
+          "w": "The",
+          "start": 3.78,
+          "end": 3.9
+        },
+        {
+          "w": "rest",
+          "start": 3.9,
+          "end": 4.32
+        },
+        {
+          "w": "every",
+          "start": 4.43,
+          "end": 4.76
+        },
+        {
+          "w": "disk",
+          "start": 4.86,
+          "end": 5.16
+        },
+        {
+          "w": "word,",
+          "start": 5.16,
+          "end": 5.65
+        },
+        {
+          "w": "every",
+          "start": 5.71,
+          "end": 5.99
+        },
+        {
+          "w": "packet,",
+          "start": 5.99,
+          "end": 6.37
+        },
+        {
+          "w": "every",
+          "start": 6.46,
+          "end": 6.74
+        },
+        {
+          "w": "scanline",
+          "start": 6.74,
+          "end": 7.28
+        },
+        {
+          "w": "is",
+          "start": 7.28,
+          "end": 7.43
+        },
+        {
+          "w": "microcode.",
+          "start": 7.43,
+          "end": 8.24
+        }
+      ]
     },
     "N3": {
       "text": "Every 170 nanoseconds, it runs one 32-bit microinstruction: register, ALU op, bus source, two functions… and the address of the next one.",
@@ -37,7 +261,119 @@
         "transcript": "Every 170 nanoseconds, it runs one 32-bit microinstruction: register, ALU op, bus source, two functions, and the address of the next one.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Every",
+          "start": 0.2,
+          "end": 0.48
+        },
+        {
+          "w": "170",
+          "start": 0.48,
+          "end": 1.36
+        },
+        {
+          "w": "nanoseconds,",
+          "start": 1.36,
+          "end": 2.19
+        },
+        {
+          "w": "it",
+          "start": 2.27,
+          "end": 2.37
+        },
+        {
+          "w": "runs",
+          "start": 2.37,
+          "end": 2.65
+        },
+        {
+          "w": "one",
+          "start": 2.65,
+          "end": 2.86
+        },
+        {
+          "w": "32-bit",
+          "start": 2.86,
+          "end": 3.55
+        },
+        {
+          "w": "microinstruction:",
+          "start": 3.55,
+          "end": 4.72
+        },
+        {
+          "w": "register,",
+          "start": 4.86,
+          "end": 5.7
+        },
+        {
+          "w": "ALU",
+          "start": 5.77,
+          "end": 6.17
+        },
+        {
+          "w": "op,",
+          "start": 6.17,
+          "end": 6.42
+        },
+        {
+          "w": "bus",
+          "start": 6.49,
+          "end": 6.8
+        },
+        {
+          "w": "source,",
+          "start": 6.8,
+          "end": 7.33
+        },
+        {
+          "w": "two",
+          "start": 7.44,
+          "end": 7.66
+        },
+        {
+          "w": "functions…",
+          "start": 7.66,
+          "end": 8.37
+        },
+        {
+          "w": "and",
+          "start": 8.48,
+          "end": 8.48
+        },
+        {
+          "w": "the",
+          "start": 8.48,
+          "end": 8.57
+        },
+        {
+          "w": "address",
+          "start": 8.57,
+          "end": 8.94
+        },
+        {
+          "w": "of",
+          "start": 8.94,
+          "end": 9.02
+        },
+        {
+          "w": "the",
+          "start": 9.02,
+          "end": 9.09
+        },
+        {
+          "w": "next",
+          "start": 9.09,
+          "end": 9.35
+        },
+        {
+          "w": "one.",
+          "start": 9.35,
+          "end": 9.61
+        }
+      ]
     },
     "N4": {
       "text": "There's no program counter to increment. Every instruction names its successor, and a branch just ORs a bit into that address.",
@@ -50,7 +386,114 @@
         "transcript": "There's no program counter to increment. Every instruction names its successor, and a branch just ORs a bit into that address.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "There's",
+          "start": 0.15,
+          "end": 0.31
+        },
+        {
+          "w": "no",
+          "start": 0.31,
+          "end": 0.49
+        },
+        {
+          "w": "program",
+          "start": 0.49,
+          "end": 0.84
+        },
+        {
+          "w": "counter",
+          "start": 0.84,
+          "end": 1.22
+        },
+        {
+          "w": "to",
+          "start": 1.22,
+          "end": 1.32
+        },
+        {
+          "w": "increment.",
+          "start": 1.32,
+          "end": 1.99
+        },
+        {
+          "w": "Every",
+          "start": 2.22,
+          "end": 2.47
+        },
+        {
+          "w": "instruction",
+          "start": 2.47,
+          "end": 2.97
+        },
+        {
+          "w": "names",
+          "start": 2.97,
+          "end": 3.24
+        },
+        {
+          "w": "its",
+          "start": 3.24,
+          "end": 3.38
+        },
+        {
+          "w": "successor,",
+          "start": 3.38,
+          "end": 4.04
+        },
+        {
+          "w": "and",
+          "start": 4.15,
+          "end": 4.15
+        },
+        {
+          "w": "a",
+          "start": 4.15,
+          "end": 4.21
+        },
+        {
+          "w": "branch",
+          "start": 4.21,
+          "end": 4.58
+        },
+        {
+          "w": "just",
+          "start": 4.58,
+          "end": 4.85
+        },
+        {
+          "w": "ORs",
+          "start": 4.85,
+          "end": 5.22
+        },
+        {
+          "w": "a",
+          "start": 5.22,
+          "end": 5.3
+        },
+        {
+          "w": "bit",
+          "start": 5.3,
+          "end": 5.51
+        },
+        {
+          "w": "into",
+          "start": 5.51,
+          "end": 5.78
+        },
+        {
+          "w": "that",
+          "start": 5.78,
+          "end": 5.96
+        },
+        {
+          "w": "address.",
+          "start": 5.96,
+          "end": 6.48
+        }
+      ]
     },
     "N5": {
       "text": "Even the instruction set programmers saw — a Data General Nova lookalike — is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.",
@@ -63,7 +506,154 @@
         "transcript": "Even the instruction set programmers saw, a Data General Nova lookalike, is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Even",
+          "start": 0.25,
+          "end": 0.42
+        },
+        {
+          "w": "the",
+          "start": 0.7,
+          "end": 0.7
+        },
+        {
+          "w": "instruction",
+          "start": 0.7,
+          "end": 1.13
+        },
+        {
+          "w": "set",
+          "start": 1.13,
+          "end": 1.38
+        },
+        {
+          "w": "programmers",
+          "start": 1.38,
+          "end": 1.92
+        },
+        {
+          "w": "saw",
+          "start": 1.92,
+          "end": 2.26
+        },
+        {
+          "w": "a",
+          "start": 2.46,
+          "end": 2.53
+        },
+        {
+          "w": "Data",
+          "start": 2.53,
+          "end": 2.76
+        },
+        {
+          "w": "General",
+          "start": 2.76,
+          "end": 3.07
+        },
+        {
+          "w": "Nova",
+          "start": 3.07,
+          "end": 3.39
+        },
+        {
+          "w": "lookalike",
+          "start": 3.39,
+          "end": 3.95
+        },
+        {
+          "w": "is",
+          "start": 4.04,
+          "end": 4.15
+        },
+        {
+          "w": "just",
+          "start": 4.15,
+          "end": 4.43
+        },
+        {
+          "w": "a",
+          "start": 4.43,
+          "end": 4.49
+        },
+        {
+          "w": "microcode",
+          "start": 4.49,
+          "end": 5.07
+        },
+        {
+          "w": "program.",
+          "start": 5.07,
+          "end": 5.52
+        },
+        {
+          "w": "An",
+          "start": 5.75,
+          "end": 5.89
+        },
+        {
+          "w": "ADD",
+          "start": 5.89,
+          "end": 6.19
+        },
+        {
+          "w": "is",
+          "start": 6.19,
+          "end": 6.36
+        },
+        {
+          "w": "eight",
+          "start": 6.36,
+          "end": 6.62
+        },
+        {
+          "w": "microinstructions:",
+          "start": 6.62,
+          "end": 7.65
+        },
+        {
+          "w": "1.36",
+          "start": 7.79,
+          "end": 8.73
+        },
+        {
+          "w": "microseconds.",
+          "start": 8.73,
+          "end": 9.49
+        },
+        {
+          "w": "A",
+          "start": 9.59,
+          "end": 9.68
+        },
+        {
+          "w": "real",
+          "start": 9.68,
+          "end": 9.97
+        },
+        {
+          "w": "Nova",
+          "start": 9.97,
+          "end": 10.25
+        },
+        {
+          "w": "1200",
+          "start": 10.25,
+          "end": 10.85
+        },
+        {
+          "w": "took",
+          "start": 10.85,
+          "end": 11.06
+        },
+        {
+          "w": "1.35.",
+          "start": 11.06,
+          "end": 12
+        }
+      ]
     },
     "N6": {
       "text": "That emulator is task zero: the lowest of sixteen priorities.",
@@ -76,7 +666,59 @@
         "transcript": "That emulator is task zero, the lowest of sixteen priorities.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "That",
+          "start": 0.2,
+          "end": 0.35
+        },
+        {
+          "w": "emulator",
+          "start": 0.35,
+          "end": 0.96
+        },
+        {
+          "w": "is",
+          "start": 0.96,
+          "end": 1.11
+        },
+        {
+          "w": "task",
+          "start": 1.11,
+          "end": 1.51
+        },
+        {
+          "w": "zero:",
+          "start": 1.51,
+          "end": 2.12
+        },
+        {
+          "w": "the",
+          "start": 2.17,
+          "end": 2.26
+        },
+        {
+          "w": "lowest",
+          "start": 2.26,
+          "end": 2.63
+        },
+        {
+          "w": "of",
+          "start": 2.63,
+          "end": 2.71
+        },
+        {
+          "w": "sixteen",
+          "start": 2.71,
+          "end": 3.14
+        },
+        {
+          "w": "priorities.",
+          "start": 3.14,
+          "end": 3.75
+        }
+      ]
     },
     "N7": {
       "text": "Each task has its own micro-PC. Devices raise wakeup lines, a priority encoder picks the winner, and the running task yields whenever it says TASK. Nothing is saved, so switching is free.",
@@ -89,7 +731,169 @@
         "transcript": "Each task has its own micro-PC. Devices raise wakeup lines, a priority encoder picks the winner, and the running task yields whenever it says TASK. Nothing is saved, so switching is free.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Each",
+          "start": 0.02,
+          "end": 0.28
+        },
+        {
+          "w": "task",
+          "start": 0.28,
+          "end": 0.72
+        },
+        {
+          "w": "has",
+          "start": 0.74,
+          "end": 1.01
+        },
+        {
+          "w": "its",
+          "start": 1.01,
+          "end": 1.18
+        },
+        {
+          "w": "own",
+          "start": 1.18,
+          "end": 1.45
+        },
+        {
+          "w": "micro-PC.",
+          "start": 1.45,
+          "end": 2.63
+        },
+        {
+          "w": "Devices",
+          "start": 2.75,
+          "end": 3.3
+        },
+        {
+          "w": "raise",
+          "start": 3.3,
+          "end": 3.58
+        },
+        {
+          "w": "wakeup",
+          "start": 3.58,
+          "end": 4
+        },
+        {
+          "w": "lines,",
+          "start": 4,
+          "end": 4.44
+        },
+        {
+          "w": "a",
+          "start": 4.52,
+          "end": 4.59
+        },
+        {
+          "w": "priority",
+          "start": 4.59,
+          "end": 5.02
+        },
+        {
+          "w": "encoder",
+          "start": 5.02,
+          "end": 5.44
+        },
+        {
+          "w": "picks",
+          "start": 5.44,
+          "end": 5.7
+        },
+        {
+          "w": "the",
+          "start": 5.7,
+          "end": 5.78
+        },
+        {
+          "w": "winner,",
+          "start": 5.78,
+          "end": 6.18
+        },
+        {
+          "w": "and",
+          "start": 6.21,
+          "end": 6.35
+        },
+        {
+          "w": "the",
+          "start": 6.35,
+          "end": 6.43
+        },
+        {
+          "w": "running",
+          "start": 6.43,
+          "end": 6.71
+        },
+        {
+          "w": "task",
+          "start": 6.71,
+          "end": 7
+        },
+        {
+          "w": "yields",
+          "start": 7,
+          "end": 7.39
+        },
+        {
+          "w": "whenever",
+          "start": 7.39,
+          "end": 7.75
+        },
+        {
+          "w": "it",
+          "start": 7.75,
+          "end": 7.85
+        },
+        {
+          "w": "says",
+          "start": 7.85,
+          "end": 8.17
+        },
+        {
+          "w": "TASK.",
+          "start": 8.17,
+          "end": 8.72
+        },
+        {
+          "w": "Nothing",
+          "start": 8.84,
+          "end": 9.44
+        },
+        {
+          "w": "is",
+          "start": 9.44,
+          "end": 9.7
+        },
+        {
+          "w": "saved,",
+          "start": 9.7,
+          "end": 10.39
+        },
+        {
+          "w": "so",
+          "start": 10.54,
+          "end": 10.54
+        },
+        {
+          "w": "switching",
+          "start": 10.54,
+          "end": 10.87
+        },
+        {
+          "w": "is",
+          "start": 10.87,
+          "end": 10.96
+        },
+        {
+          "w": "free.",
+          "start": 10.96,
+          "end": 11.29
+        }
+      ]
     },
     "N8": {
       "text": "Priority follows buffering: the disk holds one word, so it outranks everything. The Ethernet holds sixteen, so it can wait.",
@@ -102,7 +906,109 @@
         "transcript": "Priority follows buffering. The disk holds one word, so it outranks everything. The Ethernet holds sixteen, so it can wait.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Priority",
+          "start": 0.28,
+          "end": 0.75
+        },
+        {
+          "w": "follows",
+          "start": 0.75,
+          "end": 1.04
+        },
+        {
+          "w": "buffering:",
+          "start": 1.04,
+          "end": 1.46
+        },
+        {
+          "w": "the",
+          "start": 1.8,
+          "end": 1.88
+        },
+        {
+          "w": "disk",
+          "start": 1.88,
+          "end": 2.19
+        },
+        {
+          "w": "holds",
+          "start": 2.19,
+          "end": 2.46
+        },
+        {
+          "w": "one",
+          "start": 2.46,
+          "end": 2.63
+        },
+        {
+          "w": "word,",
+          "start": 2.63,
+          "end": 2.89
+        },
+        {
+          "w": "so",
+          "start": 2.89,
+          "end": 3.03
+        },
+        {
+          "w": "it",
+          "start": 3.03,
+          "end": 3.11
+        },
+        {
+          "w": "outranks",
+          "start": 3.11,
+          "end": 3.54
+        },
+        {
+          "w": "everything.",
+          "start": 3.54,
+          "end": 3.99
+        },
+        {
+          "w": "The",
+          "start": 4.28,
+          "end": 4.37
+        },
+        {
+          "w": "Ethernet",
+          "start": 4.37,
+          "end": 4.84
+        },
+        {
+          "w": "holds",
+          "start": 4.84,
+          "end": 5.11
+        },
+        {
+          "w": "sixteen,",
+          "start": 5.11,
+          "end": 5.61
+        },
+        {
+          "w": "so",
+          "start": 5.61,
+          "end": 5.84
+        },
+        {
+          "w": "it",
+          "start": 5.84,
+          "end": 5.93
+        },
+        {
+          "w": "can",
+          "start": 5.93,
+          "end": 6.06
+        },
+        {
+          "w": "wait.",
+          "start": 6.06,
+          "end": 6.44
+        }
+      ]
     },
     "N9": {
       "text": "The screen is a 606 by 808 bitmap — nearly half of main memory.",
@@ -115,7 +1021,74 @@
         "transcript": "The screen is a 606 by 808 bitmap, nearly half of main memory.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "The",
+          "start": 0.28,
+          "end": 0.42
+        },
+        {
+          "w": "screen",
+          "start": 0.42,
+          "end": 0.71
+        },
+        {
+          "w": "is",
+          "start": 0.71,
+          "end": 0.82
+        },
+        {
+          "w": "a",
+          "start": 0.82,
+          "end": 0.89
+        },
+        {
+          "w": "606",
+          "start": 0.89,
+          "end": 1.61
+        },
+        {
+          "w": "by",
+          "start": 1.61,
+          "end": 1.8
+        },
+        {
+          "w": "808",
+          "start": 1.8,
+          "end": 2.44
+        },
+        {
+          "w": "bitmap",
+          "start": 2.44,
+          "end": 2.89
+        },
+        {
+          "w": "nearly",
+          "start": 3.08,
+          "end": 3.45
+        },
+        {
+          "w": "half",
+          "start": 3.45,
+          "end": 3.71
+        },
+        {
+          "w": "of",
+          "start": 3.71,
+          "end": 3.83
+        },
+        {
+          "w": "main",
+          "start": 3.83,
+          "end": 4.07
+        },
+        {
+          "w": "memory.",
+          "start": 4.07,
+          "end": 4.52
+        }
+      ]
     },
     "N10": {
       "text": "The clock was picked so a scanline is exactly 224 cycles. And memory's too slow for single words, so the display reads two at a time: thirty-two pixels every six microinstructions.",
@@ -128,7 +1101,164 @@
         "transcript": "The clock was picked so a scanline is exactly 224 cycles. And memory's too slow for single words, so the display reads two at a time: 32 pixels every six microinstructions.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "The",
+          "start": 0.2,
+          "end": 0.31
+        },
+        {
+          "w": "clock",
+          "start": 0.31,
+          "end": 0.58
+        },
+        {
+          "w": "was",
+          "start": 0.58,
+          "end": 0.76
+        },
+        {
+          "w": "picked",
+          "start": 0.76,
+          "end": 1.04
+        },
+        {
+          "w": "so",
+          "start": 1.04,
+          "end": 1.25
+        },
+        {
+          "w": "a",
+          "start": 1.25,
+          "end": 1.33
+        },
+        {
+          "w": "scanline",
+          "start": 1.33,
+          "end": 1.83
+        },
+        {
+          "w": "is",
+          "start": 1.83,
+          "end": 1.98
+        },
+        {
+          "w": "exactly",
+          "start": 1.98,
+          "end": 2.44
+        },
+        {
+          "w": "224",
+          "start": 2.44,
+          "end": 3.32
+        },
+        {
+          "w": "cycles.",
+          "start": 3.32,
+          "end": 3.82
+        },
+        {
+          "w": "And",
+          "start": 3.99,
+          "end": 4.17
+        },
+        {
+          "w": "memory's",
+          "start": 4.17,
+          "end": 4.68
+        },
+        {
+          "w": "too",
+          "start": 4.68,
+          "end": 4.86
+        },
+        {
+          "w": "slow",
+          "start": 4.86,
+          "end": 5.21
+        },
+        {
+          "w": "for",
+          "start": 5.21,
+          "end": 5.37
+        },
+        {
+          "w": "single",
+          "start": 5.37,
+          "end": 5.72
+        },
+        {
+          "w": "words,",
+          "start": 5.72,
+          "end": 6.14
+        },
+        {
+          "w": "so",
+          "start": 6.16,
+          "end": 6.31
+        },
+        {
+          "w": "the",
+          "start": 6.31,
+          "end": 6.41
+        },
+        {
+          "w": "display",
+          "start": 6.41,
+          "end": 6.89
+        },
+        {
+          "w": "reads",
+          "start": 6.89,
+          "end": 7.18
+        },
+        {
+          "w": "two",
+          "start": 7.18,
+          "end": 7.4
+        },
+        {
+          "w": "at",
+          "start": 7.4,
+          "end": 7.5
+        },
+        {
+          "w": "a",
+          "start": 7.5,
+          "end": 7.56
+        },
+        {
+          "w": "time:",
+          "start": 7.56,
+          "end": 7.91
+        },
+        {
+          "w": "thirty-two",
+          "start": 8.18,
+          "end": 8.58
+        },
+        {
+          "w": "pixels",
+          "start": 8.58,
+          "end": 8.91
+        },
+        {
+          "w": "every",
+          "start": 8.91,
+          "end": 9.14
+        },
+        {
+          "w": "six",
+          "start": 9.25,
+          "end": 9.6
+        },
+        {
+          "w": "microinstructions.",
+          "start": 9.6,
+          "end": 10.72
+        }
+      ]
     },
     "N11": {
       "text": "On each visible line, the display takes sixty percent of the cycles, memory refresh about a tenth — and your program gets the rest: about a third.",
@@ -141,7 +1271,139 @@
         "transcript": "On each visible line, the display takes 60% of the cycles, memory refresh about a tenth, and your program gets the rest: about a third.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "On",
+          "start": 0.16,
+          "end": 0.29
+        },
+        {
+          "w": "each",
+          "start": 0.29,
+          "end": 0.47
+        },
+        {
+          "w": "visible",
+          "start": 0.47,
+          "end": 0.89
+        },
+        {
+          "w": "line,",
+          "start": 0.89,
+          "end": 1.23
+        },
+        {
+          "w": "the",
+          "start": 1.37,
+          "end": 1.44
+        },
+        {
+          "w": "display",
+          "start": 1.44,
+          "end": 1.84
+        },
+        {
+          "w": "takes",
+          "start": 1.84,
+          "end": 2.09
+        },
+        {
+          "w": "sixty",
+          "start": 2.09,
+          "end": 2.49
+        },
+        {
+          "w": "percent",
+          "start": 2.49,
+          "end": 2.85
+        },
+        {
+          "w": "of",
+          "start": 2.85,
+          "end": 2.95
+        },
+        {
+          "w": "the",
+          "start": 2.95,
+          "end": 3.04
+        },
+        {
+          "w": "cycles,",
+          "start": 3.04,
+          "end": 3.51
+        },
+        {
+          "w": "memory",
+          "start": 3.57,
+          "end": 3.88
+        },
+        {
+          "w": "refresh",
+          "start": 3.88,
+          "end": 4.32
+        },
+        {
+          "w": "about",
+          "start": 4.35,
+          "end": 4.58
+        },
+        {
+          "w": "a",
+          "start": 4.58,
+          "end": 4.64
+        },
+        {
+          "w": "tenth",
+          "start": 4.64,
+          "end": 4.97
+        },
+        {
+          "w": "and",
+          "start": 4.99,
+          "end": 5.11
+        },
+        {
+          "w": "your",
+          "start": 5.11,
+          "end": 5.22
+        },
+        {
+          "w": "program",
+          "start": 5.22,
+          "end": 5.55
+        },
+        {
+          "w": "gets",
+          "start": 5.55,
+          "end": 5.75
+        },
+        {
+          "w": "the",
+          "start": 5.75,
+          "end": 5.84
+        },
+        {
+          "w": "rest:",
+          "start": 5.84,
+          "end": 6.14
+        },
+        {
+          "w": "about",
+          "start": 6.3,
+          "end": 6.49
+        },
+        {
+          "w": "a",
+          "start": 6.49,
+          "end": 6.54
+        },
+        {
+          "w": "third.",
+          "start": 6.54,
+          "end": 6.79
+        }
+      ]
     },
     "N12": {
       "text": "Even DRAM refresh is microcode — and on its way through, that task counts the mouse.",
@@ -154,7 +1416,84 @@
         "transcript": "Even DRAM refresh is microcode, and on its way through, that task counts the mouse.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Even",
+          "start": 0.12,
+          "end": 0.33
+        },
+        {
+          "w": "DRAM",
+          "start": 0.33,
+          "end": 0.71
+        },
+        {
+          "w": "refresh",
+          "start": 0.71,
+          "end": 1.2
+        },
+        {
+          "w": "is",
+          "start": 1.2,
+          "end": 1.33
+        },
+        {
+          "w": "microcode",
+          "start": 1.33,
+          "end": 2.01
+        },
+        {
+          "w": "and",
+          "start": 2.16,
+          "end": 2.16
+        },
+        {
+          "w": "on",
+          "start": 2.16,
+          "end": 2.33
+        },
+        {
+          "w": "its",
+          "start": 2.33,
+          "end": 2.48
+        },
+        {
+          "w": "way",
+          "start": 2.48,
+          "end": 2.73
+        },
+        {
+          "w": "through,",
+          "start": 2.73,
+          "end": 3.15
+        },
+        {
+          "w": "that",
+          "start": 3.26,
+          "end": 3.26
+        },
+        {
+          "w": "task",
+          "start": 3.26,
+          "end": 3.57
+        },
+        {
+          "w": "counts",
+          "start": 3.57,
+          "end": 3.95
+        },
+        {
+          "w": "the",
+          "start": 3.95,
+          "end": 4.06
+        },
+        {
+          "w": "mouse.",
+          "start": 4.06,
+          "end": 4.52
+        }
+      ]
     },
     "N13": {
       "text": "The disk task stores a word and updates the checksum in one microinstruction.",
@@ -167,7 +1506,74 @@
         "transcript": "The disk task stores a word and updates the checksum in one microinstruction.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "The",
+          "start": 0.24,
+          "end": 0.33
+        },
+        {
+          "w": "disk",
+          "start": 0.33,
+          "end": 0.6
+        },
+        {
+          "w": "task",
+          "start": 0.6,
+          "end": 0.96
+        },
+        {
+          "w": "stores",
+          "start": 0.96,
+          "end": 1.37
+        },
+        {
+          "w": "a",
+          "start": 1.37,
+          "end": 1.41
+        },
+        {
+          "w": "word",
+          "start": 1.41,
+          "end": 1.68
+        },
+        {
+          "w": "and",
+          "start": 1.68,
+          "end": 1.84
+        },
+        {
+          "w": "updates",
+          "start": 1.84,
+          "end": 2.23
+        },
+        {
+          "w": "the",
+          "start": 2.23,
+          "end": 2.32
+        },
+        {
+          "w": "checksum",
+          "start": 2.32,
+          "end": 2.78
+        },
+        {
+          "w": "in",
+          "start": 2.78,
+          "end": 2.89
+        },
+        {
+          "w": "one",
+          "start": 2.89,
+          "end": 3.15
+        },
+        {
+          "w": "microinstruction.",
+          "start": 3.15,
+          "end": 4.06
+        }
+      ]
     },
     "N14": {
       "text": "Ethernet sends a bit every two cycles — hence 2.94 megabits — and its random backoff is read off the refresh counter.",
@@ -180,7 +1586,109 @@
         "transcript": "Ethernet sends a bit every two cycles — hence 2.94 megabits — and its random backoff is read off the refresh counter.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Ethernet",
+          "start": 0.26,
+          "end": 0.72
+        },
+        {
+          "w": "sends",
+          "start": 0.72,
+          "end": 1.07
+        },
+        {
+          "w": "a",
+          "start": 1.07,
+          "end": 1.12
+        },
+        {
+          "w": "bit",
+          "start": 1.12,
+          "end": 1.32
+        },
+        {
+          "w": "every",
+          "start": 1.32,
+          "end": 1.62
+        },
+        {
+          "w": "two",
+          "start": 1.62,
+          "end": 1.82
+        },
+        {
+          "w": "cycles",
+          "start": 1.82,
+          "end": 2.28
+        },
+        {
+          "w": "hence",
+          "start": 2.39,
+          "end": 2.72
+        },
+        {
+          "w": "2.94",
+          "start": 2.79,
+          "end": 3.66
+        },
+        {
+          "w": "megabits",
+          "start": 3.66,
+          "end": 4.23
+        },
+        {
+          "w": "and",
+          "start": 4.26,
+          "end": 4.37
+        },
+        {
+          "w": "its",
+          "start": 4.37,
+          "end": 4.52
+        },
+        {
+          "w": "random",
+          "start": 4.52,
+          "end": 4.87
+        },
+        {
+          "w": "backoff",
+          "start": 4.87,
+          "end": 5.35
+        },
+        {
+          "w": "is",
+          "start": 5.35,
+          "end": 5.46
+        },
+        {
+          "w": "read",
+          "start": 5.46,
+          "end": 5.66
+        },
+        {
+          "w": "off",
+          "start": 5.66,
+          "end": 5.81
+        },
+        {
+          "w": "the",
+          "start": 5.81,
+          "end": 5.92
+        },
+        {
+          "w": "refresh",
+          "start": 5.92,
+          "end": 6.36
+        },
+        {
+          "w": "counter.",
+          "start": 6.36,
+          "end": 6.76
+        }
+      ]
     },
     "N15": {
       "text": "Switch the screen off, and programs run almost three times faster.",
@@ -193,7 +1701,64 @@
         "transcript": "Switch the screen off, and programs run almost three times faster.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "Switch",
+          "start": 0.28,
+          "end": 0.61
+        },
+        {
+          "w": "the",
+          "start": 0.61,
+          "end": 0.71
+        },
+        {
+          "w": "screen",
+          "start": 0.71,
+          "end": 1.07
+        },
+        {
+          "w": "off,",
+          "start": 1.07,
+          "end": 1.48
+        },
+        {
+          "w": "and",
+          "start": 1.54,
+          "end": 1.66
+        },
+        {
+          "w": "programs",
+          "start": 1.66,
+          "end": 2.05
+        },
+        {
+          "w": "run",
+          "start": 2.05,
+          "end": 2.24
+        },
+        {
+          "w": "almost",
+          "start": 2.24,
+          "end": 2.55
+        },
+        {
+          "w": "three",
+          "start": 2.55,
+          "end": 2.77
+        },
+        {
+          "w": "times",
+          "start": 2.77,
+          "end": 3.03
+        },
+        {
+          "w": "faster.",
+          "start": 3.03,
+          "end": 3.48
+        }
+      ]
     },
     "N16": {
       "text": "All four display tasks together? Sixty-three microinstructions. Your program? Task zero. It gets whatever's left.",
@@ -206,7 +1771,84 @@
         "transcript": "All four display tasks together? Sixty-three microinstructions. Your program? Task zero. It gets whatever's left.",
         "ok": true,
         "problems": []
-      }
+      },
+      "words": [
+        {
+          "w": "All",
+          "start": 0.27,
+          "end": 0.44
+        },
+        {
+          "w": "four",
+          "start": 0.44,
+          "end": 0.68
+        },
+        {
+          "w": "display",
+          "start": 0.68,
+          "end": 1.06
+        },
+        {
+          "w": "tasks",
+          "start": 1.06,
+          "end": 1.41
+        },
+        {
+          "w": "together?",
+          "start": 1.41,
+          "end": 1.8
+        },
+        {
+          "w": "Sixty-three",
+          "start": 2.2,
+          "end": 2.69
+        },
+        {
+          "w": "microinstructions.",
+          "start": 2.69,
+          "end": 3.61
+        },
+        {
+          "w": "Your",
+          "start": 3.94,
+          "end": 4.08
+        },
+        {
+          "w": "program?",
+          "start": 4.08,
+          "end": 4.47
+        },
+        {
+          "w": "Task",
+          "start": 4.65,
+          "end": 4.97
+        },
+        {
+          "w": "zero.",
+          "start": 4.97,
+          "end": 5.43
+        },
+        {
+          "w": "It",
+          "start": 5.64,
+          "end": 5.73
+        },
+        {
+          "w": "gets",
+          "start": 5.73,
+          "end": 5.94
+        },
+        {
+          "w": "whatever's",
+          "start": 5.94,
+          "end": 6.29
+        },
+        {
+          "w": "left.",
+          "start": 6.29,
+          "end": 6.65
+        }
+      ]
     }
   },
   "speechSeconds": 110
