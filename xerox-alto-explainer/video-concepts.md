@@ -18,7 +18,7 @@ The argument runs like this:
    - The screen is 606×808 pixels, with one bit in memory for every pixel. That is 61,408 bytes of a 128 KB machine: nearly half.
    - Keeping it on screen used roughly 60% of the processor's cycles. That figure is from the 1979 paper *(check)*; a count from Xerox's microcode gives about 51% for the display-word task alone, so they agree.
 4. **The trick that paid for it.** The Alto had no display controller, no disk controller and no network controller. A single microcoded processor did all of those jobs:
-   - It switched between up to 16 hardware "tasks" on every microinstruction, in priority order, at no cost.
+   - It switched between up to 16 hardware "tasks" in priority order, at no cost, whenever the running task offered to yield (with a `TASK` microinstruction).
    - Display, disk, Ethernet and memory refresh all had higher priority than the task that ran your program. The disk-word task outranks even the display, because a disk word that arrives late is lost for good.
    - That task, which emulated the instruction set you actually programmed, was **task 0, the lowest priority**. The "computer" got the leftovers.
 5. **What the extravagance bought.**

@@ -1,6 +1,6 @@
 # Task Zero: script and storyboard
 
-A 9:16 short, about 110 seconds, that does nothing but nerd out about the Alto's processor. The story is one idea: the Alto had one microcoded processor, and it did the work of the display, disk, Ethernet and memory-refresh controllers by switching between hardware tasks on every cycle. The "computer" you programmed was just the lowest-priority task.
+A 9:16 short, just under two minutes, that does nothing but nerd out about the Alto's processor. The story is one idea: the Alto had one microcoded processor, and it did the work of the display, disk, Ethernet and memory-refresh controllers by handing itself between hardware tasks, with switches that cost zero cycles. The "computer" you programmed was just the lowest-priority task.
 
 Facts come from the processor deep-dive notes in [`research_notes/Alto processor deep dive/`](research_notes/Alto%20processor%20deep%20dive). Almost all of them trace to primary documents: the 1976 and 1979 Alto Hardware Manuals, Xerox's 1979 Alto II microcode listing, the schematics, and Thacker et al., "Alto: A Personal Computer" (CSL-79-11, 1979). The [fact sheet](#fact-sheet) at the end maps every claim in the narration to its source.
 
@@ -9,7 +9,7 @@ Facts come from the processor deep-dive notes in [`research_notes/Alto processor
 | | |
 | --- | --- |
 | Frame | 1080 × 1920, drawn at 540 × 960 and scaled up with nearest-neighbour |
-| Length | ~110 s; 318 words of narration at a brisk ~175 wpm, plus short pauses |
+| Length | ~115 s; 331 words of narration at a brisk ~175 wpm, plus short pauses (see [Trims](#trims-and-extras)) |
 | Palette | Ink on paper, plus the Alto's three mouse-button colours |
 | Voice | One narrator (Gemini TTS), brisk and dry, a little amused |
 
@@ -59,11 +59,11 @@ Durations are estimates at ~175 wpm. Line IDs (N1…) are the units we'll send t
 
 ### 4. The computer is a program (0:32–0:44)
 
-> **N5** Even the instruction set programmers saw — a Data General Nova lookalike — is just a microcode program. An ADD is eight microinstructions.
+> **N5** Even the instruction set programmers saw — a Data General Nova lookalike — is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.
 >
 > **N6** That emulator is task zero: the lowest of sixteen priorities.
 
-- **Visual (N5):** "ADD 1,2" appears in big type. The PROM grid replays the real ADD path through its eight octal addresses, `020 → 525 → 576 → 527 → 535 → 612 → 556 → 533`, with a counter running 1…8 and "1.36 µs" at the end.
+- **Visual (N5):** "ADD 1,2" appears in big type. The PROM grid replays the real ADD path through its eight octal addresses, `020 → 525 → 576 → 527 → 535 → 612 → 556 → 533`, with a counter running 1…8 and "1.36 µs" at the end. A second stopwatch labelled `Nova 1200` stops at 1.35 µs right beside it.
 - **Visual (N6):** The grid collapses into a stack of 16 horizontal lanes, numbered 17 down to 0 in octal (as in the listing). Lane 0 is filled in ink and labelled **YOUR PROGRAM**.
   - Xerox's actual task table scrolls past above: `NOVEM,,,,KSEC,,,EREST,MRT,DWT,CURT,DHT,DVT,PART,KWDX`.
 - **Sound:** Eight ticks for the ADD, then a low "thunk" for task zero.
@@ -139,6 +139,18 @@ Rapid cuts, about 5 s each:
   - Hard cut to the scanline grid, the ink slab glowing. Title card: **TASK ZERO**, with the three mouse-button bars.
 - **Sound:** The screen-off moment drops the blue texture and the heartbeat speeds up. The end is a 7:24 polyrhythm resolving on one chord.
 
+## Trims and extras
+
+The narration is 331 words. At a brisk ~175 wpm plus short pauses that's about 118 s. If the measured TTS runs over 120 s, cut in this order:
+1. N13 (the disk checksum), −13 words.
+2. The last sentence of N5 (the Nova 1200 comparison), −6 words.
+3. In N7, "Each task has its own micro-PC", −6 words. The visual still shows it.
+
+Optional lines if there's room, or for a longer cut:
+- **Precedent:** "Thacker reinvented this: MIT's TX-2 had hardware task sequences in 1958, but for slow devices. The Alto did it every 170 nanoseconds, for the screen." Sources: Thacker's 2007 CHM oral history, p. 14; Forgie 1957.
+- **Locks for free:** "A task can't be interrupted until it says TASK, so device microcode gets mutual exclusion for free." Source: CSL79 §2.
+- **The controllers came back:** the Dorado made task switching preemptive, and by the 1985 Daybreak workstation an 80186 handled all the I/O. Source: rationale notes §4.
+
 ## Sound
 
 - **Heartbeat.** A soft click train standing in for the 170 ns clock, slowed down by a very large factor. It's always there and speeds up and slows down with the story.
@@ -177,6 +189,7 @@ Every claim in the narration, with where it comes from. "HW79" is the 1979 Alto 
 | N3 | 170 ns microcycle; 32-bit microinstruction with RSEL/ALUF/BS/F1/F2/T/L/NEXT | HW79 §2; CSL79; ContrAlto |
 | N4 | No incrementer; NEXT names the successor; branches OR into the low address bit (one instruction late) | CSL79 p.10; HW79 p.10 |
 | N5 | The Nova-like ISA is the task-0 microcode (`NOVEM`); ADD = 8 microinstructions (1.36 µs) | µcode reset table and G16; hand trace in micromachine notes |
+| N5 | Nova 1200 ADD = 1.35 µs (LDA 2.55 µs on both) | Data General, *How to Use the Nova Computers* (1974), p. D12 |
 | N6 | 16 task levels; the emulator is task 0, the lowest | µcode reset table; HW79 |
 | N7 | Per-task micro-PCs (3101A RAM); wakeup lines + priority encoder; TASK function; nothing saved on a switch | HW79 §2; schematics; ContrAlto CPU |
 | N8 | Disk word task is the highest-priority standard task; 1-word disk buffer vs 16-word Ethernet FIFO | CSL79 §2.2; µcode |
