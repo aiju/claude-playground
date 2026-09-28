@@ -11,7 +11,7 @@ import { SCENES, SECTIONS, moments, DURATION } from './timeline.js';
 import { OTHER_SINGING } from './alignment.js';
 import { loadAudio, analyse } from './audio.js';
 import { spectrogram } from './spectrogram.js';
-import { getValues, getUnit, setUnit, sung, sceneOf } from './edits.js';
+import { getValues, getUnit, setUnit, sung, sceneOf, sameValue } from './edits.js';
 import { moveSylls, shiftLine, tapStart, tapEnd, moveRange } from './edit-ops.js';
 import { EditStore } from './edit-store.js';
 
@@ -25,7 +25,7 @@ function fmt(t, dp = 2) {
 const signed = d => `${d < 0 ? '−' : '+'}${Math.abs(d).toFixed(2)} s`;
 const short = (s, n = 14) => ([...s].length > n ? `${[...s].slice(0, n - 1).join('')}…` : s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const same = sameValue;
 const local = {
   get(k, d) { try { const v = localStorage.getItem(`heart-sutra-${k}`); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(`heart-sutra-${k}`, JSON.stringify(v)); } catch { /* private window */ } },

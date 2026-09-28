@@ -13,7 +13,7 @@
 // with `of` naming the edit they undo or redo. t is the song time the edit
 // is about.
 
-import { getValues, setValues, setUnit } from './edits.js';
+import { getValues, setValues, setUnit, sameValue } from './edits.js';
 
 const CHUNK = 100, CHUNK_BYTES = 150000;
 const LOCAL_KEY = 'heart-sutra-timing-edits';
@@ -129,7 +129,7 @@ export class EditStore {
 
   // An edit the editor has already applied: changes is [{ id, before, after }].
   commit(label, changes, t) {
-    changes = changes.filter(c => JSON.stringify(c.before) !== JSON.stringify(c.after));
+    changes = changes.filter(c => !sameValue(c.before, c.after));
     if (!changes.length) return null;
     return this._append({ kind: 'edit', label, t, changes });
   }

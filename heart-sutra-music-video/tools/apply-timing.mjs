@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { ALIGN } from '../src/alignment.js';
 import { CUES } from '../src/lyrics.js';
 import { SCENES } from '../src/timeline.js';
-import { getValues, round } from '../src/edits.js';
+import { getValues, round, sameValue } from '../src/edits.js';
 import { writeAlignment } from './alignment-file.mjs';
 
 const [file] = process.argv.slice(2);
@@ -25,7 +25,6 @@ const values = input.values || input;
 const want = { ...getValues(), ...values, lines: { ...getValues().lines, ...values.lines }, scenes: { ...getValues().scenes, ...values.scenes } };
 
 const r = x => round(x);
-const norm = v => JSON.stringify(v, (k, x) => (typeof x === 'number' ? r(x) : x));
 const num = x => (Number.isInteger(r(x)) ? r(x).toFixed(1) : String(r(x)));
 // replace the number in `m` (a matched 'name: 12.3') if it changed
 const renum = (text, name, v) => text.replace(new RegExp(`(${name}: )(-?[\\d.]+)`), (m, a, old) => (v == null || r(+old) === r(v) ? m : a + num(v)));
@@ -36,7 +35,7 @@ const renum = (text, name, v) => text.replace(new RegExp(`(${name}: )(-?[\\d.]+)
   const order = ['start', 'end', 'conf', 'checked', 'alt', 'sylls', 'unsure', 'extra', 'note'];
   const entries = Object.entries(ALIGN).map(([key, e]) => {
     const v = want.lines[key];
-    if (!v || !v.sylls || norm(v) === norm(now.lines[key])) return [key, e];
+    if (!v || !v.sylls || sameValue(v, now.lines[key])) return [key, e];
     const sylls = v.sylls.map(([a, b]) => [r(a), r(b)]);
     const out = { ...e, start: sylls[0][0], end: sylls[sylls.length - 1][1], sylls };
     if (v.checked) out.checked = true; else delete out.checked;
@@ -96,9 +95,9 @@ const renum = (text, name, v) => text.replace(new RegExp(`(${name}: )(-?[\\d.]+)
 const got = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e',
   "import { getValues } from './src/edits.js'; process.stdout.write(JSON.stringify(getValues()));"], { encoding: 'utf8' }));
 const bad = [];
-for (const [key, v] of Object.entries(want.lines)) if (norm(got.lines[key]) !== norm(v)) bad.push(`line ${key}`);
-for (const [name, v] of Object.entries(want.scenes)) if (norm(got.scenes[name]) !== norm(v)) bad.push(`scene ${name}`);
-if (norm(got.sections) !== norm(want.sections)) bad.push('sections');
-if (norm(got.other) !== norm(want.other)) bad.push('other singing');
+for (const [key, v] of Object.entries(want.lines)) if (!sameValue(got.lines[key], v)) bad.push(`line ${key}`);
+for (const [name, v] of Object.entries(want.scenes)) if (!sameValue(got.scenes[name], v)) bad.push(`scene ${name}`);
+if (!sameValue(got.sections, want.sections)) bad.push('sections');
+if (!sameValue(got.other, want.other)) bad.push('other singing');
 if (bad.length) { console.error(`written, but these don't read back the same: ${bad.join(', ')}`); process.exit(1); }
 console.log('wrote src/alignment.js, src/lyrics.js and src/timeline.js; they read back the same');

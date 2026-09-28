@@ -18,6 +18,13 @@ import { scheduleCue } from './schedule.js';
 export const round = x => Math.round(x * 100) / 100;
 const clone = v => JSON.parse(JSON.stringify(v));
 
+// Whether two values are the same, whatever order their keys are in (the
+// page's database gives them back in alphabetical order), with times
+// compared to the hundredth of a second.
+const canonical = v => JSON.stringify(v, (k, x) => (typeof x === 'number' ? round(x)
+  : x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(k => [k, x[k]])) : x));
+export const sameValue = (a, b) => canonical(a) === canonical(b);
+
 const cueByKey = new Map(CUES.map(c => [c.key, c]));
 const sceneByName = new Map(SCENES.map(s => [s.name, s]));
 export const sung = cue => !cue.deco && !cue.seal;
