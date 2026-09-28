@@ -1,0 +1,13 @@
+{
+  "name": "xerox-alto-explainer",
+  "version": "0.1.0",
+  "description": "A short explainer video about the Xerox Alto's microcoded processor, rendered from JavaScript",
+  "type": "module",
+  "scripts": {
+    "stills": "node stills.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

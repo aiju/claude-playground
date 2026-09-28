@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; background: #000; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="out" width="1080" height="1920"></canvas>
+    <script type="module">
+      import { makeVirtual, quantize, present } from './lib/frame.js';
+      import { drawTitle } from './scenes/title.js';
+      import { drawScanline } from './scenes/scanline.js';
+      import { drawMemory } from './scenes/memory.js';
+      import { drawMicroword } from './scenes/microword.js';
+
+      const scenes = { title: drawTitle, scanline: drawScanline, memory: drawMemory, microword: drawMicroword };
+      const v = makeVirtual();
+      const out = document.getElementById('out');
+
+      window.renderStill = (name, arg) => {
+        scenes[name](v.ctx, arg);
+        quantize(v.ctx);
+        present(v.canvas, out);
+      };
+      window.ready = true;
+    </script>
+  </body>
+</html>
