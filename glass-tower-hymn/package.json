@@ -1,0 +1,13 @@
+{
+  "name": "glass-tower-hymn",
+  "version": "1.0.0",
+  "description": "An instrumental in the style of Ar tonelico / Umineko, synthesized from scratch in JavaScript",
+  "type": "module",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7"
+  }
+}

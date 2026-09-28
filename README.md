@@ -6,6 +6,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 
 | Folder | What it is |
 | --- | --- |
+| [glass-tower-hymn](glass-tower-hymn) | An orchestral instrumental in the style of the Ar tonelico II and Umineko openings, synthesized from scratch in JavaScript |
 
 ## House rules
 
