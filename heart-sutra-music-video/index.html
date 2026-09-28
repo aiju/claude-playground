@@ -13,6 +13,7 @@
   #view { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; cursor: pointer; background: #f2ece0; }
   #status { position: fixed; inset: 0; display: grid; place-items: center; font: 15px/1.4 ui-monospace, Menlo, monospace; letter-spacing: 0.04em;
             color: #e8e0cf; background: #0d0f16; }
+  #status[hidden] { display: none; }
   #ui { position: fixed; left: 16px; right: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center;
         padding: 8px 12px; border-radius: 10px; background: rgba(13, 15, 22, 0.72); opacity: 0.2; transition: opacity 0.3s; }
   #ui:hover, #ui:focus-within, #ui:not(.playing) { opacity: 1; }

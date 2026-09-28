@@ -17,10 +17,14 @@ export const shared = /* glsl */ `
 
 // A standing figure in a robe; origin at the feet, about 1 unit tall.
 float sdFigure(vec2 q) {
-  float head = sdCircle(q - vec2(0.0, 0.9), 0.1);
-  float robe = sdTaper(q, vec2(0.0, 0.72), vec2(0.0, 0.05), 0.1, 0.24);
-  robe = max(robe, -q.y);
-  return smin(head, robe, 0.04);
+  float head = sdEllipse(q - vec2(0.01, 0.9), vec2(0.082, 0.098));
+  float neck = sdSeg(q, vec2(0.0, 0.8), vec2(0.0, 0.73)) - 0.04;
+  // robe narrow at the shoulders, flaring to an uneven hem
+  float robe = sdTaper(q, vec2(0.0, 0.68), vec2(0.02, 0.02), 0.13, 0.27);
+  robe = max(robe, -(q.y - 0.015 * sin(q.x * 20.0)));
+  // wide sleeves hanging from the shoulders
+  float sleeves = sdTaper(vec2(abs(q.x), q.y), vec2(0.11, 0.66), vec2(0.21, 0.3), 0.05, 0.1);
+  return smin(smin(smin(head, neck, 0.03), robe, 0.05), sleeves, 0.04);
 }
 
 // A small boat: a crescent hull with the traveller standing in it.
@@ -389,22 +393,26 @@ void sFullEmpty(vec2 p, float t, float v, inout Paint P) {
   8: { fn: 'sBloom', src: /* glsl */ `
 // ================================================================ 8 · 色即是空 chorus bloom
 void sBloom(vec2 p, float t, float v, inout Paint P) {
-  float g = 0.25 + 0.85 * easeOut(t / 1.4) + 0.03 * uPulse + 0.02 * sin(t * 1.2);
+  // bursts open on the downbeat, then keeps creeping outwards, breathing
+  // slowly and swelling a little on each drum hit
+  float g = 0.25 + 0.85 * easeOut(t / 1.4) + 0.012 * t + 0.035 * sin(t * 0.9) + 0.06 * uPulse;
   float bright = v;  // 1 for the final chorus
-  vec2 q = p * 0.95;
+  float tw = t * 2.5;                   // the wet edges crawl
+  vec2 q = p * (0.95 + 0.1 * bright);
+  vec2 flow = vec2(0.0, -t * 0.015);    // pigment settling inside the washes
   // fold crease
   P.od += od(PAYNE) * exp(-abs(p.x) / 0.004) * 0.06;
   // five pigments, each its own blot, glazed over each other
-  float d1 = blotSDF(q * 1.05, 1.0 + bright * 40.0, g, t, 1.1);
-  P.od += od(ROSE) * wash(d1, q, 1.0, 0.03) * gran(q, 0.3) * 0.8;
-  float d2 = blotSDF((q - vec2(0.0, -0.18)) * 1.25, 2.0 + bright * 40.0, g * 0.95, t, 1.0);
-  P.od += od(mix(ULTRA, COBALT, 0.4 + 0.3 * bright)) * wash(d2, q, 2.0, 0.025) * gran(q, 0.9) * 0.75;
-  float d3 = blotSDF((q - vec2(0.0, 0.2)) * 1.7, 3.0 + bright * 40.0, g, t, 0.9);
-  P.od += od(GAMBOGE) * wash(d3, q, 3.0, 0.03) * 0.8;
-  float d4 = blotSDF((q - vec2(0.0, -0.5)) * 1.9, 4.0 + bright * 40.0, g * 0.9, t, 1.0);
-  P.od += od(mix(SAPGREEN, TURQUOISE, bright)) * wash(d4, q, 4.0, 0.02) * gran(q, 0.5) * 0.65;
-  float d5 = blotSDF((q - vec2(0.0, 0.5)) * 2.1, 5.0 + bright * 40.0, g, t, 1.1);
-  P.od += od(VIOLET) * wash(d5, q, 5.0, 0.02) * gran(q, 0.7) * 0.7;
+  float d1 = blotSDF(q * 1.05, 1.0 + bright * 40.0, g, tw, 1.1);
+  P.od += od(ROSE) * wash(d1, q + flow, 1.0, 0.03) * gran(q, 0.3) * 0.8;
+  float d2 = blotSDF((q - vec2(0.0, -0.18)) * 1.25, 2.0 + bright * 40.0, g * 0.95, tw, 1.0);
+  P.od += od(mix(ULTRA, COBALT, 0.4 + 0.3 * bright)) * wash(d2, q + flow, 2.0, 0.025) * gran(q, 0.9) * 0.75;
+  float d3 = blotSDF((q - vec2(0.0, 0.2)) * 1.7, 3.0 + bright * 40.0, g, tw, 0.9);
+  P.od += od(GAMBOGE) * wash(d3, q + flow, 3.0, 0.03) * 0.8;
+  float d4 = blotSDF((q - vec2(0.0, -0.5)) * 1.9, 4.0 + bright * 40.0, g * 0.9, tw, 1.0);
+  P.od += od(mix(SAPGREEN, TURQUOISE, bright)) * wash(d4, q + flow, 4.0, 0.02) * gran(q, 0.5) * 0.65;
+  float d5 = blotSDF((q - vec2(0.0, 0.5)) * 2.1, 5.0 + bright * 40.0, g, tw, 1.1);
+  P.od += od(VIOLET) * wash(d5, q + flow, 5.0, 0.02) * gran(q, 0.7) * 0.7;
   // backruns where the washes met while wet
   float anyW = smoothstep(0.02, -0.02, min(min(d1, d2), min(d3, d5)));
   P.od += od(ROSE) * backrun(q, 7.0, 3.5) * anyW * 0.35;
@@ -789,7 +797,8 @@ void sUnravel(vec2 p, float t, float v, inout Paint P) {
   float front = 0.45 - 0.9 * ease((t - 1.0) / 7.0);   // the wind eats in from the right
   float erode = smoothstep(front + 0.04, front - 0.04, (p.x - fp.x) + 0.2 * fbm(p * 3.0));
   float body = wash(fig + edgeWobble(q * 2.0, 194.0, 0.01), p, 194.0, 0.02);
-  P.od += (od(INDIGO) * 0.6 + od(SUMI) * 0.35) * body * erode;
+  float tone = 0.5 + 0.5 * fbm3(q * 3.0 + 4.0);
+  P.od += (od(INDIGO) * 0.5 + od(VIOLET) * 0.3 * tone + od(SUMI) * 0.25 * (1.0 - tone)) * body * erode;
   P.od += od(SUMI) * inkLine(fig, p, 0.004, 195.0) * erode * 0.7;
   // what comes loose streams away as petals of colour
   vec3 cols[4] = vec3[4](ROSE, GAMBOGE, VIOLET, TURQUOISE);

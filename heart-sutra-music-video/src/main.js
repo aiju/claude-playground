@@ -56,7 +56,7 @@ async function init(status = () => {}) {
   await loadFonts();
   await prepareWriting(p => status(`Preparing brush strokes ${Math.round(p * 100)}%`));
   status('Loading the song');
-  buffer = await loadAudio(['audio/song.m4a', 'audio/song.mp3']);
+  buffer = await loadAudio(window.MV_AUDIO || ['audio/song.m4a', 'audio/song.mp3']);
   features = analyse(buffer);
   if (!capture) await renderer.warm(programKeys(), p => status(`Compiling shaders ${Math.round(p * 100)}%`));
 }

@@ -74,7 +74,7 @@ export const CUES = [
   // Final chorus
   { t0: 211.5, t1: 218.0, text: '色即是空', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi', sung: 'しきそくぜくう' },
   { t0: 214.5, t1: 218.0, text: '空即是色', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi', sung: 'くうそくぜしき' },
-  { t0: 217.6, t1: 223.6, text: 'रूपं शून्यता शून्यतैव रूपम्', script: 'sa', x: 0.5, y: 0.14, size: 0.075, ink: 'shu' },
+  { t0: 217.6, t1: 223.6, text: 'रूपं शून्यता शून्यतैव रूपम्', script: 'sa', x: 0.5, y: 0.075, size: 0.075, ink: 'shu' },
   { t0: 223.8, t1: 230.6, text: '彼岸の 風に 私は ほどける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
   { t0: 230.5, t1: 240.4, text: 'うまれず ほろびず 詩は 巡る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 
