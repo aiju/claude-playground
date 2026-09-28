@@ -3,7 +3,7 @@
 // the song, which every browser can decode.
 //
 //   node tools/build-preview.mjs          # the player, into out/preview/
-//   node tools/build-preview.mjs timing   # the timing checker, into out/timing/
+//   node tools/build-preview.mjs timing   # the timing editor, into out/timing/
 //
 // Needs ffmpeg (or FFMPEG=/path/to/ffmpeg).
 
@@ -27,7 +27,7 @@ await cp('fonts', `${page.out}/fonts`, { recursive: true });
 const html = await readFile(page.file, 'utf8');
 const body = html.slice(html.indexOf('<!-- page-start -->'), html.indexOf('<!-- page-end -->'))
   .replace(/\s*<source src="audio\/song\.m4a"[^>]*>/, '');
-// the timing checker also offers the separated vocals, when there are any
+// the timing editor also offers the separated vocals, when there are any
 const vocals = page.vocals && existsSync('audio/vocals.mp3');
 if (vocals) await cp('audio/vocals.mp3', `${page.out}/audio/vocals.mp3`);
 const globals = `window.MV_AUDIO = ['audio/song.mp3'];${vocals ? " window.MV_VOCALS = ['audio/vocals.mp3'];" : ''}`;

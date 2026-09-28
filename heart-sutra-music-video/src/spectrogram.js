@@ -1,4 +1,4 @@
-// A spectrogram of the vocal range for the timing checker: about 100
+// A spectrogram of the vocal range for the timing editor: about 100
 // columns a second, rows log-spaced from 110 Hz (bottom) to 3.5 kHz (top),
 // values 0..255.
 

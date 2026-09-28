@@ -68,11 +68,14 @@ export const SECTIONS = [
   { t0: 239.2, name: 'Outro' },
 ];
 
-// Every beat, for the timing checker; plus the fade at the very end.
-export const MOMENTS = [
-  ...SCENES.flatMap(s => (s.beats || []).map(b => ({ ...b, scene: s.name }))),
-  { t: DURATION - 2.5, t1: DURATION, label: 'fade to paper' },
-];
+// Every beat, for the timing editor; plus the fade at the very end. A
+// function, because the timing editor moves beats while it runs.
+export function moments() {
+  return [
+    ...SCENES.flatMap(s => (s.beats || []).map((b, i) => ({ ...b, scene: s.name, beat: i }))),
+    { t: DURATION - 2.5, t1: DURATION, label: 'fade to paper' },
+  ];
+}
 
 // A scene's first four beats in its own time, as the shader wants them:
 // [starts, ends], each four numbers.

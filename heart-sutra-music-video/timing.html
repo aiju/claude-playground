@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Timing check · Heart Sutra music video</title>
+<title>Timing editor · Heart Sutra music video</title>
 </head>
 <body>
 <!-- page-start -->
@@ -15,7 +15,7 @@
     --bg: #f5f3ee; --surface: #fcfbf8; --ink: #1c1b18; --ink-2: #57534b; --ink-3: #8f897d;
     --rule: #e2ddd2; --band-a: #efebe2; --band-b: #e5e0d4; --hover: rgba(28, 27, 24, 0.06);
     --ja: #2a78d6; --sa: #eb6834; --moment: #1baf7a; --loop: rgba(42, 120, 214, 0.10);
-    --ja-soft: rgba(42, 120, 214, 0.16); --sa-soft: rgba(235, 104, 52, 0.18);
+    --ja-soft: rgba(42, 120, 214, 0.16); --sa-soft: rgba(235, 104, 52, 0.18); --sel: #a3279c; --warn: #b54a12;
     --sans: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     --deva: "Noto Sans Devanagari", "Kohinoor Devanagari", sans-serif;
@@ -26,7 +26,7 @@
       --bg: #121315; --surface: #1a1a19; --ink: #f1eee7; --ink-2: #c3c2b7; --ink-3: #8a877e;
       --rule: #2d2d2a; --band-a: #222220; --band-b: #2a2a27; --hover: rgba(241, 238, 231, 0.07);
       --ja: #3987e5; --sa: #d95926; --moment: #199e70; --loop: rgba(57, 135, 229, 0.16);
-      --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24);
+      --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24); --sel: #e070d8; --warn: #f0985e;
     }
   }
   :root[data-theme="dark"] {
@@ -34,7 +34,7 @@
     --bg: #121315; --surface: #1a1a19; --ink: #f1eee7; --ink-2: #c3c2b7; --ink-3: #8a877e;
     --rule: #2d2d2a; --band-a: #222220; --band-b: #2a2a27; --hover: rgba(241, 238, 231, 0.07);
     --ja: #3987e5; --sa: #d95926; --moment: #199e70; --loop: rgba(57, 135, 229, 0.16);
-    --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24);
+    --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24); --sel: #e070d8; --warn: #f0985e;
   }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
   .wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 14px; }
@@ -45,6 +45,7 @@
   button, .seg label { font: 500 13px/1 var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--rule);
     border-radius: 6px; padding: 7px 11px; cursor: pointer; }
   button:hover, .seg label:hover { background: var(--band-a); }
+  button:disabled { opacity: 0.45; cursor: default; background: var(--surface); }
   button:focus-visible, .seg input:focus-visible + span, input[type=checkbox]:focus-visible { outline: 2px solid var(--ja); outline-offset: 2px; }
   #play { min-width: 6.5em; background: var(--ink); color: var(--surface); border-color: var(--ink); }
   #play:hover { opacity: 0.88; }
@@ -99,12 +100,37 @@
     .now .hint { text-align: left; }
     .line { font-size: 24px; }
   }
+  .editbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; background: var(--surface);
+    border: 1px solid var(--rule); border-radius: 8px; }
+  #saveStatus { color: var(--ink-2); font-size: 13px; min-width: 16ch; }
+  #saveStatus.warn { color: var(--warn); }
+  #tapOffset { width: 5.5em; font: 13px var(--mono); padding: 5px 6px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); }
+  #calibText { font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+  #calibText[hidden] { display: none; }
+  .editbar .push { margin-left: auto; }
+  .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 36px; padding: 4px 12px;
+    border-left: 3px solid var(--sel); color: var(--ink-2); font-size: 13.5px; }
+  .selbar b { color: var(--ink); font-weight: 600; }
+  .selbar .t { font: 13px var(--mono); color: var(--ink); }
+  .selbar .was { color: var(--ink-3); font: 12px var(--mono); }
+  .selbar .hint { color: var(--ink-3); }
+  .selbar input { font: 13px var(--sans); padding: 5px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); }
+  .selbar button { padding: 5px 9px; }
+  details.history { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px; }
+  details.history summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  #history { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; max-height: 260px; overflow-y: auto; }
+  #history li { display: flex; gap: 12px; align-items: baseline; font-size: 13px; }
+  #history li button { border: 0; background: none; padding: 2px 0; text-align: left; color: var(--ink); font-weight: 400; }
+  #history li button:hover { text-decoration: underline; background: none; }
+  #history li .t { font: 11.5px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  #history li.undone button { text-decoration: line-through; color: var(--ink-3); }
+  #history li.empty { color: var(--ink-3); }
   kbd { font: 12px var(--mono); padding: 1px 5px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); color: var(--ink); }
 </style>
 <div class="wrap">
   <header>
-    <h1>Timing check</h1>
-    <p>Every syllable and event where the video currently places it, against the song. Blue and orange blocks are when each syllable is sung, as measured by aligning the lyrics to the vocals; the grey spectrogram underneath is the actual singing.</p>
+    <h1>Timing editor</h1>
+    <p>Every syllable and event where the video currently places it, against the song, to correct by ear. Blue and orange blocks are when each syllable is sung, first measured by aligning the lyrics to the vocals; the grey spectrogram underneath is the actual singing. Drag anything to move it.</p>
   </header>
   <div class="transport">
     <button id="play" type="button">Loading…</button>
@@ -131,24 +157,40 @@
     <span class="loopchip" id="loopchip" hidden><span id="loopText"></span><button id="loopOff" type="button">Stop looping</button></span>
     <span id="status">Loading the song…</span>
   </div>
+  <div class="editbar">
+    <button id="undo" type="button" disabled>Undo</button>
+    <button id="redo" type="button" disabled>Redo</button>
+    <span id="saveStatus">Connecting…</span>
+    <label class="group"><input id="clicks" type="checkbox"> Click at each onset</label>
+    <label class="group"><input id="replay" type="checkbox" checked> Replay after an edit</label>
+    <span class="group">Tap offset <input id="tapOffset" type="number" step="5" value="0" aria-label="Tap offset in milliseconds"> ms
+      <button id="calibrate" type="button">Calibrate</button></span>
+    <span id="calibText" hidden></span>
+    <button id="download" class="push" type="button">Download edits</button>
+  </div>
   <section class="now" aria-live="off">
     <div class="where" id="where"></div>
     <div class="lines" id="lines"></div>
     <div class="hint">click a syllable to hear it · click a line to loop it</div>
   </section>
+  <div class="selbar" id="selbar" aria-live="polite"></div>
   <div class="roll-wrap">
     <canvas id="roll" aria-label="Timeline of syllables, lyric lines, scenes and audio"></canvas>
     <div id="tip" hidden></div>
   </div>
   <canvas id="overview" aria-label="Whole song overview"></canvas>
+  <details class="history" open>
+    <summary>Edits <span id="historyCount"></span></summary>
+    <ol id="history"></ol>
+  </details>
   <section class="legend">
     <div>
       <h2>Lanes</h2>
       <ul>
-        <li><span class="sw" style="background:var(--ja)"></span>Japanese syllable, kana below and its kanji above</li>
+        <li><span class="sw" style="background:var(--ja)"></span>Japanese syllable, kana below and its kanji above; a faint bar underneath shows where the syllables were before your edits</li>
         <li><span class="sw" style="background:var(--sa)"></span>Sanskrit syllable, as on the lyric sheet</li>
         <li><span class="sw" style="background:var(--moment)"></span>Something a scene does at a set time</li>
-        <li><span class="sw" style="background:var(--ink-3)"></span>Lines: thin bar while shown, thick bar while sung; "medium" or "low" marks a less certain timing, "alt" the other aligner's start</li>
+        <li><span class="sw" style="background:var(--ink-3)"></span>Lines: thin bar while shown, thick bar while sung; "medium" or "low" marks a less certain timing, "alt" the other aligner's start, "✓ by ear" a line you've checked</li>
         <li><span class="sw" style="background:repeating-linear-gradient(135deg, var(--ja-soft) 0 3px, var(--ink-3) 3px 4px)"></span>Hatched syllable: the two aligners disagreed by over 0.5 s</li>
         <li><span class="sw" style="background:var(--band-b)"></span>Other singing: vocalises and chant with no lyric line</li>
         <li><span class="sw" style="background:var(--band-b)"></span>Sections (estimated), scenes and their handovers (hatched)</li>
@@ -160,15 +202,27 @@
       <ul>
         <li><kbd>Space</kbd> play or pause</li>
         <li><kbd>←</kbd> <kbd>→</kbd> 1 s back or forward, with <kbd>Shift</kbd> 5 s</li>
-        <li><kbd>+</kbd> <kbd>−</kbd> zoom · drag or shift-scroll to pan</li>
+        <li><kbd>+</kbd> <kbd>−</kbd> zoom · drag empty space or shift-scroll to pan</li>
         <li><kbd>F</kbd> follow the playhead · <kbd>L</kbd> stop looping</li>
         <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> speed 1×, 0.75×, 0.5×</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Editing</h2>
+      <ul>
+        <li>Drag a syllable to move it, or its edge to move just that end. Syllables that touch move together; hold <kbd>⌥</kbd> while dragging to pull them apart.</li>
+        <li>Drag a kanji to move its syllables, or a line's thick bar to move the whole line (with <kbd>⌥</kbd>, without moving when it's on screen). <kbd>⇧</kbd>-click or <kbd>⇧</kbd>-drag to select several syllables, then drag one of them.</li>
+        <li>Drag the ends of a line's thin bar, scene starts and handover ends, beats, section starts and passages of other singing. <kbd>⌥</kbd>-click the section or other-singing lane to add one.</li>
+        <li><kbd>⌥←</kbd> <kbd>⌥→</kbd> nudge the selection 10 ms, with <kbd>⇧</kbd> 50 ms · <kbd>Tab</kbd> next syllable</li>
+        <li><kbd>J</kbd> while it plays: the selected syllable starts now, and the next one is selected. Hold <kbd>J</kbd> to set its end too.</li>
+        <li><kbd>⌘Z</kbd> undo · <kbd>⇧⌘Z</kbd> redo · <kbd>C</kbd> mark a line checked · <kbd>K</kbd> clicks · <kbd>⌫</kbd> delete a section · <kbd>Esc</kbd> deselect</li>
       </ul>
     </div>
     <div>
       <h2>Where the timings come from</h2>
       <ul>
         <li>The lyrics were force-aligned to the song with two methods (Whisper large-v3 through stable-ts, and an MMS CTC aligner), each run on a separated vocal track and on the full mix. High confidence means they agreed within about 0.4 s. Scenes and their moments are anchored to those lyric times.</li>
+        <li>Edits are saved as you make them, with a log of every edit, in the page's own database (or, run locally, in this browser). Claude writes them back into the source files when you're done.</li>
       </ul>
     </div>
   </section>
