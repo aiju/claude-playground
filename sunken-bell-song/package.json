@@ -1,0 +1,13 @@
+{
+  "name": "sunken-bell-song",
+  "version": "1.0.0",
+  "description": "The Sunken Bell: a layered orchestral/ethnic/electronic instrumental synthesized from scratch in JavaScript",
+  "type": "module",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7"
+  }
+}
