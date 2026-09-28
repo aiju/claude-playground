@@ -12,7 +12,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('video');
 const { ctx } = makeVirtual(canvas);
 
-const state = { t: 0, playing: false, captions: false, loop: false, mute: { voice: false, sfx: false, music: false } };
+const state = { t: 0, playing: false, captions: true, loop: false, mute: { voice: false, sfx: false, music: false } };
 let T, shots, sections, manifest;
 let stems = null;
 let actx = null, gains = {}, sources = [], startedAt = 0;

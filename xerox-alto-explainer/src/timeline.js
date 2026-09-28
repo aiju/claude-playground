@@ -59,8 +59,16 @@ export function buildTimeline(manifest) {
       start,
       end: clip.speechEnd + shift,
       clip: { shift, from: Math.max(0, clip.speechStart - PAD[0]), to: Math.min(clip.duration, clip.speechEnd + PAD[1]) },
-      words: (clip.words || []).map((w) => ({ w: w.w, key: key(w.w), start: w.start + shift, end: w.end + shift })),
+      words: (clip.words || []).map((w) => ({ w: w.w, cap: w.w, key: key(w.w), start: w.start + shift, end: w.end + shift })),
     };
+    // Tokens with no letters or digits (the em dashes) have no timing of
+    // their own; captions show them after the word before.
+    const words = lines[id].words;
+    let n = -1;
+    for (const tok of clip.text.split(/\s+/)) {
+      if (/[\p{L}\p{N}]/u.test(tok)) n++;
+      else if (words[n]) words[n].cap += ` ${tok}`;
+    }
     t = lines[id].end;
   }
   const duration = t + TAIL;

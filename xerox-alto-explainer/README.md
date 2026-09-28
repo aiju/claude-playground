@@ -14,12 +14,13 @@ No install needed. The preview draws every frame live at 30 fps, in sync with th
 
 - <kbd>Space</kbd> plays and pauses; <kbd>←</kbd> <kbd>→</kbd> step a second (<kbd>Shift</kbd> for five), <kbd>,</kbd> <kbd>.</kbd> a frame.
 - <kbd>1</kbd>–<kbd>8</kbd> or <kbd>[</kbd> <kbd>]</kbd> jump between sections; <kbd>L</kbd> loops the current one.
-- <kbd>V</kbd> <kbd>E</kbd> <kbd>M</kbd> mute the voice, effects and music; <kbd>C</kbd> turns on captions.
+- <kbd>V</kbd> <kbd>E</kbd> <kbd>M</kbd> mute the voice, effects and music; <kbd>C</kbd> hides the captions, to see what's under them.
 - "Copy timestamp" copies the time, section, line and word, for feedback. A link ending in `#t62.5` opens at 62.5 s.
 
 ## How it's made
 
 - **Timeline** (`src/timeline.js`): places each narration clip after a pause of its own and turns the word timings in `voice/manifest.json` into cue times, so a scene can say "when *register* is spoken".
+- **Captions** (`src/render.js`): part of the video, since most people watch shorts muted. They sit in a band at the bottom that the scenes keep clear, on cards of whole sentences or clauses, with the words still to come faded.
 - **Scenes** (`src/scenes/`): one module per shot, each a pure function of time that draws the frame and places its own sound effects. `src/scenes/index.js` is the shot list. Frames are drawn on a 540 × 960 canvas, snapped to a five-colour palette (ink, paper and the Alto mouse buttons' red, yellow and blue), then scaled up with nearest-neighbour sampling.
 - **Sound** (`src/audio/`): synthesised from scratch on sample buffers (DSP adapted from `sunken-bell-song`). The music is a 7 : 24 polyrhythm, because the Alto's CPU and pixel clocks are geared 7 : 24, and its heartbeat ticks drive some of the pictures. Music ducks under the voice, and one limiter watches all three stems, so muting one in the preview doesn't change the others.
 

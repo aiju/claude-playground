@@ -88,10 +88,10 @@ export const disk = {
     // The single microinstruction that did both.
     if (t >= one - 0.1) {
       const k = easeBack(ramp(t, one - 0.1, one + 0.25));
-      rect(ctx, 30, 770, 480 * k, 44, 'ink');
-      if (k > 0.9) text(ctx, 'MD← L← KDATA XOR T, TASK, :RW1;', 270, 782, { size: 16, colour: 'paper', align: 'center' });
+      rect(ctx, 30, 740, 480 * k, 44, 'ink');
+      if (k > 0.9) text(ctx, 'MD← L← KDATA XOR T, TASK, :RW1;', 270, 752, { size: 16, colour: 'paper', align: 'center' });
       if (k > 0.9) {
-        titleTab(ctx, '1 microinstruction = 170 ns', 30, 826, 'red');
+        titleTab(ctx, '1 microinstruction = 170 ns', 30, 794, 'red');
       }
     }
   },

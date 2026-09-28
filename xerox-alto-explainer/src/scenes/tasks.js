@@ -171,7 +171,7 @@ export const tasks = {
     }
     if (t >= saved) {
       const k = easeOut(ramp(t, saved, saved + 0.3));
-      titleTab(ctx, 'SWITCH: 0 CYCLES · NOTHING SAVED', 30, 820 + (1 - k) * 80, { size: 16, colour: 'red' });
+      titleTab(ctx, 'SWITCH: 0 CYCLES · NOTHING SAVED', 30, 800 + (1 - k) * 40, { size: 16, colour: 'red' });
     }
   },
 
