@@ -16,7 +16,9 @@ export const FIELDS = [
 
 const ACCENT = { NEXT: 'red', F1: 'yellow', F2: 'yellow', ALUF: 'blue' };
 
-export function drawMicroword(ctx, { line = 'T← MD, TASK, :NEXT;', highlight = 'NEXT' } = {}) {
+// Default line: the Nova ADD, straight from Xerox's 1979 Alto II microcode
+// listing (altoIIcode3.mu, label G16; the listing writes ← as _).
+export function drawMicroword(ctx, { line = 'L← ACDEST+T, TASK, :SHIFT;', highlight = 'NEXT' } = {}) {
   clear(ctx);
   titleTab(ctx, 'ONE MICROINSTRUCTION', 30, 40, { size: 16 });
   text(ctx, '32 bits · one every 170 ns', 30, 80, { size: 16 });
