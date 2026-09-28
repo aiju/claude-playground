@@ -4,7 +4,9 @@
   "description": "A short explainer video about the Xerox Alto's microcoded processor, rendered from JavaScript",
   "type": "module",
   "scripts": {
-    "stills": "node stills.js"
+    "stills": "node stills.js",
+    "tts": "node tts.js",
+    "narration": "node narration.js"
   },
   "license": "MIT",
   "devDependencies": {
