@@ -46,7 +46,7 @@ A 16-bit **processor bus** feeds the A input of a 16-bit **ALU**. The ALU's B in
 - **Chips:** four **SN74S181** 4-bit ALU slices plus one **74S182** carry-lookahead generator. The ALU board's material list shows 4× 74S181 (A7, A9, A17, A19) and 1× 74S182 (A40) (SCH-ALU, material list). CSL79 §2.4 p. 13 says "four SN74S181 ICs". KS-intro says four 74181. HW76/HW79 say "SN74181 type".
 - **Function mapping:** the 4-bit ALUF field goes through a PROM that drives the 181's S3–S0, M and carry-in lines (HW79 p. 4; CSL79 p. 13). The manual says the 74181 "can do a total of 48 arithmetic and logical operations, most of which are relatively useless" (HW76 p. 5; HW79 p. 4). CSL79 p. 13 says "64". Both are defensible counts: 16 logic functions, plus 16 arithmetic functions × 2 carry-in values, is 48, while 16 × 2 × 2 is 64.
 
-ALUF table (HW79 p. 4; HW76 p. 5 [PDF 8]; CONSTS lines 77–96). "*" means T is loaded from the **ALU output** instead of the bus when this function is used together with LoadT.
+ALUF table (HW79 p. 4; HW76 p. 5 [PDF 8]; CONSTS lines 76–95). "*" means T is loaded from the **ALU output** instead of the bus when this function is used together with LoadT.
 
 | ALUF (octal) | Function | 74181 S3 S2 S1 S0, M, Cn | 181 operation |
 |---|---|---|---|
@@ -64,7 +64,7 @@ ALUF table (HW79 p. 4; HW76 p. 5 [PDF 8]; CONSTS lines 77–96). "*" means T is 
 | 13 | BUS + SKIP * | 0000, 0, SKIP′ | A PLUS 1 if the emulator's SKIP flag is set, else A |
 | 14 | BUS . T * (AND) | 1011, 1, 0 | AB, the same 181 operation as ALUF 3 |
 | 15 | BUS AND NOT T | 0111, 1, 0 | A AND NOT B |
-| 16–17 | undefined; CONSTS line 94 says a "ZEROALU" request is "unlikely ever to be implemented" | — | — |
+| 16–17 | undefined; CONSTS line 93 says a "ZEROALU" request is "unlikely ever to be implemented" | — | — |
 
 - The mapping yields **13 distinct 74181 operations**. ALUF 3 and 14 are the same AND and differ only in whether T is loaded from the bus or from the ALU. CSL79 Fig. 5 and p. 13 count "fourteen" useful codes. HW76/HW79 say the field maps to "16 most useful functions", but two of those are undefined.
 - **BUS+SKIP** feeds the emulator's SKIP flip-flop into the 74181's carry-in. This is how a Nova skip instruction costs zero cycles (see §3.7).
@@ -88,7 +88,7 @@ ALUF table (HW79 p. 4; HW76 p. 5 [PDF 8]; CONSTS lines 77–96). "*" means T is 
 | **MIR** | 32 | control-store output at the end of each cycle | Microinstruction register | HW76 p. 8; CSL79 p. 10 |
 
 - Timing rule, stated for programmers: registers hold their values during the whole cycle, and at the end of the cycle "they are loaded instantaneously and simultaneously" (HW79 pp. 3–4). So `PC← L, L← T` (UC `MAYBE:`) writes the old L into PC while L takes T's value, in one cycle.
-- Emulator register map (UC lines 606–607 and 680–684): **AC0=R3, AC1=R2, AC2=R1, AC3=R0**, NWW (interrupts waiting) = R4, SAD = R5, **PC = R6**, XREG = R7. The source comments why the accumulators are backwards: "AC'S ARE BACKWARDS BECAUSE THE HARDWARE SUPPLIES THE COMPLEMENT ADDRESS" (UC line 680). The hardware substitutes (IR field XOR 3) into RSELECT[3–4].
+- Emulator register map (UC lines 593–594 and 666–670): **AC0=R3, AC1=R2, AC2=R1, AC3=R0**, NWW (interrupts waiting) = R4, SAD = R5, **PC = R6**, XREG = R7. The source comments why the accumulators are backwards: "AC'S ARE BACKWARDS BECAUSE THE HARDWARE SUPPLIES THE COMPLEMENT ADDRESS" (UC line 666). The hardware substitutes (IR field XOR 3) into RSELECT[3–4].
 
 ### 1.5 Shifter
 
@@ -96,21 +96,21 @@ ALUF table (HW79 p. 4; HW76 p. 5 [PDF 8]; CONSTS lines 77–96). "*" means T is 
 - Emulator-only modifiers:
   - `DNS←` (F2=12B, "do Nova shifts") does the Nova's 17-bit rotate through CARRY, writes R[DestAC] unless the Nova no-load bit IR[12] is set, and sets SKIP.
   - `MAGIC` (F2=11B) makes LSH/RSH shift T's high or low bit into the vacated position, giving double-length shifts. Mu spells this `L MLSH 1` / `L MRSH 1`.
-  - (HW79 §3.5 p. 31; CONSTS lines 55–57.)
+  - (HW79 §3.5 p. 31; CONSTS lines 54–56.)
 - The shifter output is what gets written into R, and it is also what SH<0 and SH=0 test. It is computed from L's value *at the start* of the microinstruction (HW79 p. 6 footnote).
 
 ### 1.6 Constant PROM
 
 - 256 words × 16 bits (HW76 §2.2 p. 6; HW79 p. 6). **About 200 of the 256 were used** (CSL79 p. 13).
 - It is **addressed by concatenating RSELECT (5 bits) and BS (3 bits)** (HW79 p. 6). A constant is not a field of its own: it is a reuse of the register-select and bus-source fields as an 8-bit address.
-- It is gated onto the bus when F1=7, F2=7 (`←CONSTANT`), or **BS≥4**. With BS≥4 the constant is ANDed with that bus source, giving up to 32 masks per source (HW79 p. 6). Example: `$M17 $M6:000017; Constant normally ANDed with MOUSE` (CONSTS line 118). Every `←DISP` is ANDed with the all-ones constant at (RSELECT=0, BS=7) unless a mask is chosen (CONSTS lines 119–122).
+- It is gated onto the bus when F1=7, F2=7 (`←CONSTANT`), or **BS≥4**. With BS≥4 the constant is ANDed with that bus source, giving up to 32 masks per source (HW79 p. 6). Example: `$M17 $M6:000017; Constant normally ANDed with MOUSE` (CONSTS line 116). A plain `←DISP` is therefore always ANDed with *some* BS=7 constant. The file defines `ALLONES7` ("Constant normally ANDed with DISP") for that, next to real masks like `X17` (CONSTS lines 117–120). That the all-ones mask sits at RSELECT=0 is my inference; the file does not say.
 - Alto I caveat: only −1 can be used with ←MD, because parity is computed on the bus (HW79 p. 6).
-- Mu treats the constant **0** specially: it is not taken from the PROM if an R load already forces the bus to 0 (MU p. 79–80; CONSTS line 114 calls it "SUPER SPECIAL").
+- Mu treats the constant **0** specially: it is not taken from the PROM if an R load already forces the bus to 0 (MU p. 79–80; CONSTS line 112 calls it "SUPER SPECIAL").
 - Where the constant PROM sits physically: **not verified**. There are no obvious 4× 256×4 PROMs on the ALU board's material list.
 
 ### 1.7 Bus sources (BS, 3 bits)
 
-(HW79 pp. 4–5; HW76 p. 5; CONSTS lines 25–34)
+(HW79 pp. 4–5; HW76 p. 5; CONSTS lines 24–33)
 
 | BS | Name | Source |
 |---|---|---|
@@ -164,7 +164,7 @@ Numbering convention: **the microinstruction that does MAR← is "cycle 1"** (HW
 
 ### 2.2 Standard F1 and F2 (the same meaning in every task)
 
-"The first eight conditions specified by each field (except BLOCK) are interpreted identically by all tasks" (HW79 p. 5; HW76 p. 5). CONSTS lines 36–51.
+"The first eight conditions specified by each field (except BLOCK) are interpreted identically by all tasks" (HW79 p. 5; HW76 p. 5). CONSTS lines 35–50.
 
 | Code | F1 | F2 |
 |---|---|---|
@@ -183,13 +183,13 @@ F1 and F2 codes **10B–17B** and BS **3–4** mean different things in differen
 
 | Task | F1 10–17 | F2 10–17 | BS 3/4 | Source |
 |---|---|---|---|---|
-| Emulator (0) | 10 SWMODE, 11 WRTRAM, 12 RDRAM, 13 RMR← (ESRB/SRB on 3K), 15 ESRB←, 16 RSNF (read host number from the Ethernet board), 17 STARTF (the SIO instruction) | 10 BUSODD, 11 MAGIC, 12 DNS←, 13 ACDEST, 14 IR←, 15 IDISP, 16 ACSOURCE | ←S / S← | CONSTS lines 53–73; HW79 §3.5 |
+| Emulator (0) | 10 SWMODE, 11 WRTRAM, 12 RDRAM, 13 RMR← (ESRB/SRB on 3K), 15 ESRB←, 16 RSNF (read host number from the Ethernet board), 17 STARTF (the SIO instruction) | 10 BUSODD, 11 MAGIC, 12 DNS←, 13 ACDEST, 14 IR←, 15 IDISP, 16 ACSOURCE | ←S / S← | CONSTS lines 52–72; HW79 §3.5 |
 | Disk (KSEC 4, KWD 16B) | 11 STROBE, 12 KSTAT←, 13 INCRECNO, 14 CLRSTAT, 15 KCOMM←, 16 KADR←, 17 KDATA← | 10 INIT, 11 RWC, 12 RECNO, 13 XFRDAT, 14 SWRNRDY, 15 NFER, 16 STROBON | ←KSTAT / ←KDATA | CA `MicroInstruction.cs` enums; HW76 p. 5 |
-| Display word (11B) | — | 10 DDR← (push a word into the display FIFO) | — | UC line 63 |
-| Display horizontal (13B) | — | 10 EVENFIELD, 11 SETMODE | — | UC lines 61–62 |
-| Display vertical (14B) | — | 10 EVENFIELD | — | UC line 61 |
+| Display word (11B) | — | 10 DDR← (push a word into the display FIFO) | — | UC line 61 |
+| Display horizontal (13B) | — | 10 EVENFIELD, 11 SETMODE | — | UC lines 59–60 |
+| Display vertical (14B) | — | 10 EVENFIELD | — | UC line 59 |
 | Cursor (12B) | — | 10 XPREG←, 11 CSR← | — | CA enums; UC `CURT:` |
-| Ethernet (7) | 13 EILFCT, 14 EPFCT, 15 EWFCT | 10 EODFCT, 11 EOSFCT, 12 ERBFCT, 13 EEFCT, 14 EBFCT, 15 ECBFCT, 16 EISFCT | 4 EIDFCT | UC lines 225–236 |
+| Ethernet (7) | 13 EILFCT, 14 EPFCT, 15 EWFCT | 10 EODFCT, 11 EOSFCT, 12 ERBFCT, 13 EEFCT, 14 EBFCT, 15 ECBFCT, 16 EISFCT | 4 EIDFCT | UC lines 220–231 |
 
 So **F2=10B alone has six meanings**: branch on bus bit 15 (emulator), write display data (DWT), branch if even field (DHT/DVT), load cursor X (CURT), output an Ethernet word (Ethernet), initialise the disk (disk). The same pattern holds for F1=13B: RMR← or SRB← on the RAM board, INCRECNO (disk), EILFCT (Ethernet).
 
@@ -200,10 +200,10 @@ So **F2=10B alone has six meanings**: branch on bus bit 15 (emulator), write dis
    - `BUS` ORs BUS[6–15] (10 bits, up to a 1024-way jump).
    - `IR←` ORs bus bits 0, 5, 6, 7 into NEXT[6–9] (16-way).
    - `IDISP` and `ACSOURCE` each OR up to 4 bits.
-   - Devices OR bits too; for example the Ethernet task branches 4 ways on "NEXT6 and NEXT7" (UC line 169).
+   - Devices OR bits too; for example the Ethernet task branches 4 ways on "NEXT6 and NEXT7" (UC line 164).
    - The base label must therefore have zeros where the condition bits land, so Mu packs targets into aligned blocks (§8).
 3. **The modification lands one instruction late.** "Because the next instruction is already being fetched while the instruction is being executed, conditional branches and dispatches affect not the address of an instruction's immediate successor, but the instruction following that one" (CSL79 p. 10). HW79 p. 10 says the same: "the Alto pre-fetches one microinstruction ahead". The manual's example: `100B: SH<0, NEXT=101B` / `101B: NEXT=102B` executes 100, 101, 102 or 100, 101, 103. TH86 p. 92 calls this "a two stage pipeline". CA's `Task.cs` implements it: "If we have a modified next field from the last instruction, make sure it gets applied to this one."
-   - In Mu source this reads naturally: the *test* is on one line and the *target pair* is on the next. From UC `DHT:` (lines 98–100): `L_ SLC -1, BUS=0;` then `SLC_ L, :DHT0;` with `!1,2,DHT0,DHT1;`.
+   - In Mu source this reads naturally: the *test* is on one line and the *target pair* is on the next. From UC `DHT:` (UC lines 95–97): `L_ SLC -1, BUS=0;` then `SLC_ L, :DHT0;` with `!1,2,DHT0,DHT1;`.
 4. **Bank switching** (1K-word banks; NEXT is only 10 bits): see §5.2.
 
 ### 2.5 Task switching (core mechanics only)
@@ -212,7 +212,7 @@ So **F2=10B alone has six meanings**: branch on bus bit 15 (emulator), write dis
 - The manual's timeline table, useful for animation: two streams A–F and J–M, where C allows the switch, D still runs, then J and K run, then E resumes (HW79 p. 11).
 - A switch only happens if a higher-priority wakeup is pending, or if the current task has dropped its own. The emulator (task 0) "is always requesting wakeup" (HW79 p. 11).
 - Rules: no state may be held in L, T or a pending memory reference across a TASK. **TASK may not appear in two consecutive microinstructions** (HW79 p. 11).
-- At reset, **each task starts at the microaddress equal to its task number**, so the emulator starts at 0 (HW79 p. 11). The ROM's reset table is `!17,20,NOVEM,,,,KSEC,,,EREST,MRT,DWT,CURT,DHT,DVT,PART,KWDX,;` (UC line 26).
+- At reset, **each task starts at the microaddress equal to its task number**, so the emulator starts at 0 (HW79 p. 11). The ROM's reset table is `!17,20,NOVEM,,,,KSEC,,,EREST,MRT,DWT,CURT,DHT,DVT,PART,KWDX,;` (UC line 25).
 - Undocumented quirk found by the emulator authors: a TASK in the first microinstruction after a switch has no effect (CA `Task.cs` comment: "observed on the real hardware").
 
 ---
@@ -221,7 +221,7 @@ So **F2=10B alone has six meanings**: branch on bus bit 15 (emulator), write dis
 
 ### 3.1 What the emulator is
 
-- It is task 0, label `NOVEM` at address 0, headed ";NOVA EMULATOR" (UC lines 604–616; UC-addr `EM0000> NOVEM:`).
+- It is task 0, label `NOVEM` at address 0, headed ";NOVA EMULATOR" (UC lines 591–603; UC-addr `EM0000> NOVEM:`).
 - It emulates a Nova-like "BCPL" instruction set. The differences from a Nova: 16-bit addresses (so only single-level indirection), no auto-index locations, a different interrupt system, and Nova I/O opcodes (60000B and up) reassigned to Alto instructions (HW76 §3.1 p. 10; §3.3 p. 16).
 - The hardware added for it is IR, the ACSOURCE/ACDEST register addressing, the IR dispatch logic, and the SKIP/CARRY/DNS shifter control. CSL79 p. 14 puts the total at **"less than ten ICs"**. Thacker later judged that the same hardware "probably would have been better" spent on something more general (TH86 p. 93).
 - The standard ROM's 1,024 words are budgeted per task as follows. This is my count of the per-address annotations in UC-addr, 1,021 addresses in all:
@@ -243,7 +243,7 @@ So **F2=10B alone has six meanings**: branch on bus bit 15 (emulator), write dis
 
 ### 3.2 The main loop: fetch, interrupt check, decode
 
-Excerpt from UC lines 706–722, with PROM addresses from UC-addr:
+Excerpt from UC lines 692–708, with PROM addresses from UC-addr:
 
 ```
 START:  T_ MAR_PC+SKIP;                      ; 020
@@ -267,13 +267,13 @@ What happens, cycle by cycle, with no interrupt pending:
 | 6 | DIS1 (612) | T ← R[SrcAC] via ACSOURCE; jumps to GETAD (540) + the 4 opcode bits. The ACSOURCE dispatch ORs more bits into the *next* instruction's successor. | — |
 
 - The four slots of memory latency are filled with the interrupt test and the PC increment. That is the Nova emulator's only overlap trick (§3.7).
-- Interrupts are pure microcode: I/O microcode ORs bits into NWW, and "at the start of every macroinstruction, NIW is tested" (CSL79 p. 6; "NIW" there, NWW in the source).
+- Interrupts are pure microcode: I/O microcode ORs bits into NWW, and "at the start of every macroinstruction, NIW is tested" (CSL79 §2.1 p. 5; "NIW" there, NWW in the source).
 
 **The three-level decode cascade.** Each stage is set up one instruction early, per §2.4.
 
-1. **`IR←`** (in DIS0) ORs {IR[0], IR[5], IR[6], IR[7]} into DIS1's NEXT (HW79 §3.5 p. 30; CA `EmulatorTask.cs`). This selects one of 16 entries `GETAD, G1 … G17` (`!17,20,…`, "GETAD MUST BE 0 MOD 20", UC lines 689 and 724):
+1. **`IR←`** (in DIS0) ORs {IR[0], IR[5], IR[6], IR[7]} into DIS1's NEXT (HW79 §3.5 p. 30; CA `EmulatorTask.cs`). This selects one of 16 entries `GETAD, G1 … G17` (`!17,20,…`, "GETAD MUST BE 0 MOD 20", UC lines 675 and 710):
    - Memory-reference and jump instructions (IR[0]=0) index by I and X: G0–G3 compute the base (0, PC−1, AC2, AC3), and G4–G7 are the indirect twins.
-   - Arithmetic instructions (IR[0]=1) index by the AFunc field: G10 COM, G11 NEG, G12 MOV, G13 INC, G14 ADC, G15 SUB, **G16 ADD**, G17 AND (UC lines 733–740).
+   - Arithmetic instructions (IR[0]=1) index by the AFunc field: G10 COM, G11 NEG, G12 MOV, G13 INC, G14 ADC, G15 SUB, **G16 ADD**, G17 AND (UC lines 719–726).
 2. **`ACSOURCE`** (in DIS1) has two jobs. It addresses R[SrcAC XOR 3], and it ORs into the G-instruction's successor (HW79 §3.5 p. 31):
 
    | Condition | Value ORed in |
@@ -290,7 +290,7 @@ What happens, cycle by cycle, with no interrupt pending:
    | IR[1–2]=1 | 4 → LDA |
    | IR[1–2]=2 | 5 → STA |
 
-   The targets form the table `XCTAB, XJSR, XISZ, XDSZ, XLDA, XSTA, CONVERT…` (UC line 690).
+   The targets form the table `XCTAB, XJSR, XISZ, XDSZ, XLDA, XSTA, CONVERT…` (UC line 676).
 
 ### 3.3 Worked example 1: `ADD 1,2` (octal 133000): AC2 ← AC2 + AC1
 
@@ -316,7 +316,7 @@ Encoding: 0 | MFunc=01 | DestAC=01 | I=0 | X=10 | D=3.
 - IR[1–2]=1 ≠ 3, so the ACSOURCE dispatch uses I=0 → **DOINS**.
 - IDISP gives 4 → **XLDA**.
 
-| Cycle | Address | Microinstruction (UC lines 725–866) | Effect |
+| Cycle | Address | Microinstruction (UC lines 711–850) | Effect |
 |---|---|---|---|
 | 1–6 | … | main loop | |
 | 7 | 542 | `G2: T_ AC2, :DOINS;` | base register |
@@ -338,13 +338,13 @@ Encoding: 0 | MFunc=01 | DestAC=01 | I=0 | X=10 | D=3.
 | **JSR** | `XJSR: T_ SAD, :FINJSR` → `FINJSR: L_ PC; AC3_ L, L_ T, TASK;` → `FINJMP` | about 12 cycles |
 
 - `PC−1` appears in the relative-address G-entries because PC has already been incremented in cycle 3.
-- An indirect bit adds a detour through `DOIND` (UC lines 748–750): a second memory reference, about +3 cycles plus stalls.
+- An indirect bit adds a detour through `DOIND` (UC lines 734–736): a second memory reference, about +3 cycles plus stalls.
 
 ### 3.6 The Nova-skip trick and other emulator gems in UC
 
 - **Skip costs nothing.** `DNS←` sets the SKIP flip-flop. The *next* instruction's first microinstruction computes `MAR←PC+SKIP` with ALUF 13B, where the 74181's carry-in is SKIP′ (HW79 §3.5 p. 31: the PC "is incremented by 1 at the beginning of the next emulated instruction if SKIP is set, using BUS+SKIP"). So SZR, SNC and the rest never branch in microcode.
-- **Unimplemented opcodes** go to `RAMTRAP: SWMODE, :TRAP;` (UC line 807). With a control RAM installed, execution continues *in RAM* at the address of TRAP1 (37B), with the instruction in L and the byte-swapped copy in XREG. Without one, it traps through a vector in page 1 (HW79 §8.6 p. 60; HW76 §3.3 p. 16).
-- **MUL** is an "exact emulation of Nova hardware multiply" in microcode. It loops on `L MRSH 1` (the MAGIC shift) about 16 times (UC lines 922–964).
+- **Unimplemented opcodes** go to `RAMTRAP: SWMODE, :TRAP;` (UC line 792). With a control RAM installed, execution continues *in RAM* at the address of TRAP1 (37B), with the instruction in L and the byte-swapped copy in XREG. Without one, it traps through a vector in page 1 (HW79 §8.6 p. 60; HW76 §3.3 p. 16).
+- **MUL** is an "exact emulation of Nova hardware multiply" in microcode. It loops on `L MRSH 1` (the MAGIC shift) about 16 times (UC lines 904–946).
 
 ### 3.7 Overlap and prefetch: the precise answer
 
@@ -367,7 +367,7 @@ Encoding: 0 | MFunc=01 | DestAC=01 | I=0 | X=10 | D=3.
 | Microinstruction rate | **5.88 million per second** (nominal 5.880000 MHz) | HW79 §3.3 RCLK (p1-PDF 25) |
 | Emulated instruction time, no I/O load | "between one and three microseconds" | TH86 p. 92 |
 | Effect of the display | times "increased by a factor of three" | TH86 pp. 92–93 |
-| Display share of the machine | "about 60% of the cycles" for a full-screen bitmap | CSL79 §3.2 |
+| Display share of the machine | "about 60% of the cycles" for a full-screen bitmap | CSL79 §3.1 |
 | Measured display-off speed-up | BCPL Mandelbrot went from 24 min to 9 min with the display off, **2.7×** | KS-Mandelbrot 2 |
 | Round figure quoted by Shirriff | "about 400,000 instructions per second" | KS-Bitcoin (secondary, basis not stated) |
 | My traces | ADD 8 cycles (1.36 µs), JMP 11 (1.87 µs), STA ≈ 14 (2.4 µs), LDA 15 (2.55 µs) | §3.3–3.5 |
@@ -424,7 +424,7 @@ CSL79 Fig. 2, p. 3 (read from the scan):
 - **RDRAM** (F1=12B) reads one 16-bit half. The data is **ANDed onto the bus** in the next instruction, which is why the reading code loads `L←ALLONES` there (HW79 p. 57).
 - Both RDRAM and WRTRAM **stop the system clock for one cycle** (HW79 §8.8 p. 61).
 - ROM0 can be read the same way, but only if the instruction after RDRAM sits at the target address mod 1024. "There is no known way to read ROM1" (HW79 §8.8 p. 61).
-- Emulator instructions (UC lines 1178–1192, UC-addr):
+- Emulator instructions (UC lines 1173–1190, UC-addr):
   - `RDRAM` 61011B: `RDRM: T<- AC1, RDRAM;` / `L<- ALLONES, TASK, :LOADD;`
   - `WRTRAM` 61012B: `WTRM: T<- AC1;` / `L<- AC0, WRTRAM;` / `L<- AC3, :FINBLT;` (AC0 is the high half, AC3 the low half, AC1 the address)
   - `JMPRAM` 61010B: `JMPR: T<-AC1, BUS, SWMODE, :TORAM;` / `TORAM: :NOVEM;`. `BUS` ORs AC1's low 10 bits into `TORAM`'s NEXT, which is NOVEM = **address 0**, and SWMODE flips the bank. So the jump target is literally "zero OR the accumulator". The manual warns it can make the machine "plunge completely off the deep end" (HW79 §8.5 p. 59).
@@ -461,7 +461,7 @@ CSL79 Fig. 2, p. 3 (read from the scan):
   1. At the clock edge, MIR is loaded with the next microinstruction, the modified NEXT is written into the MPC RAM, and all registers load together (HW79 pp. 3–4; CSL79 p. 10).
   2. The bus, ALU and shifter then settle combinationally from the new register values.
   3. Meanwhile the MPC RAM output addresses the control store, prefetching the next microinstruction.
-- **The clock is also a stall mechanism.** Memory waits, RDRAM, WRTRAM and a marginal Ethernet input path all *stop* SysClk (HW79 §8.8 p. 61; UC lines 366–375, the Ethernet "WARNING" comment).
+- **The clock is also a stall mechanism.** Memory waits, RDRAM, WRTRAM and a marginal Ethernet input path all *stop* SysClk (HW79 §8.8 p. 61; UC lines 359–368, the Ethernet "WARNING" comment).
 - **Derived rates:** the Ethernet bit time is two clock periods, 2.94 Mbit/s (HWRef79 part2 §7; TH86 p. 95 "half the rate of the Alto master clock").
 - **Alto I:** also 170 ns (HW76 p. 4). Whether its clock came from the same 29.4 MHz ÷ 5 circuit is **not verified**.
 
@@ -516,7 +516,7 @@ Source: MU pp. 77–83.
 - Output is `.MB` (Micro format) for the PROM blower, RamLoad and PackMu. A 3-bit **F3 field "exists only in the debugging RAM"** (MU p. 80). TH86 p. 93 describes that debugging microstore: extra bits for breakpoints, driven from a minicomputer.
 - In the plain-text file the arrow is `_`. The printed listing and the Alto show a real `←` glyph (UC-lst, p. 16).
 
-**A real line for the screen** (UC line 739; UC-addr `EM0556>`; UC-lst p. 16 [PDF 18]):
+**A real line for the screen** (UC line 725; UC-addr `EM0556>`; UC-lst p. 16 [PDF 18]):
 
 ```
 G16:    L← ACDEST+T, TASK, :SHIFT;          ADD
@@ -561,7 +561,7 @@ Applies to `reports/Xerox Alto explainer research.md` (the "report") and `resear
 1. **Branch timing (report, "The 'CPU' is itself a program"; hw notes §1).** "A branch works by ORing condition bits into that address" is incomplete. The OR modifies the NEXT of the *following* microinstruction, because the next microinstruction is already being fetched (CSL79 p. 10; HW79 p. 10; TH86 p. 92 "two stage pipeline"). Also, a micro-PC *does* exist (one per task, in the MPC RAM). What is missing is an *incrementer*.
 2. **"Eight 1K×4 PROM chips" (report and hw notes, cited to Shirriff day 5).** The quote is from **day 4** (2016/07), not day 5. It describes Shirriff's 2K-capable Alto II control board. The 1976 Alto II 1K control board uses **32 × Intel 3601 256×4 PROMs** (+1), and the 1973 Alto used 256×4 PROMs (CSL79 Fig. 2; SCH-CTL).
 3. **ALU "four 74181" (both).** Precisely: four **74S181** (Schottky) plus a **74S182** lookahead carry chip (SCH-ALU; CSL79 p. 13).
-4. **ALUF 14 (hw notes: "BUS AND T with a different carry setting").** Wrong. ALUF 3 and ALUF 14 drive the 74181 identically (S=1011, M=1). The difference is that ALUF 14 loads **T from the ALU output** instead of from the bus (HW79 p. 4; CONSTS lines 81 and 91).
+4. **ALUF 14 (hw notes: "BUS AND T with a different carry setting").** Wrong. ALUF 3 and ALUF 14 drive the 74181 identically (S=1011, M=1). The difference is that ALUF 14 loads **T from the ALU output** instead of from the bus (HW79 p. 4; CONSTS lines 80 and 90).
 5. **Clock (report: "170 ns ≈ 5.88 MHz (computed)").** Now primary: nominal **5.880000 MHz** (HW79 §3.3). It is generated as **29.4 MHz ÷ 5** on the Alto II Display Control board (SCH-DISP sheet 14) and equals 875 × 30 × 224 (CSL79 §3.4). The hw notes could not tell which document the "integral submultiple (224)" excerpt came from: it is **CSL79 §3.4**.
 6. **"6 MIPS" (report quoting Kay).** Correct only as a *microinstruction* rate. The Nova-level rate is about **0.4–0.7 million instructions/s** with the display off and about a third of that with a full display (§4). The script must not call the CPU a 6-MIPS machine.
 7. **Display slow-down "factor of three" (report, attributed to Hiltzik).** There is a primary source: TH86 pp. 92–93. Shirriff measured 2.7×.
