@@ -1,1 +1,3 @@
 out/
+# separated vocals for the timing checker; regenerate rather than commit
+audio/vocals.mp3

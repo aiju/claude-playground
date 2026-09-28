@@ -8,11 +8,12 @@
 // Needs ffmpeg (or FFMPEG=/path/to/ffmpeg).
 
 import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const PAGES = {
   index: { file: 'index.html', out: 'out/preview', title: 'Prajñā Preview', head: '<style>:root { color-scheme: dark; }</style>\n' },
-  timing: { file: 'timing.html', out: 'out/timing', title: 'Prajñā Timing', head: '' },
+  timing: { file: 'timing.html', out: 'out/timing', title: 'Prajñā Timing', head: '', vocals: true },
 };
 const page = PAGES[process.argv[2] || 'index'];
 if (!page) throw new Error(`unknown page; pick one of ${Object.keys(PAGES).join(', ')}`);
@@ -26,8 +27,11 @@ await cp('fonts', `${page.out}/fonts`, { recursive: true });
 const html = await readFile(page.file, 'utf8');
 const body = html.slice(html.indexOf('<!-- page-start -->'), html.indexOf('<!-- page-end -->'))
   .replace(/\s*<source src="audio\/song\.m4a"[^>]*>/, '');
-await writeFile(`${page.out}/index.html`,
-  `<title>${page.title}</title>\n${page.head}<script>window.MV_AUDIO = ['audio/song.mp3'];</script>\n${body}`);
+// the timing checker also offers the separated vocals, when there are any
+const vocals = page.vocals && existsSync('audio/vocals.mp3');
+if (vocals) await cp('audio/vocals.mp3', `${page.out}/audio/vocals.mp3`);
+const globals = `window.MV_AUDIO = ['audio/song.mp3'];${vocals ? " window.MV_VOCALS = ['audio/vocals.mp3'];" : ''}`;
+await writeFile(`${page.out}/index.html`, `<title>${page.title}</title>\n${page.head}<script>${globals}</script>\n${body}`);
 
 execFileSync(process.env.FFMPEG || 'ffmpeg', ['-y', '-loglevel', 'error', '-i', 'audio/song.m4a', '-c:a', 'libmp3lame', '-b:a', '192k', `${page.out}/audio/song.mp3`]);
 console.log(`wrote ${page.out}`);

@@ -20,6 +20,7 @@ out vec4 outColor;
 uniform vec2 uRes;
 uniform float uTime;
 uniform float uTA, uTB, uVarA, uVarB, uMix;
+uniform vec4 uBeatA0, uBeatA1, uBeatB0, uBeatB1;   // each scene's beats (see scenes.js)
 uniform int uTrans;
 uniform float uLevel, uPulse, uBeat;
 uniform vec2 uHits[8];
@@ -105,10 +106,10 @@ export function fragmentFor(a, b = null) {
   let src = header + (B ? '#define TRANSITION\n' : '') + lib + shared + A.src;
   if (B && b !== a) src += B.src;
   src += `
-Paint sceneA(vec2 p, float t, float v) { Paint P = noPaint(); ${A.fn}(p, t, v, P); return P; }
+Paint sceneA(vec2 p, float t, float v) { Paint P = noPaint(); ${A.fn}(p, t, v, uBeatA0, uBeatA1, P); return P; }
 `;
   if (B) src += `
-Paint sceneB(vec2 p, float t, float v) { Paint P = noPaint(); ${B.fn}(p, t, v, P); return P; }
+Paint sceneB(vec2 p, float t, float v) { Paint P = noPaint(); ${B.fn}(p, t, v, uBeatB0, uBeatB1, P); return P; }
 `;
   return src + main;
 }

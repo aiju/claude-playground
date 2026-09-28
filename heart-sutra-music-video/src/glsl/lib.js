@@ -234,6 +234,8 @@ void konshi(inout Paint P, vec2 p, float dens) {
   P.od += od(INDIGO) * dens * (1.0 + v);
 }
 
+// 0 before a, 1 after b, linear between.
+float span01(float t, float a, float b) { return clamp((t - a) / max(b - a, 1e-3), 0.0, 1.0); }
 float ease(float x) { x = clamp(x, 0.0, 1.0); return x * x * (3.0 - 2.0 * x); }
 float easeOut(float x) { x = clamp(x, 0.0, 1.0); return 1.0 - (1.0 - x) * (1.0 - x); }
 float win(float t, float a, float b, float fa, float fb) { return smoothstep(a, a + fa, t) * (1.0 - smoothstep(b - fb, b, t)); }

@@ -4,7 +4,7 @@
 import { Renderer } from './renderer.js';
 import { TextLayer, loadFonts, prepareWriting } from './text.js';
 import { loadAudio, analyse, featuresAt } from './audio.js';
-import { sceneAt, fadeAt, SCENES, DURATION } from './timeline.js';
+import { sceneAt, fadeAt, beatsOf, SCENES, DURATION } from './timeline.js';
 import { CUES } from './lyrics.js';
 
 const params = new URLSearchParams(location.search);
@@ -31,6 +31,7 @@ function frameState(t) {
     time: t,
     a: s.a.scene, vA: s.a.v || 0, tA: t - s.a.t0,
     b: s.b ? s.b.scene : null, vB: s.b ? s.b.v || 0 : 0, tB: s.b ? t - s.b.t0 : 0,
+    beatsA: beatsOf(s.a), beatsB: s.b ? beatsOf(s.b) : null,
     mix: s.mix, trans: s.b ? s.b.style || 0 : 0,
     fade: fadeAt(t), ...f,
   };

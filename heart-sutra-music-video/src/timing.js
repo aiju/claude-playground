@@ -6,6 +6,7 @@
 import { CUES } from './lyrics.js';
 import { scheduleCue, plain } from './schedule.js';
 import { SCENES, SECTIONS, MOMENTS, DURATION } from './timeline.js';
+import { OTHER_SINGING } from './alignment.js';
 import { loadAudio, analyse } from './audio.js';
 import { spectrogram } from './spectrogram.js';
 
@@ -45,7 +46,8 @@ EVENTS.forEach((e, i) => { e.row = i % 2; });
 // pitch); falls back to Web Audio if the element can't load the file.
 
 const audioEl = $('song');
-let buffer = null, features = null, spec = null;
+let buffer = null, vocals = null, features = null, spec = null;
+let source = 'mix';   // or 'vocals'
 const clock = {
   mode: null, rate: 1, playing: false,
   ctx: null, src: null, offset: 0, startedAt: 0,
@@ -59,7 +61,7 @@ const clock = {
       this.ctx = this.ctx || new AudioContext();
       if (this.offset >= DURATION - 0.05) this.offset = 0;
       this.src = this.ctx.createBufferSource();
-      this.src.buffer = buffer;
+      this.src.buffer = source === 'vocals' && vocals ? vocals : buffer;
       this.src.playbackRate.value = this.rate;
       this.src.connect(this.ctx.destination);
       this.src.start(0, this.offset);
@@ -145,14 +147,17 @@ function layout() {
     ['sections', 20, 'Section'],
     ['scenes', 20, 'Scene'],
     ['moments', 40, 'Moments'],
+    ['other', 20, 'Other singing'],
     ['lines', LINES.rows * 22, 'Lines'],
     ['syll', LINES.rows * 38, 'Syllables'],
     ['spec', 128, 'Audio'],
     ['hits', 38, 'Drums · level'],
   ];
   let y = 0;
+  const specLabel = lanes.spec && lanes.spec.label;
   lanes = {};
   for (const [id, h, label] of defs) { lanes[id] = { y, h, label }; y += h + (id === 'ruler' ? 2 : 6); }
+  if (specLabel) lanes.spec.label = specLabel;
   W = w; H = y;
   const dpr = devicePixelRatio || 1;
   roll.width = Math.round(W * dpr); roll.height = Math.round(H * dpr);
@@ -315,6 +320,21 @@ function draw() {
     });
   }
 
+  // singing that isn't a lyric line
+  {
+    const { y, h } = L.other;
+    for (const o of OTHER_SINGING) {
+      const a = xOf(o.t), b = xOf(o.t1);
+      if (b < LW || a > W) continue;
+      const x0 = Math.max(a, LW), x1 = Math.min(b, W);
+      ctx.fillStyle = C['band-b'];
+      ctx.fillRect(x0, y + 2, x1 - x0, h - 4);
+      hatch(a, b, y + 2, h - 4);
+      text(o.label, x0 + 5, y + h / 2, { max: x1 - x0 - 8, color: C.ink });
+      hits.push({ x0, x1, y0: y, y1: y + h, kind: 'other', it: o });
+    }
+  }
+
   // lines: thin bar while shown, block while sung
   {
     const { y } = L.lines;
@@ -329,8 +349,15 @@ function draw() {
       ctx.fillRect(Math.max(sa, LW), ry + 2, Math.max(0, Math.min(sb, W) - Math.max(sa, LW)), 13);
       ctx.fillStyle = col;
       if (sa >= LW) ctx.fillRect(sa, ry + 2, 2, 13);
+      const al = Ln.cue.align;
+      if (al && al.alt != null) {
+        const ax = xOf(al.alt);
+        if (ax >= LW && ax <= W) { ctx.fillStyle = C.ink; ctx.fillRect(Math.round(ax), ry + 1, 1, 16); text('alt', ax + 3, ry + 5, { font: `9px ${C.mono}`, color: C['ink-2'] }); }
+      }
+      const conf = al ? al.conf : 'guess';
       const lx = Math.max(sa, LW) + 5;
-      text(Ln.text, lx, ry + 9, { color: C.ink, max: Math.max(b, sb) - lx - 4, font: `12px ${Ln.sa ? C.deva : C.sans}` });
+      const label = conf === 'high' ? Ln.text : `${Ln.text} · ${conf}`;
+      text(label, lx, ry + 9, { color: C.ink, max: Math.max(b, sb) - lx - 4, font: `12px ${Ln.sa ? C.deva : C.sans}` });
       if (loop && loop.line === Ln) { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(Math.max(sa, LW) + 0.5, ry + 1.5, Math.min(Math.max(b, sb), W) - Math.max(sa, LW) - 1, 18); }
       hits.push({ x0: Math.min(a, sa), x1: Math.max(b, sb), y0: ry, y1: ry + 20, kind: 'line', it: Ln });
     }
@@ -358,13 +385,16 @@ function draw() {
           text(g.ch, (a + b) / 2, ry + 7, { font: `13px ${C.sans}`, color: C.ink, align: 'center' });
         });
       }
-      Ln.s.syllables.forEach(s => {
+      Ln.s.syllables.forEach((s, k) => {
+        s.k = k;
         const a = xOf(s.t0) + 1, b = xOf(s.t1) - 1;
         if (b < LW || a > W) return;
         const on = now >= s.t0 && now < s.t1;
         const x0 = Math.max(a, LW);
         ctx.fillStyle = on ? col : soft;
         ctx.fillRect(x0, ry + 17, Math.max(1, b - x0), 19);
+        const unsure = Ln.cue.align && Ln.cue.align.unsure && Ln.cue.align.unsure.includes(s.k);
+        if (unsure && !on) hatch(a, b, ry + 17, 19);
         ctx.fillStyle = col;
         if (a >= LW) ctx.fillRect(a, ry + 17, 2, 19);
         const label = s.text;
@@ -608,9 +638,15 @@ function describe(h) {
     case 'syll': {
       const Ln = it.line, g = Ln.s.glyphs[it.glyph];
       const what = Ln.sa ? `<b>${it.text}</b> in ${Ln.cue.roman}` : g.reading ? `<b>${it.text}</b> of ${g.ch}（${g.reading}）` : `<b>${it.text}</b>`;
-      return `${what}<br>${Ln.text}<br><span class="t">${fmt(it.t0)} – ${fmt(it.t1)}</span>`;
+      const unsure = Ln.cue.align && Ln.cue.align.unsure && Ln.cue.align.unsure.includes(it.k);
+      return `${what}<br>${Ln.text}<br><span class="t">${fmt(it.t0)} – ${fmt(it.t1)}</span>${unsure ? '<br>the two aligners disagreed on this one by over 0.5 s' : ''}`;
     }
-    case 'line': return `<b>${it.text}</b>${it.sa ? `<br>${it.cue.roman}` : ''}<br><span class="t">shown ${fmt(it.cue.t0, 1)}–${fmt(it.cue.t1, 1)} · sung ${fmt(it.s.s0)}–${fmt(it.s.s1)}</span><br>click to loop this line`;
+    case 'line': {
+      const al = it.cue.align;
+      const conf = al ? `measured, ${al.conf} confidence${al.alt != null ? `; the other aligner said ${fmt(al.alt)}` : ''}` : 'not measured';
+      return `<b>${it.text}</b>${it.sa ? `<br>${it.cue.roman}` : ''}<br><span class="t">shown ${fmt(it.cue.t0, 1)}–${fmt(it.cue.t1, 1)} · sung ${fmt(it.s.s0)}–${fmt(it.s.s1)}</span><br>${conf}${al && al.note ? `<br><i>${al.note}</i>` : ''}<br>click to loop this line`;
+    }
+    case 'other': return `<b>${it.label}</b><br><span class="t">${fmt(it.t)} – ${fmt(it.t1)}</span>`;
     case 'moment': return `<b>${it.label}</b><br><span class="t">${fmt(it.t)}${it.t1 != null ? ` – ${fmt(it.t1)}` : ''}</span>`;
     case 'scene': return `Scene <b>${it.name}</b><br><span class="t">from ${fmt(it.t0, 1)}${it.tr ? `, handover takes ${it.tr} s` : ''}</span>`;
     case 'section': return `Section <b>${it.name}</b> (estimated)<br><span class="t">${fmt(it.t0, 1)} – ${fmt(it.t1, 1)}</span>`;
@@ -693,6 +729,21 @@ $('zoomOut').addEventListener('click', () => setZoom(zoom + 1));
 $('follow').addEventListener('change', e => setFollow(e.target.checked));
 $('loopOff').addEventListener('click', () => { loop = null; $('loopchip').hidden = true; });
 document.querySelectorAll('input[name=speed]').forEach(r => r.addEventListener('change', () => clock.setRate(+r.value)));
+document.querySelectorAll('input[name=listen]').forEach(r => r.addEventListener('change', () => setSource(r.value)));
+function setSource(v) {
+  if (v === source) return;
+  const t = clock.now(), was = clock.playing;
+  if (was) clock.pause();
+  source = v;
+  if (clock.mode === 'media') {
+    audioEl.src = v === 'vocals' ? (window.MV_VOCALS || ['audio/vocals.mp3'])[0] : (window.MV_AUDIO || ['audio/song.m4a'])[0];
+    audioEl.addEventListener('loadedmetadata', () => { audioEl.currentTime = t; audioEl.playbackRate = clock.rate; if (was) clock.play(); }, { once: true });
+    audioEl.load();
+  } else {
+    clock.offset = t;
+    if (was) clock.play();
+  }
+}
 function setSpeed(v) { const r = document.querySelector(`input[name=speed][value="${v}"]`); r.checked = true; clock.setRate(v); }
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'radio' && e.target.type !== 'checkbox') return;
@@ -726,8 +777,12 @@ setZoom(zoom);
     buffer = await loadAudio(window.MV_AUDIO || ['audio/song.m4a', 'audio/song.mp3']);
     features = analyse(buffer);
     const media = mediaReady();
+    // the separated vocal track, if there is one, makes a much clearer picture
+    try { vocals = await loadAudio(window.MV_VOCALS || ['audio/vocals.mp3']); } catch { vocals = null; }
+    $('listen').hidden = !vocals;
+    lanes.spec.label = vocals ? 'Vocals' : 'Audio';
     status.textContent = 'Analysing the audio…';
-    spec = await spectrogram(buffer, p => { status.textContent = `Analysing the audio ${Math.round(p * 100)}%`; });
+    spec = await spectrogram(vocals || buffer, p => { status.textContent = `Analysing the audio ${Math.round(p * 100)}%`; });
     specChunks = null;
     clock.mode = (await media) ? 'media' : 'webaudio';
     status.textContent = clock.mode === 'media' ? '' : 'Slower speeds also lower the pitch in this browser.';

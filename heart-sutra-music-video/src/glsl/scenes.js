@@ -4,7 +4,9 @@
 //
 // Each scene function gets the screen position p, the time t
 // in seconds since the scene started (negative while it fades in early),
-// a variant number for scenes that are reused, and paints into P.
+// a variant number for scenes that are reused, and its beats: the moments
+// it acts on, listed with the scene in timeline.js. k0 holds the start of
+// beats 0..3 and k1 their ends, both in scene time. It paints into P.
 //
 // Uniforms available here: uTime (song time), uLevel (loudness 0..1),
 // uPulse (decaying hit envelope 0..1), uBeat (beat phase 0..1),
@@ -100,14 +102,14 @@ void seaBase(vec2 p, float t, inout Paint P, float darkness) {
 export const scenes = {
   0: { fn: 'sBowl', src: /* glsl */ `
 // ================================================================ 0 · 鈴 singing bowl
-void sBowl(vec2 p, float t, float v, inout Paint P) {
+void sBowl(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   konshi(P, p, 1.3);
   // a dark bloom breathing at the centre, under the ॐ
   float d = blotSDF(p * 1.5, 3.0, 0.75 + 0.08 * sin(t * 0.6), t, 0.9);
   P.od += od(PRUSSIAN) * softWash(d, p, 2.0, 0.15) * 0.6;
   // bowl strikes: rings of lifted water and gold dust
   for (int i = 0; i < 4; i++) {
-    float age = t - (0.2 + 3.6 * float(i));
+    float age = t - k0[i];
     if (age < 0.0) continue;
     float r = 0.1 + age * 0.26;
     float w = 0.012 + age * 0.014;
@@ -127,7 +129,7 @@ void sBowl(vec2 p, float t, float v, inout Paint P) {
 ` },
   1: { fn: 'sPrajna', src: /* glsl */ `
 // ================================================================ 1 · 般若 prajñā
-void sPrajna(vec2 p, float t, float v, inout Paint P) {
+void sPrajna(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   konshi(P, p, 1.3);
   float g = 0.75 + 0.3 * easeOut(t / 9.0) + 0.05 * uPulse;
   vec2 q = p * 1.1 - vec2(0.0, 0.1);
@@ -147,7 +149,7 @@ void sPrajna(vec2 p, float t, float v, inout Paint P) {
 ` },
   2: { fn: 'sDescent', src: /* glsl */ `
 // ================================================================ 2 · 沈む descent
-void sDescent(vec2 p, float t, float v, inout Paint P) {
+void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   konshi(P, p, 1.25);
   float up = smoothstep(-1.0, 1.4, p.y);
   lift(P, up * 0.25);
@@ -198,7 +200,7 @@ void sDescent(vec2 p, float t, float v, inout Paint P) {
 ` },
   3: { fn: 'sSeaFloor', src: /* glsl */ `
 // ================================================================ 3 · 海の底 sea floor
-void sSeaFloor(vec2 p, float t, float v, inout Paint P) {
+void sSeaFloor(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   vec2 cp = p + vec2(0.0, -t * 0.012);    // sinking slowly
   seaBase(cp, t, P, 0.0);
   // something luminous stirring in the dark: the eye, not yet open
@@ -235,9 +237,9 @@ void sSeaFloor(vec2 p, float t, float v, inout Paint P) {
 ` },
   4: { fn: 'sEye', src: /* glsl */ `
 // ================================================================ 4 · 目を開く the eye
-void sEye(vec2 p, float t, float v, inout Paint P) {
+void sEye(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   seaBase(p, t, P, 0.25);
-  float open = easeOut((t - 0.4) / 2.6) * (0.92 + 0.08 * sin(t * 0.7));
+  float open = easeOut(span01(t, k0.x, k1.x)) * (0.92 + 0.08 * sin(t * 0.7));
   vec2 e = p - vec2(0.0, 0.02);
   // lids: Rorschach blots folded above and below the eye
   float lidT = blotSDF(vec2(e.x * 0.8, e.y - 0.36 - 0.16 * open) * 1.3, 11.0, 0.85, t, 1.0);
@@ -271,7 +273,7 @@ void sEye(vec2 p, float t, float v, inout Paint P) {
   for (int i = 0; i < 2; i++) {
     float fi = float(i);
     float x = 0.2 + fi * 0.26;
-    float len = (0.08 + 0.1 * hash11(fi + 3.0)) * easeOut(t / 5.0);
+    float len = (0.08 + 0.1 * hash11(fi + 3.0)) * easeOut(span01(t, k0.y, k1.y));
     vec2 a = vec2(x, -0.33 - 0.03 * fi), b = a + vec2(0.01 * sin(fi * 3.0), -len);
     vec2 dq = q + vec2(0.005 * sin(q.y * 35.0 + fi * 2.0), 0.0);
     float drip = sdTaper(dq, a, b, 0.009, 0.004);
@@ -283,7 +285,7 @@ void sEye(vec2 p, float t, float v, inout Paint P) {
 ` },
   5: { fn: 'sSand', src: /* glsl */ `
 // ================================================================ 5 · 風の砂 wind and sand
-void sSand(vec2 p, float t, float v, inout Paint P) {
+void sSand(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   konshi(P, p, 1.0);
   float up = smoothstep(-0.2, 1.2, p.y);
   lift(P, 0.55 + 0.25 * up);
@@ -321,10 +323,10 @@ void sSand(vec2 p, float t, float v, inout Paint P) {
 // ================================================================ 6 · 五つのひかり five lights
 vec2 lightPos(int i) { float a = PI * 0.5 + float(i) * TAU / 5.0; return vec2(0.0, 0.02) + 0.42 * vec2(cos(a), sin(a)); }
 
-void sFiveLights(vec2 p, float t, float v, inout Paint P) {
+void sFiveLights(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   konshi(P, p, 1.25);
   vec3 cols[5] = vec3[5](ROSE, GAMBOGE, TURQUOISE, VIOLET, CERULEAN);
-  float unravel = smoothstep(4.0, 12.0, t);
+  float unravel = smoothstep(k0.x, k1.x, t);
   for (int i = 0; i < 5; i++) {
     float fi = float(i);
     vec2 c = lightPos(i);
@@ -353,9 +355,9 @@ void sFiveLights(vec2 p, float t, float v, inout Paint P) {
 ` },
   7: { fn: 'sFullEmpty', src: /* glsl */ `
 // ================================================================ 7 · 満ちて 空っぽで full and empty
-void sFullEmpty(vec2 p, float t, float v, inout Paint P) {
+void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // the indigo starts to rinse away from the centre before the chorus
-  float rinse = smoothstep(8.0, 10.7, t);
+  float rinse = smoothstep(k0.z, k1.z, t);
   float rr = length(p * vec2(0.8, 1.0)) + 0.25 * fbm(p * 1.4 + 71.0);
   float front = rinse * 2.4;
   float dyed = smoothstep(front - 0.05, front + 0.05, rr);
@@ -379,7 +381,7 @@ void sFullEmpty(vec2 p, float t, float v, inout Paint P) {
   // the bowl: fills (満ちて) and empties (空っぽで)
   vec2 c = p - vec2(0.0, 0.0);
   float R = 0.38;
-  float fill = smoothstep(0.0, 3.5, t) * (1.0 - smoothstep(4.2, 7.8, t));
+  float fill = smoothstep(k0.x, k1.x, t) * (1.0 - smoothstep(k0.y, k1.y, t));
   float level = -R + 2.0 * R * fill + 0.015 * sin(c.x * 12.0 + t * 2.0);
   float disc = length(c) - R;
   float water = max(disc, c.y - level) + edgeWobble(c, 72.0, 0.01);
@@ -392,7 +394,7 @@ void sFullEmpty(vec2 p, float t, float v, inout Paint P) {
 ` },
   8: { fn: 'sBloom', src: /* glsl */ `
 // ================================================================ 8 · 色即是空 chorus bloom
-void sBloom(vec2 p, float t, float v, inout Paint P) {
+void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // bursts open on the downbeat, then keeps creeping outwards, breathing
   // slowly and swelling a little on each drum hit
   float g = 0.25 + 0.85 * easeOut(t / 1.4) + 0.012 * t + 0.035 * sin(t * 0.9) + 0.06 * uPulse;
@@ -440,7 +442,7 @@ float sdHand(vec2 q) {
   return d;
 }
 
-void sPalm(vec2 p, float t, float v, inout Paint P) {
+void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // what remains of the chorus bloom, faded
   float d0 = blotSDF(p * 0.9, 1.0, 1.1, t, 1.1);
   P.od += od(ROSE) * wash(d0, p, 1.0, 0.03) * 0.12;
@@ -469,7 +471,7 @@ void sPalm(vec2 p, float t, float v, inout Paint P) {
 ` },
   10: { fn: 'sWheel', src: /* glsl */ `
 // ================================================================ 10 · 光は巡る wheel of light
-void sWheel(vec2 p, float t, float v, inout Paint P) {
+void sWheel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float bright = v;
   vec3 cols[8] = vec3[8](ROSE, VERMILION, GAMBOGE, SAPGREEN, TURQUOISE, COBALT, ULTRA, VIOLET);
   float spin = t * 0.08;
@@ -496,7 +498,7 @@ void sWheel(vec2 p, float t, float v, inout Paint P) {
 ` },
   11: { fn: 'sTaiko', src: /* glsl */ `
 // ================================================================ 11 · 尺八と太鼓 shakuhachi and taiko
-void sTaiko(vec2 p, float t, float v, inout Paint P) {
+void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // mist and a pale vermilion sun behind the grove
   float sd = length(p - vec2(0.75, 0.42)) - 0.3 + edgeWobble(p, 101.0, 0.02);
   P.od += od(VERMILION) * wash(sd, p, 101.0, 0.03) * 0.38;
@@ -577,7 +579,7 @@ void landscape(inout Paint P, vec2 p, float t, float k, float hz) {
   }
 }
 
-void sChains(vec2 p, float t, float v, inout Paint P) {
+void sChains(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float hz = -0.24;
   if (p.y > hz) {
     landscape(P, p, t, 1.0, hz);
@@ -607,7 +609,7 @@ void sChains(vec2 p, float t, float v, inout Paint P) {
     float ring = faceOn > 0.5
       ? abs(sdEllipse(q, vec2(0.105, 0.06))) - 0.014
       : sdBox(q, vec2(0.1, 0.012)) - 0.006;
-    float dissolve = smoothstep(7.5 + ii * 0.12 - 3.0, 10.5 + ii * 0.12 - 3.0, t);
+    float dissolve = smoothstep(k0.x + ii * 0.12, k0.x + 2.5 + ii * 0.12, t);
     float soft = mix(0.004, 0.05, dissolve);
     float body = smoothstep(soft, -soft, ring + edgeWobble(q * 4.0, ii, 0.006 + 0.03 * dissolve));
     float keep = (1.0 - dissolve) * (1.0 - 0.6 * smoothstep(0.3, 0.7, fbm3(q * 8.0 + ii) * 0.5 + 0.5) * dissolve);
@@ -618,7 +620,7 @@ void sChains(vec2 p, float t, float v, inout Paint P) {
 ` },
   13: { fn: 'sFarShore', src: /* glsl */ `
 // ================================================================ 13 · 向こう岸 the far shore
-void sFarShore(vec2 p, float t, float v, inout Paint P) {
+void sFarShore(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float bank = 0.22;
   // sky, pale
   P.od += od(OCHRE) * band(p, bank, 1.3, 151.0, 0.1) * 0.12;
@@ -659,7 +661,7 @@ void sFarShore(vec2 p, float t, float v, inout Paint P) {
     P.od += od(PAYNE) * wash(rd, p, fi, 0.003) * on * 0.7;
   }
   // the riser: light pulling upward
-  float rise = smoothstep(10.5, 14.2, t);
+  float rise = smoothstep(k0.x, k1.x, t);
   vec2 rq = vec2(p.x, p.y - t * 0.5);
   float streak = smoothstep(0.75, 0.95, gnoise(vec2(rq.x * 14.0, rq.y * 1.2)) * 0.5 + 0.5) * rise;
   lift(P, streak * 0.6);
@@ -668,9 +670,10 @@ void sFarShore(vec2 p, float t, float v, inout Paint P) {
 ` },
   14: { fn: 'sNeither', src: /* glsl */ `
 // ================================================================ 14 · 不生不滅 neither / nor
-void sNeither(vec2 p, float t, float v, inout Paint P) {
-  float seg = floor(clamp(t, 0.0, 17.99) / 6.0);
-  float u = clamp(fract(t / 6.0) * 1.1, 0.0, 1.0);
+void sNeither(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
+  float seg = t < k0.y ? 0.0 : t < k0.z ? 1.0 : 2.0;
+  float segEnd = seg < 0.5 ? k0.y : seg < 1.5 ? k0.z : k1.z;
+  float u = clamp(span01(t, k0[int(seg)], segEnd) * 1.1, 0.0, 1.0);
   bool left = p.x < 0.0;
   // the left side runs forward, the mirror side runs backward in time
   float k = left ? u : 1.0 - u;
@@ -693,8 +696,8 @@ void sNeither(vec2 p, float t, float v, inout Paint P) {
 ` },
   15: { fn: 'sCrossing', src: /* glsl */ `
 // ================================================================ 15 · 羯諦 crossing
-void sCrossing(vec2 p, float t, float v, inout Paint P) {
-  float warm = smoothstep(0.0, 13.0, t);
+void sCrossing(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
+  float warm = smoothstep(k0.x, k1.x, t);
   float speed = 0.2 + t * 0.06;
   float hz = 0.15;
   // sky warming as the other shore comes near
@@ -713,7 +716,7 @@ void sCrossing(vec2 p, float t, float v, inout Paint P) {
   float fly = smoothstep(0.8, 0.95, gnoise(vec2(wq.x * 0.8 + t * speed * 2.0, p.y * 18.0)) * 0.5 + 0.5);
   P.od += od(SUMI) * fly * water * (0.3 + 0.5 * uPulse);
   // the boat, crossing left to right
-  vec2 bp = vec2(-1.3 + 1.9 * ease(t / 13.4), -0.32 + 0.015 * sin(t * 2.5));
+  vec2 bp = vec2(-1.3 + 1.9 * ease(span01(t, k0.x, k1.x)), -0.32 + 0.015 * sin(t * 2.5));
   vec2 bq = rot(0.03 * sin(t * 2.0)) * (p - bp) / 0.8;
   float boat = sdBoat(bq) * 0.8;
   P.od += od(SUMI) * wash(boat + edgeWobble(bq * 3.0, 175.0, 0.003), p, 175.0, 0.006) * 0.95;
@@ -724,8 +727,8 @@ void sCrossing(vec2 p, float t, float v, inout Paint P) {
 ` },
   16: { fn: 'sClimax', src: /* glsl */ `
 // ================================================================ 16 · 彼岸 climax sunrise
-void sClimax(vec2 p, float t, float v, inout Paint P) {
-  float rise = easeOut(t / 6.0);
+void sClimax(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
+  float rise = easeOut(span01(t, k0.x, k1.x));
   float hz = -0.28;                      // horizon
   float sky = step(hz, p.y);
   // sky in overlapping wet bands: gamboge at the horizon, then rose, then violet
@@ -763,7 +766,7 @@ void sClimax(vec2 p, float t, float v, inout Paint P) {
   P.od += od(VERMILION) * water * refl * 0.2;
   // lotus, opening in the foreground
   vec2 lp = p - vec2(0.0, -1.0);
-  float open = easeOut((t - 0.5) / 5.0);
+  float open = easeOut(span01(t, k0.y, k1.y));
   float petals = 1e3;
   float vein = 0.0;
   for (int i = 0; i < 5; i++) {
@@ -785,7 +788,7 @@ void sClimax(vec2 p, float t, float v, inout Paint P) {
 ` },
   18: { fn: 'sUnravel', src: /* glsl */ `
 // ================================================================ 18 · ほどける unravelling
-void sUnravel(vec2 p, float t, float v, inout Paint P) {
+void sUnravel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // a soft dawn: the other shore's colours, paled
   P.od += od(GAMBOGE) * softWash(abs(p.y + 0.05 + 0.15 * fbm3(p + 1.0)) - 0.35, p, 191.0, 0.2) * 0.3;
   P.od += od(ROSE) * softWash(0.35 - p.y + 0.2 * fbm3(p * 1.2 + 3.0), p, 192.0, 0.25) * 0.3;
@@ -794,7 +797,7 @@ void sUnravel(vec2 p, float t, float v, inout Paint P) {
   vec2 fp = vec2(-0.45, -0.72);
   vec2 q = (p - fp) / 1.15;
   float fig = sdFigure(q) * 1.15;
-  float front = 0.45 - 0.9 * ease((t - 1.0) / 7.0);   // the wind eats in from the right
+  float front = 0.45 - 0.9 * ease(span01(t, k0.x, k1.x));   // the wind eats in from the right
   float erode = smoothstep(front + 0.04, front - 0.04, (p.x - fp.x) + 0.2 * fbm(p * 3.0));
   float body = wash(fig + edgeWobble(q * 2.0, 194.0, 0.01), p, 194.0, 0.02);
   float tone = 0.5 + 0.5 * fbm3(q * 3.0 + 4.0);
@@ -814,15 +817,15 @@ void sUnravel(vec2 p, float t, float v, inout Paint P) {
     // petals only downwind of the figure
     float zone = smoothstep(fp.x + front - 0.1, fp.x + front + 0.4, p.x) * smoothstep(1.1, 0.0, abs(p.y + 0.15 - 0.25 * (p.x - fp.x)));
     vec3 col = cols[int(mod(cell.x + cell.y + fi, 4.0))];
-    P.od += od(col) * smoothstep(0.02, -0.02, pd) * on * zone * smoothstep(-0.2, 1.0, t) * 0.7;
+    P.od += od(col) * smoothstep(0.02, -0.02, pd) * on * zone * smoothstep(k0.x - 1.0, k0.x + 0.5, t) * 0.7;
   }
 }
 ` },
   20: { fn: 'sEnso', src: /* glsl */ `
 // ================================================================ 20 · 円相 outro ensō
-void sEnso(vec2 p, float t, float v, inout Paint P) {
+void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   vec2 c = p - vec2(0.0, 0.05);
-  float prog = easeOut((t - 0.8) / 5.5);
+  float prog = easeOut(span01(t, k0.x, k1.x));
   float a0 = radians(235.0), span = radians(335.0);
   float ang = atan(c.y, c.x);
   float s = mod(a0 - ang, TAU) / span;         // 0 at the start of the stroke

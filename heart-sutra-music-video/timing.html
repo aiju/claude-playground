@@ -58,6 +58,7 @@
   .seg span { display: block; padding: 7px 10px; }
   .seg input:checked + span { background: var(--ink); color: var(--surface); border-radius: inherit; }
   .group { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+  .group[hidden] { display: none; }
   #zoomLabel { font: 500 13px/1 var(--mono); min-width: 4.5ch; text-align: center; color: var(--ink); }
   .loopchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 14px;
     background: var(--ja-soft); color: var(--ink); font-size: 13px; }
@@ -103,7 +104,7 @@
 <div class="wrap">
   <header>
     <h1>Timing check</h1>
-    <p>Every syllable and event where the video currently places it, against the song. Blue and orange blocks are when each syllable is assumed to be sung; the grey spectrogram underneath is the actual audio.</p>
+    <p>Every syllable and event where the video currently places it, against the song. Blue and orange blocks are when each syllable is sung, as measured by aligning the lyrics to the vocals; the grey spectrogram underneath is the actual singing.</p>
   </header>
   <div class="transport">
     <button id="play" type="button">Loading…</button>
@@ -119,6 +120,12 @@
       <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
       <span id="zoomLabel">12 s</span>
       <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+    </span>
+    <span class="group" id="listen" hidden>Listen
+      <span class="seg" role="radiogroup" aria-label="What to listen to">
+        <label><input type="radio" name="listen" value="mix" checked><span>Full mix</span></label>
+        <label><input type="radio" name="listen" value="vocals"><span>Vocals only</span></label>
+      </span>
     </span>
     <label class="group"><input id="follow" type="checkbox" checked> Follow playhead</label>
     <span class="loopchip" id="loopchip" hidden><span id="loopText"></span><button id="loopOff" type="button">Stop looping</button></span>
@@ -141,7 +148,9 @@
         <li><span class="sw" style="background:var(--ja)"></span>Japanese syllable, kana below and its kanji above</li>
         <li><span class="sw" style="background:var(--sa)"></span>Sanskrit syllable, as on the lyric sheet</li>
         <li><span class="sw" style="background:var(--moment)"></span>Something a scene does at a set time</li>
-        <li><span class="sw" style="background:var(--ink-3)"></span>Lines: thin bar while shown, thick bar while assumed sung</li>
+        <li><span class="sw" style="background:var(--ink-3)"></span>Lines: thin bar while shown, thick bar while sung; "medium" or "low" marks a less certain timing, "alt" the other aligner's start</li>
+        <li><span class="sw" style="background:repeating-linear-gradient(135deg, var(--ja-soft) 0 3px, var(--ink-3) 3px 4px)"></span>Hatched syllable: the two aligners disagreed by over 0.5 s</li>
+        <li><span class="sw" style="background:var(--band-b)"></span>Other singing: vocalises and chant with no lyric line</li>
         <li><span class="sw" style="background:var(--band-b)"></span>Sections (estimated), scenes and their handovers (hatched)</li>
         <li><span class="sw" style="background:var(--ink-2)"></span>Detected drum hits over loudness; beat lines at 136 BPM</li>
       </ul>
@@ -157,9 +166,9 @@
       </ul>
     </div>
     <div>
-      <h2>How syllables are placed now</h2>
+      <h2>Where the timings come from</h2>
       <ul>
-        <li>Each line starts singing when it appears, at 0.34 s per syllable, with a short rest at each space. Verse 1 came with timestamps from the song file; everything else is an estimate.</li>
+        <li>The lyrics were force-aligned to the song with two methods (Whisper large-v3 through stable-ts, and an MMS CTC aligner), each run on a separated vocal track and on the full mix. High confidence means they agreed within about 0.4 s. Scenes and their moments are anchored to those lyric times.</li>
       </ul>
     </div>
   </section>

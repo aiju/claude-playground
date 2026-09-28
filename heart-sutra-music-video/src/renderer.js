@@ -136,9 +136,11 @@ export class Renderer {
     gl.uniform1f(u.uTime, s.time);
     gl.uniform1f(u.uTA, s.tA);
     gl.uniform1f(u.uVarA, s.vA);
+    if (u.uBeatA0) { gl.uniform4fv(u.uBeatA0, s.beatsA[0]); gl.uniform4fv(u.uBeatA1, s.beatsA[1]); }
     if (s.b != null) {
       gl.uniform1f(u.uTB, s.tB);
       gl.uniform1f(u.uVarB, s.vB);
+      if (u.uBeatB0) { gl.uniform4fv(u.uBeatB0, s.beatsB[0]); gl.uniform4fv(u.uBeatB1, s.beatsB[1]); }
       gl.uniform1f(u.uMix, s.mix);
       gl.uniform1i(u.uTrans, s.trans);
     }

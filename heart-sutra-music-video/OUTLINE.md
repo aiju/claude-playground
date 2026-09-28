@@ -1,8 +1,9 @@
 # Outline: scene by scene
 
-A first-pass shot list for review. Timings come from analysing the song's audio.
-The file's own lyric timestamps only cover verse 1, so lyric cues outside it are
-estimates and will be tightened once the look is agreed.
+The shot list. Lyric timings are measured: the lyrics were force-aligned to a
+separated vocal track (see `src/alignment.js`), and each scene and the moments
+it acts on are anchored to the lyrics they belong to. `timing.html` shows all
+of it against the song.
 
 ## The idea
 
@@ -31,21 +32,26 @@ gamboge, sap green, violet), then a vermilion and gold dawn, then bare paper.
 
 ## Song map
 
-About 136 BPM, 4:18. Section boundaries were found from the audio.
+About 136 BPM, 4:18. Sections from the measured lyric timings. The song doesn't
+quite follow the lyric sheet: there's wordless singing in several places, the
+chant section is sung faster than the sheet suggests, and प्रज्ञापारमिता comes
+back three times at the end.
 
 | Time | Section |
 | --- | --- |
-| 0:00 | Intro: bowls, monk drone, प्रज्ञापारमिता ×2 (ensemble enters 0:21) |
-| 0:37 | Verse 1 |
-| 1:08 | Pre-chorus (frame drums) |
-| 1:19 | Chorus |
-| 1:48 | Instrumental: shakuhachi, taiko |
-| 2:03 | Verse 2 |
-| 2:31 | Bridge (call and response) |
-| 2:49 | Build |
-| 3:02 | Climax (sung to the chorus melody) |
-| 3:28 | Final chorus (a few held notes, then 色即是空 at about 3:31) |
-| 4:00 | Outro: bells |
+| 0:00 | Intro: bowls and hum (ॐ), vocalise, प्रज्ञापारमिता ×2 at 0:14, choir chant 0:27–0:35 |
+| 0:35 | Verse 1 (sung from 0:36.1) |
+| 1:04 | Pre-chorus |
+| 1:19 | Chorus, last note held to about 1:49 |
+| 1:44 | Instrumental: shakuhachi, taiko |
+| 2:09 | Soprano vocalise, no words |
+| 2:16 | Verse 2 |
+| 2:30 | Bridge (call and response, quick) |
+| 2:41 | Build (羯諦…, about 6 s) |
+| 2:48 | Climax: गते गते पारगते, sung to the chorus tune |
+| 3:03 | Final chorus |
+| 3:28 | Vocalise, no words; बोधि स्वाहा at 3:44 |
+| 3:59 | Outro: प्रज्ञापारमिता ×3, then the voices fade |
 
 ## Shots
 
@@ -53,18 +59,18 @@ Frames marked 📷 have a still in the storyboard.
 
 ### Intro: indigo and gold
 
-**1 · Singing bowl** 0:00–0:11 📷
+**1 · Singing bowl** 0:00–0:13 📷
 *ॐ* in gold at the centre.
 Deep indigo paper fades in from bare paper. A dark bloom breathes under the ॐ.
 Each bowl strike sends a ring of lifted water and gold dust outwards, and cut
 gold leaf drifts slowly upwards.
 
-**2 · Prajñā** 0:11–0:21 📷
+**2 · Prajñā** 0:13–0:22 📷
 *प्रज्ञापारमिता*, low centre.
 A folded inkblot lifts out of the indigo: luminous turquoise with a gold-ink
 contour, breathing with the pulse that starts here. Gold dust rises.
 
-**3 · Descent** 0:21–0:37 📷
+**3 · Descent** 0:22–0:34 📷
 *प्रज्ञापारमिता*, larger, top right.
 The ensemble enters. A jellyfish drifts down past us, with a folded-blot pattern
 inside its bell, frilled arms and long fine tendrils. Marine snow rises, so we
@@ -72,7 +78,7 @@ are sinking with it.
 
 ### Verse 1: the depths
 
-**4 · Sea floor** 0:37–0:43 📷
+**4 · Sea floor** 0:34–0:43 📷
 *深き 智慧の 海の底*, vertical, right.
 Strata of Prussian blue and turquoise, light shafts from far above, kelp
 swaying, and dunes with a gold ridge line. Something luminous stirs in the dark
@@ -80,7 +86,7 @@ at the centre: the eye, still closed.
 
 **5 · The eye opens** 0:43–0:49 📷
 *観る者は 静かに 目を開く*, vertical, left.
-Two blots fold into lids above and below and slowly part. Behind them is an iris
+Two blots fold into lids above and below and part on 目を開く. Behind them is an iris
 of turquoise, cobalt and gold, and a little ink runs from the lower lid.
 
 **6 · Wind and sand** 0:49–0:55 📷
@@ -89,24 +95,24 @@ The eye erodes into dunes of granulating ochre and sienna. Wind drags the
 pigment from left to right, gold dry-brush lines mark the ridges, and grains
 stream off the crests.
 
-**7 · Five lights** 0:55–1:08 📷
+**7 · Five lights** 0:55–1:04 📷
 *五つの ひかりが ほどけてゆく*, vertical, right, plus the five skandhas
 *色 受 想 行 識* in small gold, one inside each light.
 Five lights come up one by one in rose, gamboge, turquoise, violet and cerulean.
-From about 0:59 each one comes undone into spiralling threads, and its little
-kanji dissolves with it.
+On ほどけてゆく (0:59) each one comes undone into spiralling threads, and its
+little kanji dissolves with it.
 
-**8 · Full and empty** 1:08–1:19 📷
+**8 · Full and empty** 1:04–1:19 📷
 *何も 失くさず 何も 得ず* (right), *ただ 満ちて ただ 空っぽで* (left),
 *रूपं शून्यता* (centre).
 The frame drums enter, and every hit drops ink that blooms (mirrored). A
-gold-ink bowl fills with turquoise water on 満ちて and drains again on 空っぽで.
-From 1:16 the indigo rinses away from the centre, pushing a dark wet front
+gold-ink bowl fills with turquoise water on 満ちて (1:08) and drains again on
+空っぽで (1:11). From 1:16 the indigo rinses away from the centre, pushing a dark wet front
 ahead of it…
 
 ### Chorus: paper and colour
 
-**9 · Form is emptiness** 1:19–1:31 📷
+**9 · Form is emptiness** 1:19–1:29 📷
 *色即是空* (right) and *空即是色* (left) in large sumi, with
 *रूपं शून्यता शून्यतैव रूपम्* in vermilion below.
 …and white washi is left behind. On the downbeat a five-colour inkblot bursts
@@ -114,18 +120,18 @@ open from the fold: rose, ultramarine, gamboge, sap green and violet, glazing
 and back-running into each other and breathing on the beat. A few drops fly off
 the fold.
 
-**10 · Universe in a palm** 1:31–1:38 📷
+**10 · Universe in a palm** 1:29–1:34 📷
 *この てのひらに 宇宙が 透ける*, vertical, right.
 A loose sumi outline of an open hand. Through it you see a spiral galaxy in
 indigo, violet and rose, with white-gouache stars. The chorus blot fades behind.
 
-**11 · Wheel of light** 1:38–1:48 📷
+**11 · Wheel of light** 1:34–1:50 📷
 *うまれず ほろびず 光は 巡る*, set around a circle that slowly turns.
 Eight petals of colour turn in a ring around a gold sun with fine rays.
 
 ### Instrumental
 
-**12 · Shakuhachi and taiko** 1:48–2:03 📷
+**12 · Shakuhachi and taiko** 1:50–2:09 📷
 No lyrics.
 A sumi-e bamboo grove at three depths drifts past, with mist and a pale
 vermilion sun. Each taiko hit throws a splash of ink that drips; the loudest
@@ -134,7 +140,7 @@ across the frame.
 
 ### Verse 2: the river
 
-**13 · Chains, upside down** 2:03–2:17 📷
+**13 · Chains, upside down** 2:09–2:23 📷
 *恐れの 鎖も さかさまの 夢も* (left, with its reflection in the water),
 *けいげなき 心に 溶けてゆく* (right).
 The fold turns horizontal: a lake mirrors mountains and pines upside down, and
@@ -142,15 +148,15 @@ the reflection holds a moon that isn't in the sky. An iron-and-rust chain
 crosses the frame. From 溶けてゆく its links soften, bleed and wash away one by
 one.
 
-**14 · The far shore** 2:17–2:31 📷
+**14 · The far shore** 2:23–2:30 📷
 *向こう岸で 誰かが 呼んでいる* (top), *名前の ない 声で* (bottom, indigo).
 A wide river painted in long strokes, reeds in the foreground and a tiny figure
 on the far bank. The figure's voice crosses the water as ripples. On the riser
-(about 2:27), streaks of light and gold pull upwards.
+(2:27), streaks of light and gold pull upwards.
 
 ### Bridge
 
-**15 · Neither / nor** 2:31–2:49 📷
+**15 · Neither / nor** 2:30–2:41 📷
 The calls *不生 不滅 · 不垢 不浄 · 不増 不減* are in sumi on the left. The
 responses *अनुत्पन्ना अनिरुद्धा · अमला अविमला · अनूना अपरिपूर्णाः* are in
 vermilion on the right.
@@ -163,14 +169,14 @@ mirror image runs backwards in time on the right:
 
 ### Build and climax: crossing over
 
-**16 · Crossing** 2:49–3:02 📷
+**16 · Crossing** 2:41–2:48 📷
 *羯諦 羯諦 → 波羅羯諦 → 波羅僧羯諦 → 菩提薩婆訶*, in columns stepping from right
 to left and growing larger.
 A small boat crosses the river from left to right. Dry-brush strokes rush past,
 faster and faster with the drums. The sky warms from blue to gold as the far
 shore comes near.
 
-**17 · The other shore** 3:02–3:28 📷
+**17 · The other shore** 2:48–3:03 📷
 *गते गते पारगते* (top) and *पारसंगते बोधि स्वाहा* (bottom) in large gold, then
 the echo in smaller vermilion.
 Sunrise. A vermilion and gamboge sun lifts out of violet mountains under a deep
@@ -179,31 +185,35 @@ the foreground, and every accent bursts gold dust outwards.
 
 ### Final chorus
 
-**18 · Form is emptiness II** 3:31–3:44 📷
+**18 · Form is emptiness II** 3:03–3:12 📷
 *色即是空 / 空即是色*, *रूपं शून्यता शून्यतैव रूपम्*.
 The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
 never the same.
 
-**19 · Unravelling** 3:44–3:50 📷
+**19 · Unravelling** 3:12–3:18 📷
 *彼岸の 風に 私は ほどける*, vertical, right. The characters themselves drift
 apart after they're written.
 A robed figure stands in a pale dawn, and the wind from the other shore takes it
 apart from one side into petals of colour.
 
-**20 · Wheel of light II** 3:50–4:00 📷
+**20 · Wheel of light II** 3:18–3:32 📷
 *うまれず ほろびず 詩は 巡る*, on the ring.
 The wheel returns, brighter, with gold leaf turning in it.
 
 ### Outro
 
-**21 · Ensō** 4:00–4:18 📷
-*बोधि स्वाहा*, then *ॐ* as a vermilion seal (落款).
-The colour drains to bare paper. A single ensō is brushed in sumi, and its tail
-opens into flying white (飛白). Each bell leaves a faint tide-mark ring, the seal
-is stamped, and everything fades to paper.
+**21 · Ensō** 3:32–4:18 📷
+*बोधि स्वाहा* (3:44), then *प्रज्ञापारमिता* three times around the circle
+(3:59–4:09), then *ॐ* as a vermilion seal (落款).
+Provisional, since this stretch turned out to be wordless: the colour drains
+to bare paper during the vocalise, and a single ensō is brushed slowly in sumi
+(3:33–3:43), its tail opening into flying white (飛白). बोधि स्वाहा is written
+beneath it, the closing chant gathers around it, the seal is stamped as the
+voices fade, and everything fades to paper.
 
-## Still to do after review
+## Still to do
 
-- Tighten every lyric cue to the vocal.
-- Polish motion and transitions (the stills show the look, not the movement).
-- Full render to 1080p video.
+- Check the medium- and low-confidence timings by ear in `timing.html`.
+- Decide what the wordless stretch after the final chorus (3:28–3:59) should be.
+- Polish motion and transitions.
+- Full render.
