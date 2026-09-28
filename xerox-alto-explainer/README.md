@@ -15,12 +15,14 @@ Scenes are drawn on a 540x960 canvas, snapped to a five-colour palette (ink, pap
 
 ## Generate the narration
 
+The clips are committed in [`voice/`](voice), so only the second step is needed to use them. Both steps need ffmpeg.
+
 ```sh
-GEMINI_API_KEY=… node tts.js   # one clip per script line: out/voice/N1.wav …
+GEMINI_API_KEY=… node tts.js   # one clip per script line: voice/N1.mp3 …
 node narration.js              # joins them: out/narration.wav, plus a timeline in out/narration.json
 ```
 
-`tts.js` reads the narration lines (N1…N16) from `script.md` and sends each to Gemini TTS (`gemini-3.8-flash-tts`, voice Charon) with a fixed style direction. Every clip is then transcribed by `gemini-3.8-flash` and compared with the script. The TTS model sometimes reads its directions aloud, invents an intro or repeats a sentence, so a take that doesn't match is generated again. Clips that already passed are kept; `--force` redoes them, `--voice`, `--lines N3,N4` and `--out` pick what to generate and where. The TTS model allows 10 requests a minute, so a full run takes a few minutes.
+`tts.js` reads the narration lines (N1…N16) from `script.md` and sends each to Gemini TTS (`gemini-3.8-flash-tts`, voice Iapetus) with a fixed style direction. Every clip is then transcribed by `gemini-3.8-flash` and compared with the script. The TTS model sometimes reads its directions aloud, invents an intro or repeats a sentence, so a take that doesn't match is generated again. Clips that already passed are kept; `--force` redoes them, `--voice`, `--lines N3,N4` and `--out` pick what to generate and where. The TTS model allows 10 requests a minute, so a full run takes a few minutes.
 
 If a proxy adds the API key to requests instead, leave `GEMINI_API_KEY` unset and run `NODE_USE_ENV_PROXY=1 node tts.js` so that Node's `fetch` goes through the proxy.
 
@@ -32,6 +34,7 @@ If a proxy adds the API key to requests instead, leave `GEMINI_API_KEY` unset an
 | [`video-concepts.md`](video-concepts.md) | The first brainstorm: story angles and treatments at about 2, 9 and 20+ minutes |
 | `src/`, `stills.js` | The renderer: palette, frame quantizer, drawing helpers and scenes |
 | `tts.js`, `narration.js` | The narration: Gemini TTS per line with a transcription check, then one track and a timeline |
+| [`voice/`](voice) | The narration clips, one MP3 per script line, and a manifest with their timings and check transcripts |
 | [`reports/Xerox Alto explainer research.md`](reports/Xerox%20Alto%20explainer%20research.md) | The research report: history, hardware, software, networking and printing, influence, restoration, conflicting sources, myths, story hooks and numbers to double-check |
 | [`research_notes/`](research_notes) | Raw research notes: the general round, and a processor deep dive from primary sources |
 

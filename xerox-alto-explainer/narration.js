@@ -1,6 +1,6 @@
 // Joins the TTS clips from tts.js into one narration track, with short gaps
 // between lines and longer ones between the sections of script.md.
-//   node narration.js [--voice out/voice] [--out out/narration]
+//   node narration.js [--voice voice] [--out out/narration]
 //
 // Writes <out>.wav and <out>.json, which gives each line's start and end in
 // seconds. That's a first timeline for the video, before the pictures get any
@@ -9,14 +9,15 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseWav, wav } from './src/audio/wav.js';
+import { wav } from './src/audio/wav.js';
+import { readMp3 } from './src/audio/mp3.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > 0 ? process.argv[i + 1] : fallback;
 };
-const VOICE = path.resolve(here, arg('voice', 'out/voice'));
+const VOICE = path.resolve(here, arg('voice', 'voice'));
 const OUT = path.resolve(here, arg('out', 'out/narration'));
 
 const LEAD_IN = 0.5;       // before the first line
@@ -42,9 +43,9 @@ if (missing.length) throw new Error(`no clip for ${missing.join(', ')}; run tts.
 
 let rate = 0;
 const clips = ids.map((id) => {
-  const audio = parseWav(fs.readFileSync(path.join(VOICE, `${id}.wav`)));
+  const audio = readMp3(path.join(VOICE, `${id}.mp3`));
   rate ||= audio.rate;
-  if (audio.rate !== rate) throw new Error(`${id}.wav is ${audio.rate} Hz, the others ${rate} Hz`);
+  if (audio.rate !== rate) throw new Error(`${id}.mp3 is ${audio.rate} Hz, the others ${rate} Hz`);
   const { speechStart, speechEnd } = manifest.lines[id];
   const from = Math.max(0, Math.round((speechStart - PAD[0]) * rate));
   const to = Math.min(audio.samples.length, Math.round((speechEnd + PAD[1]) * rate));

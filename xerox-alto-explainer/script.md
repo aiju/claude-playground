@@ -1,6 +1,6 @@
 # Task Zero: script and storyboard
 
-A 9:16 short, just under two minutes, that does nothing but nerd out about the Alto's processor. The story is one idea: the Alto had one microcoded processor, and it did the work of the display, disk, Ethernet and memory-refresh controllers by handing itself between hardware tasks, with switches that cost zero cycles. The "computer" you programmed was just the lowest-priority task.
+A 9:16 short, about two minutes long, that does nothing but nerd out about the Alto's processor. The story is one idea: the Alto had one microcoded processor, and it did the work of the display, disk, Ethernet and memory-refresh controllers by handing itself between hardware tasks, with switches that cost zero cycles. The "computer" you programmed was just the lowest-priority task.
 
 Facts come from the processor deep-dive notes in [`research_notes/Alto processor deep dive/`](research_notes/Alto%20processor%20deep%20dive). Almost all of them trace to primary documents: the 1976 and 1979 Alto Hardware Manuals, Xerox's 1979 Alto II microcode listing, the schematics, and Thacker et al., "Alto: A Personal Computer" (CSL-79-11, 1979). The [fact sheet](#fact-sheet) at the end maps every claim in the narration to its source.
 
@@ -9,9 +9,9 @@ Facts come from the processor deep-dive notes in [`research_notes/Alto processor
 | | |
 | --- | --- |
 | Frame | 1080 × 1920, drawn at 540 × 960 and scaled up with nearest-neighbour |
-| Length | ~118 s: 331 words of narration take 105 s as generated (~190 wpm), and the gaps between lines add the rest (see [TTS notes](#tts-notes)) |
+| Length | ~122 s: 331 words of narration take 110 s as generated (~180 wpm), and the gaps between lines add the rest (see [TTS notes](#tts-notes)) |
 | Palette | Ink on paper, plus the Alto's three mouse-button colours |
-| Voice | One narrator (Gemini TTS), brisk and dry, a little amused |
+| Voice | One narrator (Gemini TTS, voice Iapetus), brisk and dry, a little amused |
 
 **Colour key.** The same key is used in every scene:
 
@@ -26,7 +26,7 @@ Patterns (solid, stripes, dots) tell apart tasks that share a colour.
 
 ## Narration and storyboard
 
-Section times are from the first generated narration track (`node narration.js`). Line IDs (N1…) are the units sent to TTS one at a time, so the visual timeline can be laid out from the measured clip lengths.
+Section times are from the generated narration track (`node narration.js`), before the visuals have any say. Line IDs (N1…) are the units sent to TTS one at a time, so the visual timeline can be laid out from the measured clip lengths.
 
 ### 1. Hook: first light (0:00–0:09)
 
@@ -35,7 +35,7 @@ Section times are from the first generated narration track (`node narration.js`)
 - **Visual:** A portrait Alto screen (3:4) on paper. A red beam sweeps down and draws a pixel-art cookie with a bite out of it, line by line. That's our own drawing standing in for the real sketch. A small counter ticks `line 0 … 807`. "APRIL 1973" sits in the corner.
 - **Sound:** The heartbeat clock fades in (see [Sound](#sound)). The beam is a soft rising sweep, one tick per band.
 
-### 2. The controllers that aren't there (0:09–0:17)
+### 2. The controllers that aren't there (0:09–0:18)
 
 > **N2** The Alto's device boards are mostly buffers and shift registers. The rest — every disk word, every packet, every scanline — is microcode.
 
@@ -44,7 +44,7 @@ Section times are from the first generated narration track (`node narration.js`)
   - Three arrows run from the boards into one box: **PROCESSOR · microcode**.
 - **Sound:** Each board lands with a relay-like clunk. The greying-out is a descending blip.
 
-### 3. One microinstruction (0:17–0:32)
+### 3. One microinstruction (0:18–0:35)
 
 > **N3** Every 170 nanoseconds, it runs one 32-bit microinstruction: register, ALU op, bus source, two functions… and the address of the next one.
 >
@@ -57,7 +57,7 @@ Section times are from the first generated narration track (`node narration.js`)
 - **On screen, a real line from Xerox's listing:** `G16: L← ACDEST+T, TASK, :SHIFT;  ADD`
 - **Sound:** Every hop is a tick. The OR makes a small "flip" click.
 
-### 4. The computer is a program (0:32–0:48)
+### 4. The computer is a program (0:35–0:52)
 
 > **N5** Even the instruction set programmers saw — a Data General Nova lookalike — is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.
 >
@@ -68,7 +68,7 @@ Section times are from the first generated narration track (`node narration.js`)
   - Xerox's actual task table scrolls past above: `NOVEM,,,,KSEC,,,EREST,MRT,DWT,CURT,DHT,DVT,PART,KWDX`.
 - **Sound:** Eight ticks for the ADD, then a low "thunk" for task zero.
 
-### 5. Sixteen tasks, free switching (0:48–1:05)
+### 5. Sixteen tasks, free switching (0:52–1:11)
 
 > **N7** Each task has its own micro-PC. Devices raise wakeup lines, a priority encoder picks the winner, and the running task yields whenever it says TASK. Nothing is saved, so switching is free.
 >
@@ -81,7 +81,7 @@ Section times are from the first generated narration track (`node narration.js`)
 - **Visual (N8):** Two buckets under clocks. The disk bucket has 1 slot and a fast drip (a word every ~10 µs); a red LATE lamp sits on it. The Ethernet bucket has 16 slots and a slow drip (a word every 5.44 µs, but 16 deep). The disk's flag always wins the encoder.
 - **Sound:** Each lane has its own pitch, and a task switch is a pitch jump. The disk is a sharp high blip, the Ethernet a softer blip.
 
-### 6. The screen eats the machine (1:05–1:29)
+### 6. The screen eats the machine (1:11–1:34)
 
 > **N9** The screen is a 606 by 808 bitmap — nearly half of main memory.
 >
@@ -108,7 +108,7 @@ Section times are from the first generated narration track (`node narration.js`)
   - The grid then shrinks into one line of a whole field and repeats fast down the portrait frame, so the screen fills with the stripe pattern.
 - **Sound:** The grid fill is sonified: each slot is a 4 ms tone whose pitch is its task's. The line sounds like a chord that's mostly blue with a dark ink tail, so you can literally hear your program getting the leftovers.
 
-### 7. Everything else is microcode too (1:29–1:45)
+### 7. Everything else is microcode too (1:34–1:51)
 
 > **N12** Even DRAM refresh is microcode — and on its way through, that task counts the mouse.
 >
@@ -127,7 +127,7 @@ Rapid cuts, about 5 s each:
   - Then an 8-bit odometer (the refresh tick counter) is ANDed with a mask that gains one yellow `1` per collision, giving a red countdown bar.
 - **Sound:** The refresh is a soft yellow tick, the disk a chunky head click, the Ethernet a bit-chirp, and a collision a "bonk".
 
-### 8. Payoff (1:45–1:58)
+### 8. Payoff (1:51–2:02)
 
 > **N15** Switch the screen off, and programs run almost three times faster.
 >
@@ -141,7 +141,7 @@ Rapid cuts, about 5 s each:
 
 ## Trims and extras
 
-The narration is 331 words. As generated it's 105 s of speech and a 1:58 track with the gaps, so nothing needs cutting yet. If a new voice or the visuals push it over 120 s, cut in this order:
+The narration is 331 words. As generated it's 110 s of speech and a 2:02 track with the gaps, a little over two minutes. To bring it under 120 s, cut in this order:
 1. N13 (the disk checksum), −13 words.
 2. The last sentence of N5 (the Nova 1200 comparison), −6 words.
 3. In N7, "Each task has its own micro-PC", −6 words. The visual still shows it.
@@ -171,11 +171,11 @@ Optional lines if there's room, or for a longer cut:
 ## TTS notes
 
 - **One narrator.** Style prompt, kept fixed for every line: *"Brisk, clear, dry technical narrator with a hint of amusement; like a friendly engineer showing off something clever."*
-- **Model and voice.** `gemini-3.8-flash-tts` with the Charon voice for now; a sampler of seven other voices is waiting on a listen.
+- **Model and voice.** `gemini-3.8-flash-tts` with the Iapetus voice, picked from a sampler of eight (Charon, Iapetus, Sadaltager, Puck, Achird, Kore, Erinome, Zephyr). The clips are committed as MP3s in [`voice/`](voice), with a manifest giving each one's timing and the check's transcript.
 - **Prompt shape.** Given a plain "Read this as…" preamble, the model reads the preamble aloud. `tts.js` sends the style under `### DIRECTOR'S NOTES` and the line under `#### TRANSCRIPT` instead, and only the transcript gets spoken.
-- **Takes go wrong.** In the first run, 5 of 35 takes failed (counting the 16 lines, 14 voice samples and retakes). The model invented an opening ("Hey everybody. So if you've got a PC today…", three times on N7, which starts mid-thought), added a leading "And", or said a sentence twice. `tts.js` has `gemini-3.8-flash` transcribe each take and redoes any that don't match the line.
+- **Takes go wrong.** About one take in five fails: 11 of 55 so far, across both voices and the sampler. The model invents an opening ("Hey everybody. So if you've got a PC today…" three times on N7, which starts mid-thought; "Okay, so that's where the hardware meets the software." on N13), adds a leading "And", says the whole line twice, or reads out the audio profile. `tts.js` has `gemini-3.8-flash` transcribe each take and redoes any that don't match the line.
 - **Pronunciation.** `tts.js` sends "ALU" as A-L-U and "micro-PC" as micro-P-C. Everything else ("ORs", "Nova 1200", "2.94 megabits", `TASK`) came out right as written.
-- **Measured.** The lines run from 3.2 s (N15) to 11.3 s (N5), 105 s in all. With 0.35 s between lines and 0.8 s between sections, the narration track is 1:58.
+- **Measured.** The lines run from 3.2 s (N15) to 11.8 s (N5), 110 s in all. With 0.35 s between lines and 0.8 s between sections, the narration track is 2:02. Charon was about 5 s quicker overall.
 
 ## Fact sheet
 

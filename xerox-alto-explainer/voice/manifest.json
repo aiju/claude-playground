@@ -1,0 +1,213 @@
+{
+  "lines": {
+    "N1": {
+      "text": "April 1973. The first picture on a Xerox Alto: Cookie Monster. Every pixel, fed to the screen by its one and only processor.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 8.48,
+      "speechStart": 0.17,
+      "speechEnd": 8.01,
+      "check": {
+        "transcript": "April 1973. The first picture on a Xerox Alto: Cookie Monster. Every pixel, fed to the screen by its one and only processor.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N2": {
+      "text": "The Alto's device boards are mostly buffers and shift registers. The rest — every disk word, every packet, every scanline — is microcode.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 8.48,
+      "speechStart": 0.21,
+      "speechEnd": 8.24,
+      "check": {
+        "transcript": "The Alto's device boards are mostly buffers and shift registers. The rest, every disk word, every packet, every scanline, is microcode.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N3": {
+      "text": "Every 170 nanoseconds, it runs one 32-bit microinstruction: register, ALU op, bus source, two functions… and the address of the next one.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 10.04,
+      "speechStart": 0.2,
+      "speechEnd": 9.61,
+      "check": {
+        "transcript": "Every 170 nanoseconds, it runs one 32-bit microinstruction: register, ALU op, bus source, two functions, and the address of the next one.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N4": {
+      "text": "There's no program counter to increment. Every instruction names its successor, and a branch just ORs a bit into that address.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 6.64,
+      "speechStart": 0.15,
+      "speechEnd": 6.48,
+      "check": {
+        "transcript": "There's no program counter to increment. Every instruction names its successor, and a branch just ORs a bit into that address.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N5": {
+      "text": "Even the instruction set programmers saw — a Data General Nova lookalike — is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 12.28,
+      "speechStart": 0.25,
+      "speechEnd": 12,
+      "check": {
+        "transcript": "Even the instruction set programmers saw, a Data General Nova lookalike, is just a microcode program. An ADD is eight microinstructions: 1.36 microseconds. A real Nova 1200 took 1.35.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N6": {
+      "text": "That emulator is task zero: the lowest of sixteen priorities.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 4,
+      "speechStart": 0.2,
+      "speechEnd": 3.75,
+      "check": {
+        "transcript": "That emulator is task zero, the lowest of sixteen priorities.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N7": {
+      "text": "Each task has its own micro-PC. Devices raise wakeup lines, a priority encoder picks the winner, and the running task yields whenever it says TASK. Nothing is saved, so switching is free.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 11.6,
+      "speechStart": 0.02,
+      "speechEnd": 11.29,
+      "check": {
+        "transcript": "Each task has its own micro-PC. Devices raise wakeup lines, a priority encoder picks the winner, and the running task yields whenever it says TASK. Nothing is saved, so switching is free.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N8": {
+      "text": "Priority follows buffering: the disk holds one word, so it outranks everything. The Ethernet holds sixteen, so it can wait.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 6.76,
+      "speechStart": 0.28,
+      "speechEnd": 6.44,
+      "check": {
+        "transcript": "Priority follows buffering. The disk holds one word, so it outranks everything. The Ethernet holds sixteen, so it can wait.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N9": {
+      "text": "The screen is a 606 by 808 bitmap — nearly half of main memory.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 4.56,
+      "speechStart": 0.28,
+      "speechEnd": 4.52,
+      "check": {
+        "transcript": "The screen is a 606 by 808 bitmap, nearly half of main memory.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N10": {
+      "text": "The clock was picked so a scanline is exactly 224 cycles. And memory's too slow for single words, so the display reads two at a time: thirty-two pixels every six microinstructions.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 10.96,
+      "speechStart": 0.2,
+      "speechEnd": 10.72,
+      "check": {
+        "transcript": "The clock was picked so a scanline is exactly 224 cycles. And memory's too slow for single words, so the display reads two at a time: 32 pixels every six microinstructions.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N11": {
+      "text": "On each visible line, the display takes sixty percent of the cycles, memory refresh about a tenth — and your program gets the rest: about a third.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 7.08,
+      "speechStart": 0.16,
+      "speechEnd": 6.79,
+      "check": {
+        "transcript": "On each visible line, the display takes 60% of the cycles, memory refresh about a tenth, and your program gets the rest: about a third.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N12": {
+      "text": "Even DRAM refresh is microcode — and on its way through, that task counts the mouse.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 4.8,
+      "speechStart": 0.12,
+      "speechEnd": 4.52,
+      "check": {
+        "transcript": "Even DRAM refresh is microcode, and on its way through, that task counts the mouse.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N13": {
+      "text": "The disk task stores a word and updates the checksum in one microinstruction.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 4.36,
+      "speechStart": 0.24,
+      "speechEnd": 4.06,
+      "check": {
+        "transcript": "The disk task stores a word and updates the checksum in one microinstruction.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N14": {
+      "text": "Ethernet sends a bit every two cycles — hence 2.94 megabits — and its random backoff is read off the refresh counter.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 7,
+      "speechStart": 0.26,
+      "speechEnd": 6.76,
+      "check": {
+        "transcript": "Ethernet sends a bit every two cycles — hence 2.94 megabits — and its random backoff is read off the refresh counter.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N15": {
+      "text": "Switch the screen off, and programs run almost three times faster.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 3.68,
+      "speechStart": 0.28,
+      "speechEnd": 3.48,
+      "check": {
+        "transcript": "Switch the screen off, and programs run almost three times faster.",
+        "ok": true,
+        "problems": []
+      }
+    },
+    "N16": {
+      "text": "All four display tasks together? Sixty-three microinstructions. Your program? Task zero. It gets whatever's left.",
+      "model": "gemini-3.8-flash-tts",
+      "voice": "Iapetus",
+      "duration": 7,
+      "speechStart": 0.27,
+      "speechEnd": 6.65,
+      "check": {
+        "transcript": "All four display tasks together? Sixty-three microinstructions. Your program? Task zero. It gets whatever's left.",
+        "ok": true,
+        "problems": []
+      }
+    }
+  },
+  "speechSeconds": 110
+}

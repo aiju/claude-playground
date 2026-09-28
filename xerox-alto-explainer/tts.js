@@ -1,11 +1,13 @@
 // Generates the narration with Gemini TTS, one clip per line of script.md.
-//   node tts.js [--voice Charon] [--lines N1,N3] [--out out/voice] [--takes 4 | --no-check] [--force]
+//   node tts.js [--voice Iapetus] [--lines N1,N3] [--out voice] [--takes 4 | --no-check] [--force]
 //
-// Writes <out>/N1.wav … and <out>/manifest.json with each clip's length and
+// Writes <out>/N1.mp3 … and <out>/manifest.json with each clip's length and
 // where the speech starts and ends in it, so the timeline can be laid out from
 // the measured clips. Each clip is transcribed and compared with the script,
 // and a take that doesn't match is thrown away and generated again.
 // Lines that already have a clip that passed are skipped; --force redoes them.
+// The clips in voice/ are committed, because a new run gives different takes.
+// Needs ffmpeg for the MP3s.
 //
 // The API key comes from GEMINI_API_KEY. In an environment whose proxy adds
 // the key to requests itself, leave it unset and run with NODE_USE_ENV_PROXY=1
@@ -15,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pcm16, parseWav, wav } from './src/audio/wav.js';
+import { readMp3, writeMp3 } from './src/audio/mp3.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,8 +29,8 @@ for (let i = 2; i < process.argv.length; i++) {
   args[a.slice(2)] = next && !next.startsWith('--') ? process.argv[++i] : true;
 }
 const MODEL = args.model || 'gemini-3.8-flash-tts';
-const VOICE = args.voice || 'Charon';
-const OUT = path.resolve(here, args.out || 'out/voice');
+const VOICE = args.voice || 'Iapetus';
+const OUT = path.resolve(here, args.out || 'voice');
 const CHECK_MODEL = args['check-model'] || 'gemini-3.8-flash';
 const TAKES = args['no-check'] ? 1 : Number(args.takes || 4);
 const CONCURRENCY = Number(args.jobs || 3);
@@ -157,19 +160,19 @@ let failed = 0;
 const queue = [...todo];
 await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
   for (let line; (line = queue.shift()); ) {
-    const file = path.join(OUT, `${line.id}.wav`);
+    const file = path.join(OUT, `${line.id}.mp3`);
     const have = !args.force && fs.existsSync(file) && same(manifest.lines[line.id], line);
     if (have && (args['no-check'] || manifest.lines[line.id].check?.ok)) {
       console.log(`${line.id}: have it`);
       continue;
     }
     // A clip from an earlier run that was never checked gets checked first.
-    let audio = have && !manifest.lines[line.id].check ? parseWav(fs.readFileSync(file)) : null;
+    let audio = have && !manifest.lines[line.id].check ? readMp3(file) : null;
     for (let take = 1; take <= TAKES; take++) {
       if (!audio) audio = await synthesize(line.text);
       const entry = { text: line.text, model: MODEL, voice: VOICE, ...measure(audio) };
       if (!args['no-check']) entry.check = await check(line.text, audio);
-      fs.writeFileSync(file, wav(audio));
+      writeMp3(file, audio);
       manifest.lines[line.id] = entry;
       save();
       if (args['no-check'] || entry.check.ok) {
