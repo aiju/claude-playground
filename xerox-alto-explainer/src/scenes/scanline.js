@@ -1,40 +1,37 @@
-// The hero visual: one visible scanline as 224 microcycles of 170 ns, each
-// slot coloured by the task that owned it. The schedule here is a placeholder
-// with roughly the right proportions; the real budget comes from the research.
+// The hero visual: one visible, full-width scanline as 224 microcycles of
+// 170 ns, each slot coloured by the task that owned it.
+//
+// The schedule comes from a cycle-level model of the Alto II microcode (see
+// the display notes in research_notes/Alto processor deep dive): the FIFO is
+// flushed at horizontal retrace, the display word task (DWT) refills it two
+// words per six cycles, the horizontal task (DHT) sets up the next line when
+// DWT blocks, and memory refresh (MRT) wakes at retrace (ContrAlto's
+// convention; the real wakeup point within the line is unconfirmed). The
+// per-task totals don't depend on those assumptions.
 
-import { clear, rect, frameRect, text, patternRect, titleTab, caption, SANS } from '../lib/draw.js';
+import { clear, rect, frameRect, text, patternRect, titleTab, caption } from '../lib/draw.js';
 
 export const TASKS = {
-  DHT: { label: 'display horizontal', colour: 'blue', pattern: 'stripes' },
   DWT: { label: 'display word', colour: 'blue', pattern: 'solid' },
+  DHT: { label: 'display horizontal', colour: 'blue', pattern: 'stripes' },
   CURT: { label: 'cursor', colour: 'blue', pattern: 'dots' },
-  MRT: { label: 'memory refresh + mouse', colour: 'yellow', pattern: 'solid' },
+  MRT: { label: 'refresh + mouse', colour: 'yellow', pattern: 'solid' },
   KWD: { label: 'disk word', colour: 'red', pattern: 'solid' },
   ETH: { label: 'Ethernet', colour: 'yellow', pattern: 'stripes' },
   EMU: { label: 'task 0: YOUR PROGRAM', colour: 'ink', pattern: 'solid' },
 };
 
-export function placeholderSchedule() {
-  const s = [];
-  const push = (task, n) => {
-    for (let i = 0; i < n; i++) s.push(task);
-  };
-  push('DHT', 11);
-  push('CURT', 2);
-  let words = 0;
-  while (s.length < 224) {
-    if (words < 38) {
-      push('DWT', 3);
-      words++;
-      if (words === 20) push('MRT', 12);
-      if (words % 6 === 0) push('KWD', 2);
-    }
-    push('EMU', 2);
-  }
-  return s.slice(0, 224);
+// C = cursor, W = display word, M = refresh, H = display horizontal, . = emulator
+const MODEL_LINE =
+  'CCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWMWWWWWWMMMWWWWWWMMMMWWWWWW' +
+  'MMMWWWWWWMMMWWWWWWMMMMWWWWWWWHHHHHHHHHHHM.......................................................................';
+const CODE = { C: 'CURT', W: 'DWT', M: 'MRT', H: 'DHT', '.': 'EMU' };
+
+export function modelSchedule() {
+  return [...MODEL_LINE].map((ch) => CODE[ch]);
 }
 
-export function drawScanline(ctx, { schedule = placeholderSchedule(), shown = 224 } = {}) {
+export function drawScanline(ctx, { schedule = modelSchedule(), shown = 224 } = {}) {
   clear(ctx);
 
   titleTab(ctx, 'ONE SCANLINE', 30, 40, { size: 16 });
@@ -66,7 +63,7 @@ export function drawScanline(ctx, { schedule = placeholderSchedule(), shown = 22
   const counts = {};
   schedule.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
   let ly = gy + 14 * (cell + gap) + 24;
-  for (const key of ['DWT', 'DHT', 'CURT', 'MRT', 'KWD', 'EMU']) {
+  for (const key of Object.keys(TASKS).filter((k) => counts[k])) {
     const spec = TASKS[key];
     patternRect(ctx, 40, ly, 22, 22, spec.colour, spec.pattern);
     frameRect(ctx, 40, ly, 22, 22, spec.colour, 1);
@@ -76,6 +73,5 @@ export function drawScanline(ctx, { schedule = placeholderSchedule(), shown = 22
     ly += 30;
   }
 
-  caption(ctx, ['Your program runs', 'in the gaps.'], 842);
-  text(ctx, 'style frame – placeholder schedule', 270, 936, { size: 11, align: 'center', font: SANS, weight: 'normal' });
+  caption(ctx, ['Your program gets', 'what\u2019s left.'], 842);
 }
