@@ -2,11 +2,12 @@
 // shader reads:
 //   colour: the glyphs in their ink colour
 //   control: r = how much of each pixel has been written, g = how wet it is
-// Each line is written at the pace it's sung: characters one after another,
+// Each character is written while it's sung (timings from schedule.js),
 // stroke by stroke (see writing.js). When the line ends it dissolves back
 // into the paper.
 
-import { CUES, moraOf, syllables } from './lyrics.js';
+import { CUES } from './lyrics.js';
+import { plain, scheduleCue } from './schedule.js';
 import { charMap, lineMap, writeControl, MAP_FONT } from './writing.js';
 
 export const FONT_JA = 'BrushJa';
@@ -21,7 +22,6 @@ const INKS = {
 };
 
 const SMALL_KANA = new Set('ゃゅょっぁぃぅぇぉャュョッァィゥェォ');
-const SECONDS_PER_MORA = 0.34;
 
 // Fonts are fetched and handed over as bytes, which works under strict
 // content security policies too.
@@ -55,7 +55,7 @@ export async function prepareWriting(onProgress = () => {}) {
     if (cue.script === 'sa') {
       if (!seen.has(cue.text)) { seen.add(cue.text); jobs.push(() => lineMap(cue.text, paintLine(cue.text), widthEm(cue.text))); }
     } else {
-      for (const ch of cue.text) {
+      for (const ch of plain(cue.text)) {
         if (ch === ' ' || seen.has(ch)) continue;
         seen.add(ch);
         jobs.push(() => charMap(ch, paintChar(ch)));
@@ -93,46 +93,47 @@ export class TextLayer {
   layout(cue) {
     const { w, h } = this;
     const size = cue.size * h;
+    const text = plain(cue.text);
     const out = [];
+    let ring = null;
     if (cue.script === 'sa') {
-      out.push({ ch: cue.text, x: cue.x * w, y: cue.y * h, whole: true, units: syllables(cue.text), gap: 0 });
+      out.push({ ch: text, x: cue.x * w, y: cue.y * h, whole: true });
     } else if (cue.dir === 'ring') {
       const r = cue.radius * h, adv = size * 1.12, space = size * 0.6;
-      let a = 0, gap = 0;
-      for (const ch of cue.text) {
-        if (ch === ' ') { a += space / r; gap += 0.6; continue; }
-        out.push({ ch, a: a + adv / 2 / r, units: moraOf(ch), gap });
-        a += adv / r; gap = 0;
+      let a = 0;
+      for (const ch of text) {
+        if (ch === ' ') { a += space / r; continue; }
+        out.push({ ch, a: a + adv / 2 / r });
+        a += adv / r;
       }
       for (const g of out) g.a -= a / 2;   // centre the text on the top of the ring
-      this.schedule(cue, out);
-      return { size, glyphs: out, ring: { cx: cue.x * w, cy: cue.y * h, r } };
+      ring = { cx: cue.x * w, cy: cue.y * h, r };
     } else if (cue.dir === 'h') {
       const adv = size * 1.04, space = size * 0.5;
       let total = 0;
-      for (const ch of cue.text) total += ch === ' ' ? space : adv;
-      let x = cue.x * w - total / 2, gap = 0;
-      for (const ch of cue.text) {
-        if (ch === ' ') { x += space; gap += 0.6; continue; }
-        out.push({ ch, x: x + adv / 2, y: cue.y * h, units: moraOf(ch), gap });
-        x += adv; gap = 0;
+      for (const ch of text) total += ch === ' ' ? space : adv;
+      let x = cue.x * w - total / 2;
+      for (const ch of text) {
+        if (ch === ' ') { x += space; continue; }
+        out.push({ ch, x: x + adv / 2, y: cue.y * h });
+        x += adv;
       }
     } else {
       // vertical columns, right to left, breaking at spaces when a column is full
       const adv = size * 1.06, space = size * 0.42;
       const maxY = (cue.mirror ? cue.mirror - 0.04 : 0.92) * h;
-      const phrases = cue.text.split(' ');
+      const phrases = text.split(' ');
       let x = cue.x * w, y = cue.y * h;
       for (let i = 0; i < phrases.length; i++) {
         const len = [...phrases[i]].length * adv;
         if (i > 0 && y + space + len > maxY) { x -= size * 1.35; y = cue.y * h; }
         else if (i > 0) y += space;
-        [...phrases[i]].forEach((ch, j) => {
+        for (const ch of phrases[i]) {
           let gx = x, gy = y + adv / 2;
           if (SMALL_KANA.has(ch)) { gx += size * 0.12; gy -= size * 0.12; }
-          out.push({ ch, x: gx, y: gy, units: moraOf(ch), gap: i > 0 && j === 0 ? 0.6 : 0 });
+          out.push({ ch, x: gx, y: gy });
           y += adv;
-        });
+        }
       }
       // columns flow leftwards from the anchor; keep the block on screen
       const minX = Math.min(...out.map(g => g.x));
@@ -141,22 +142,9 @@ export class TextLayer {
         if (shift > 0) for (const g of out) g.x += shift;
       }
     }
-    this.schedule(cue, out);
-    return { size, glyphs: out };
-  }
-
-  // Spread the writing over the sung part of the line, weighted by syllables.
-  schedule(cue, glyphs) {
-    if (cue.seal) { glyphs[0].w0 = cue.t0; glyphs[0].w1 = cue.t0 + 0.15; return; }
-    const units = glyphs.reduce((s, g) => s + g.units + g.gap, 0);
-    const [s0, s1] = cue.sing || [cue.t0, cue.t0 + Math.min(Math.max(0.6, 0.85 * (cue.t1 - cue.t0) - 0.3), units * SECONDS_PER_MORA)];
-    let acc = 0;
-    for (const g of glyphs) {
-      acc += g.gap;
-      g.w0 = s0 + (s1 - s0) * acc / units;
-      acc += g.units;
-      g.w1 = Math.max(g.w0 + 0.22, s0 + (s1 - s0) * acc / units);
-    }
+    const sched = scheduleCue(cue).glyphs;
+    out.forEach((g, i) => { g.w0 = sched[i].w0; g.w1 = sched[i].w1; });
+    return { size, glyphs: out, ring };
   }
 
   drawCue(cue, t) {

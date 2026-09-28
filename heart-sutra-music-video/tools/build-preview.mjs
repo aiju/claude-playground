@@ -1,22 +1,33 @@
-// Packages the live player into out/preview/ as a self-contained folder
-// (for hosting it as a web page): the player markup, the modules, the fonts
-// and an mp3 copy of the song, which every browser can decode.
+// Packages a page of the project into a self-contained folder for hosting
+// as a web page: the page body, the modules, the fonts and an mp3 copy of
+// the song, which every browser can decode.
 //
-//   node tools/build-preview.mjs      (needs ffmpeg, or FFMPEG=/path/to/ffmpeg)
+//   node tools/build-preview.mjs          # the player, into out/preview/
+//   node tools/build-preview.mjs timing   # the timing checker, into out/timing/
+//
+// Needs ffmpeg (or FFMPEG=/path/to/ffmpeg).
 
 import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
-const OUT = 'out/preview';
-await rm(OUT, { recursive: true, force: true });
-await mkdir(`${OUT}/audio`, { recursive: true });
-await cp('src', `${OUT}/src`, { recursive: true });
-await cp('fonts', `${OUT}/fonts`, { recursive: true });
+const PAGES = {
+  index: { file: 'index.html', out: 'out/preview', title: 'Prajñā Preview', head: '<style>:root { color-scheme: dark; }</style>\n' },
+  timing: { file: 'timing.html', out: 'out/timing', title: 'Prajñā Timing', head: '' },
+};
+const page = PAGES[process.argv[2] || 'index'];
+if (!page) throw new Error(`unknown page; pick one of ${Object.keys(PAGES).join(', ')}`);
 
-// the page body only; the host supplies the document shell
-const html = await readFile('index.html', 'utf8');
-const body = html.slice(html.indexOf('<!-- player-start -->'), html.indexOf('<!-- player-end -->'));
-await writeFile(`${OUT}/index.html`, `<title>Prajñā Preview</title>\n<style>:root { color-scheme: dark; }</style>\n<script>window.MV_AUDIO = ['audio/song.mp3'];</script>\n${body}`);
+await rm(page.out, { recursive: true, force: true });
+await mkdir(`${page.out}/audio`, { recursive: true });
+await cp('src', `${page.out}/src`, { recursive: true });
+await cp('fonts', `${page.out}/fonts`, { recursive: true });
 
-execFileSync(process.env.FFMPEG || 'ffmpeg', ['-y', '-loglevel', 'error', '-i', 'audio/song.m4a', '-c:a', 'libmp3lame', '-b:a', '192k', `${OUT}/audio/song.mp3`]);
-console.log(`wrote ${OUT}`);
+// the page body only (the host supplies the document shell), pointed at the mp3
+const html = await readFile(page.file, 'utf8');
+const body = html.slice(html.indexOf('<!-- page-start -->'), html.indexOf('<!-- page-end -->'))
+  .replace(/\s*<source src="audio\/song\.m4a"[^>]*>/, '');
+await writeFile(`${page.out}/index.html`,
+  `<title>${page.title}</title>\n${page.head}<script>window.MV_AUDIO = ['audio/song.mp3'];</script>\n${body}`);
+
+execFileSync(process.env.FFMPEG || 'ffmpeg', ['-y', '-loglevel', 'error', '-i', 'audio/song.m4a', '-c:a', 'libmp3lame', '-b:a', '192k', `${page.out}/audio/song.mp3`]);
+console.log(`wrote ${page.out}`);

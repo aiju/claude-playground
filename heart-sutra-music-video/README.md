@@ -18,8 +18,19 @@ Click or press space to play. ← and → skip 5 s, and F goes fullscreen. You c
 jump to a scene from the menu or start at a time with `?t=83`. There's a
 resolution menu if a scene stutters. You'll need a browser with WebGL2.
 
-`node tools/build-preview.mjs` packages the player into `out/preview/` so it can
-be hosted as a static page.
+## Check the timing
+
+`timing.html` (with the server running, http://localhost:8080/timing.html)
+plays the song under a scrolling view of every syllable where the video places
+it, in kana and kanji or in transcription, over a spectrogram of the singing.
+It also shows the lyric lines, scenes and their handovers, the moments the
+scenes act on, and the drum hits and beat detected in the audio. It reads the
+same timing code as the video (`src/schedule.js`), so what it shows is what the
+video does.
+
+`node tools/build-preview.mjs` packages the player into `out/preview/`, and
+`node tools/build-preview.mjs timing` the timing checker into `out/timing/`, so
+either can be hosted as a static page.
 
 ## Render the video
 
@@ -52,13 +63,15 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/glsl/lib.js` | Noise, shape distance functions and the watercolour kit: washes with pooled dark edges, granulation, backruns, brushed lines, splatter, folded blots, gold leaf, paper |
 | `src/glsl/scenes.js` | One shader function per scene |
 | `src/glsl/composite.js` | Builds a shader per scene (or per pair during a transition): paint, transition, lyric ink, paper |
-| `src/timeline.js` | Scene list and transitions |
-| `src/lyrics.js` | Lyric cues: time, text, placement, ink |
-| `src/text.js` | Lays out the lyrics and paces the writing to the singing, syllable by syllable |
+| `src/timeline.js` | Scenes and transitions, the song's sections, and the moments scenes act on |
+| `src/lyrics.js` | Lyric cues: time, text with readings (or Sanskrit transcription), placement, ink |
+| `src/schedule.js` | When each syllable is sung and each character written, from the readings in `lyrics.js` |
+| `src/text.js` | Lays out the lyrics and writes each character while it's sung |
 | `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: KanjiVG stroke order for Japanese, a flowing fill with the headline last for Devanagari |
 | `src/strokes.js` | Stroke paths for the lyric characters, generated from KanjiVG by `tools/fetch-strokes.mjs` |
 | `src/audio.js` | Decodes the song and finds loudness, drum hits and the beat for the visuals to react to |
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
+| `src/timing.js`, `src/spectrogram.js` | The timing checker |
 | `tools/` | Static server, still and video renderers, preview packager, font and stroke fetchers |
 
 Paint is tracked as optical density, so washes glaze over each other the way
