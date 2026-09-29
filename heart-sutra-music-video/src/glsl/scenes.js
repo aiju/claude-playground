@@ -1441,4 +1441,8 @@ void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   }
 }
 ` },
+  21: { fn: 'sPaper', src: /* glsl */ `
+// ================================================================ 21 · bare paper, for the credits
+void sPaper(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {}
+` },
 };

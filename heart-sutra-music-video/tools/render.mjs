@@ -1,6 +1,6 @@
 // Renders the video (or a stretch of it) to mp4 with headless Chromium and ffmpeg.
 //
-//   node tools/render.mjs                              # the whole song
+//   node tools/render.mjs                              # the whole video, credits included
 //   node tools/render.mjs --from 212 --to 230 --out out/enso.mp4
 //   options: --fps 30 --w 1920 --h 1080 --jobs 1 --gpu
 //
@@ -15,11 +15,12 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { serve } from './serve.mjs';
 import { launchOptions } from './browser.mjs';
+import { DURATION } from '../src/timeline.js';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : def; };
 const from = +opt('--from', 0);
-const to = +opt('--to', 257.8);
+const to = +opt('--to', DURATION);
 const fps = +opt('--fps', 30);
 const w = +opt('--w', 1920), h = +opt('--h', 1080);
 const jobs = +opt('--jobs', 1);
@@ -33,7 +34,7 @@ const ffmpeg = spawn(process.env.FFMPEG || 'ffmpeg', [
   '-y', '-loglevel', 'error',
   '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
   '-ss', String(from), '-t', String(frames / fps), '-i', 'audio/song.m4a',
-  '-map', '0:v', '-map', '1:a',
+  '-map', '0:v', '-map', '1:a', '-af', 'apad',    // silence after the song, under the credits
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out,
 ], { stdio: ['pipe', 'inherit', 'inherit'] });

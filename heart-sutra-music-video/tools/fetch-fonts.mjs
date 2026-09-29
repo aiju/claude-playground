@@ -1,4 +1,4 @@
-// Downloads the two fonts, subset to exactly the characters the lyrics use,
+// Downloads the two fonts, subset to exactly the characters the lyrics (and the credits) use,
 // from the Google Fonts API. Both fonts are under the SIL Open Font License.
 //
 //   node tools/fetch-fonts.mjs            # the fonts the video uses

@@ -1,7 +1,7 @@
 Yuji Syuku (fonts/brush-ja.ttf): Copyright 2021 The Yuji Project Authors (https://github.com/Kinutafontfactory/Yuji)
 Yatra One (fonts/devanagari.ttf): Copyright 2014 The Yatra Project Authors.
 
-Both fonts are subset to the characters used in the lyrics; no other changes.
+Both fonts are subset to the characters used in the lyrics and credits; no other changes.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

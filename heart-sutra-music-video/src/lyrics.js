@@ -34,6 +34,7 @@
 
 import { plain, parseRuby } from './schedule.js';
 import { ALIGN } from './alignment.js';
+import { CREDITS } from './credits.js';
 
 export const CUES = [
   // Intro
@@ -136,5 +137,6 @@ export const CUES = [
 export function charset(script) {
   const s = new Set();
   for (const c of CUES) if (c.script === script) for (const ch of plain(c.text)) if (ch !== ' ') s.add(ch);
+  if (script === 'ja') for (const l of CREDITS) for (const ch of l.text) if (ch !== ' ') s.add(ch);   // set in the brush font too
   return [...s].join('');
 }

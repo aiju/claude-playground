@@ -11,6 +11,7 @@ import { plain, scheduleCue } from './schedule.js';
 import { charMap, lineMap, writeControl, MAP_FONT } from './writing.js';
 import { setOutlineFont, hasOutline, drawGlyph, pieceCount, glyphMetrics } from './outlines.js';
 import { TRACED } from './strokes-traced.js';
+import { CREDITS } from './credits.js';
 
 export const FONT_JA = 'BrushJa';
 export const FONT_SA = 'BrushSa';
@@ -21,6 +22,7 @@ const INKS = {
   shu: [0.80, 0.19, 0.11],
   white: [0.96, 0.95, 0.92],
   indigo: [0.13, 0.17, 0.34],
+  grey: [0.36, 0.35, 0.34],
 };
 
 const SMALL_KANA = new Set('ゃゅょっぁぃぅぇぉャュョッァィゥェォ');
@@ -126,6 +128,27 @@ export class TextLayer {
       if (t < cue.t0 - 0.05 || t > cue.t1) continue;
       this.drawCue(cue, t);
     }
+    for (const line of CREDITS) if (t >= line.t0) this.credit(line, t);
+  }
+
+  // A line of the credits: set whole, and soaking into the paper over
+  // 0.7 s (the control image says how much of it is there, as for lyrics).
+  credit(line, t) {
+    const { c, k, w, h } = this;
+    const size = line.size * h;
+    const appear = clamp01((t - line.t0) / 0.7);
+    c.save(); k.save();
+    c.font = `${size}px ${FONT_JA}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.letterSpacing = `${(line.spacing || 0) * size}px`;
+    c.fillStyle = rgb(...(INKS[line.ink] || INKS.sumi));
+    c.fillText(line.text, w / 2, line.y * h);
+    const tw = c.measureText(line.text).width;
+    k.globalCompositeOperation = 'lighten';
+    k.fillStyle = rgb(appear, 0.35 * (1 - appear), 0);
+    k.fillRect(w / 2 - tw / 2 - size, line.y * h - size, tw + 2 * size, 2 * size);
+    c.restore(); k.restore();
   }
 
   // Positions of each character, in pixels, plus when each one is written.

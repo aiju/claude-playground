@@ -7,7 +7,8 @@
 // Scenes and beats are anchored to the lyric timings in alignment.js,
 // corrected by ear; a beat's label says what happens and on which words.
 
-export const DURATION = 257.8;
+export const SONG_END = 257.8;              // the audio ends here
+export const DURATION = SONG_END + 1.8;     // then the credits, in silence (credits.js)
 export const BPM = 136;
 
 export const SCENES = [
@@ -57,6 +58,8 @@ export const SCENES = [
   // the wordless stretch after the final chorus (see OUTLINE.md)
   { name: 'Ensō', t0: 212.0, scene: 20, tr: 3.0, style: 0,
     beats: [{ t: 213.0, t1: 223.5, label: 'ensō is brushed, slowly, over the vocalise' }] },
+  // after the song: bare paper for the credits (a cut, as both sides are blank paper)
+  { name: 'Credits', t0: 257.8, scene: 21, tr: 0 },
 ];
 
 // The song's sections, from the lyric timings.
@@ -81,7 +84,7 @@ export const SECTIONS = [
 export function moments() {
   return [
     ...SCENES.flatMap(s => (s.beats || []).map((b, i) => ({ ...b, scene: s.name, beat: i }))),
-    { t: DURATION - 2.5, t1: DURATION, label: 'fade to paper' },
+    { t: SONG_END - 2.5, t1: SONG_END, label: 'fade to paper' },
   ];
 }
 
@@ -105,9 +108,11 @@ export function sceneAt(t) {
   return { a: cur, b: null, mix: 0, index: i };
 }
 
-// Fade in from blank paper at the start, back to paper at the end.
+// Fade in from blank paper at the start, back to paper as the song ends;
+// then the credits' bare page comes up from it.
 export function fadeAt(t) {
+  if (t >= SONG_END) return Math.min(1, (t - SONG_END) / 0.4);
   const a = Math.min(1, Math.max(0, t / 1.5));
-  const b = Math.min(1, Math.max(0, (DURATION - t) / 2.5));
+  const b = Math.min(1, Math.max(0, (SONG_END - t) / 2.5));
   return Math.min(a, b);
 }

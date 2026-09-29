@@ -33,6 +33,7 @@ export const STORYBOARD = [
   [196.5, 'unravelling'],
   [204.0, 'wheel-of-light-ii'],
   [247.8, 'enso'],
+  [259.2, 'credits'],
 ];
 
 const args = process.argv.slice(2);

@@ -252,6 +252,12 @@ closing प्रज्ञापारमिता are written one under another
 colophon. The ॐ isn't sung, but the seal is stamped beside them as the voices
 fade, and everything fades to paper.
 
+**22 · Credits** 4:18–4:20
+Silence, and bare paper. *Emily @the_aiju*, song & direction, and *Claude*,
+visuals & code, soak into the page in sumi, set in the lyrics' brush font, with
+the roles small and grey beneath; along the bottom, in small print, KanjiVG,
+the fonts and the aligners. The video ends on this frame.
+
 ## Still to do
 
 - The first of the three closing प्रज्ञापारमिता (3:59) wasn't checked by ear;
