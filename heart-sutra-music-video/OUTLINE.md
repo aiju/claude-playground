@@ -220,7 +220,9 @@ never the same.
 *彼岸の 風に 私は 解ける*, vertical, right. The characters themselves drift
 apart after they're written.
 A robed figure stands in a pale dawn, and the wind from the other shore takes it
-apart from one side into petals of colour.
+apart from one side into petals of colour. On the right the pale green shore
+rises into a faint mountain that grows clearer as the figure comes undone:
+mountains are mountains again.
 
 **20 · Wheel of light II** 3:18–3:32 📷
 *生まれず 滅びず 詩は 巡る*, on the ring.

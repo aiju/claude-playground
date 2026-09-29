@@ -1215,6 +1215,17 @@ void sUnravel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(GAMBOGE) * softWash(abs(p.y + 0.05 + 0.15 * fbm3(p + 1.0)) - 0.35, p, 191.0, 0.2) * 0.3;
   P.od += od(ROSE) * softWash(0.35 - p.y + 0.2 * fbm3(p * 1.2 + 3.0), p, 192.0, 0.25) * 0.3;
   P.od += od(CERULEAN) * band(p, -1.3, -0.42, 193.0, 0.15) * 0.25;
+  // on the right the green shore rises into a mountain, faint at first and
+  // clearer as the figure comes undone: mountains are mountains again.
+  // Its foot follows the shore's edge (as band() draws it), with a long
+  // slope to the left and a steeper one to the right.
+  float shore = -0.42 + 0.15 * (fbm3(vec2(p.x * 1.1 - 193.0, 386.0)) + 0.6 * fbm3(vec2(p.x * 0.35 + 193.0, 5.0)));
+  float mx = p.x - 1.0;
+  float ms = sqrt(mx * mx + 0.004) / mix(0.95, 0.5, smoothstep(-0.1, 0.1, mx));
+  float mh = pow(max(0.0, 1.0 - ms), 1.6);
+  float ridge = shore + 0.34 * mh + 0.015 * fbm3(vec2(p.x * 6.0, 196.0)) * mh;
+  float mount = wash(max(p.y - ridge, shore - p.y), p, 196.0, 0.02);
+  P.od += od(mix(CERULEAN, TURQUOISE, 0.3)) * mount * 0.22 * mix(0.4, 1.0, ease(span01(t, k0.x, k1.x)));
   // the figure, coming undone in the wind from its right side
   vec2 fp = vec2(-0.45, -0.72);
   vec2 q = (p - fp) / 1.15;
