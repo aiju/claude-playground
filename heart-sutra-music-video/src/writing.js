@@ -425,17 +425,34 @@ function strokeMap(ch, paint, piecePaints, traced) {
     return (starts[s] + Math.max(0, a - Math.sqrt(Math.max(0, br * br - d * d)))) / total;
   };
   const nearest = (s, px, py) => {
-    // distance from (px, py) to stroke s, and the arc length at the closest point
+    // distance from (px, py) to stroke s, and the arc length at the closest
+    // point. A stroke can pass the same spot twice (the loop of は, る, ま):
+    // then the pixel takes the earliest pass that covers it, not just the
+    // closest, so a loop doesn't hold back the stroke it crosses.
     const p = paths[s];
-    let bd = 1e9, ba = 0;
+    const cover = traced ? halves[s] : half;
+    let bd = 1e9, ba = 0, prev = 1e9, falling = true;
+    let passD = 1e9, passA = 0;            // the current pass: its closest point
+    let early = null;                      // the earliest pass found so far: [d, a]
+    const endPass = () => {
+      if (passD <= cover * cover && (!early || passA < early[1])) early = [passD, passA];
+    };
     for (let k = 1; k < p.xs.length; k++) {
       const x0 = p.xs[k - 1], y0 = p.ys[k - 1], ex = p.xs[k] - x0, ey = p.ys[k] - y0;
       const ll = ex * ex + ey * ey;
       const t = ll > 0 ? Math.min(1, Math.max(0, ((px - x0) * ex + (py - y0) * ey) / ll)) : 0;
       const dx = x0 + ex * t - px, dy = y0 + ey * t - py, d = dx * dx + dy * dy;
-      if (d < bd) { bd = d; ba = p.as[k - 1] + t * (p.as[k] - p.as[k - 1]); }
+      const a = p.as[k - 1] + t * (p.as[k] - p.as[k - 1]);
+      if (d < bd) { bd = d; ba = a; }
+      // passes are the stretches between the path moving away and coming back
+      if (d > prev + 1e-6 && falling) { endPass(); falling = false; }
+      else if (d < prev - 1e-6 && !falling) { falling = true; passD = 1e9; }
+      if (falling && d < passD) { passD = d; passA = a; }
+      prev = d;
     }
-    ds[s] = Math.sqrt(bd); as[s] = ba;
+    if (falling) endPass();
+    if (early && early[1] < ba) { ds[s] = Math.sqrt(early[0]); as[s] = early[1]; }
+    else { ds[s] = Math.sqrt(bd); as[s] = ba; }
   };
   for (let i = 0; i < m.length; i++) {
     if (m[i] <= 30) continue;
