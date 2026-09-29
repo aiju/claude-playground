@@ -147,8 +147,9 @@ Eight petals of colour turn in a ring around a gold sun with fine rays.
 **11 · Shakuhachi and taiko** 1:48–2:02 📷
 No lyrics.
 A sumi-e bamboo grove at three depths drifts past, with mist and a pale
-vermilion sun. It's a call and response: in each bar of drums the strong hits
-throw splashes of ink that drip and fade (the loudest in vermilion), and each
+vermilion sun. It's a call and response: in each bar of drums every hit
+throws ink, a small spatter for the light ones and a dripping splash for the
+strong ones (the loudest in vermilion), gathering over the bar, and each
 time the drums rest (1:49, 1:53, 1:57) the shakuhachi answers with one long
 breath of ink drawn across the grove, running dry towards its end, while the
 mist lifts and the leaves stir. From 1:58 the drums play straight through and

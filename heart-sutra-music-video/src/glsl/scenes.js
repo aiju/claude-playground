@@ -13,7 +13,7 @@
 // uAccents[i] is the same for the accents, the strong hits at least 0.25 s
 // apart: use these for anything drawn per hit, or a busy bar of drums
 // throws several things a second about the frame, which reads as flicker.
-// uHits[i] = (seconds since hit, strength, keep, seed) for the last eight
+// uHits[i] = (seconds since hit, strength, keep, seed) for the last sixteen
 // drum hits, newest first; keep fades from 1 to 0 before a hit drops off the
 // list, so anything drawn for a hit should be multiplied by it; seed is the
 // hit's number in the song, to place what's drawn for it (never derive that
@@ -714,8 +714,10 @@ void sWheel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 // ================================================================ 11 · 尺八と太鼓 shakuhachi and taiko
 // Call and response in a bamboo grove: the drums play a bar, then rest while
 // the shakuhachi answers. Each answer is a breath of ink drawn across the
-// grove (beats 0-2); each strong drum hit throws a splash. When the drums
-// play on without resting (beat 3) the grove shakes and leaves come down.
+// grove (beats 0-2); each drum hit throws a splash, big and sometimes
+// vermilion for the strong ones, a small spatter for the lighter ones. When
+// the drums play on without resting (beat 3) the grove shakes and leaves
+// come down.
 
 // One breath: a long brushstroke drawn across the page from the left while
 // the flute plays (a..b), running dry towards its end, then soaking away.
@@ -734,10 +736,20 @@ float breath(vec2 p, float t, float a, float b, float y0, float seed) {
   return smoothstep(0.003, -0.003, d) * drawn * fade * mix(1.0, fly, smoothstep(0.35, 0.95, along));
 }
 
+// The time since -infinity that smoothstep(a, a + f, s) has been on, up to t.
+float onFor(float t, float a, float f) {
+  float u = clamp((t - a) / f, 0.0, 1.0);
+  return f * (u * u * u - 0.5 * u * u * u * u) + max(t - a - f, 0.0);
+}
+
 void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  // how much the flute is sounding right now (the drums are resting)
-  float rest = 0.0;
-  for (int i = 0; i < 3; i++) rest = max(rest, win(t, k0[i], k1[i], 0.3, 0.6));
+  // how much the flute is sounding right now (the drums are resting), and
+  // how long it has sounded so far
+  float rest = 0.0, restFor = 0.0;
+  for (int i = 0; i < 3; i++) {
+    rest = max(rest, win(t, k0[i], k1[i], 0.3, 0.6));
+    restFor += onFor(t, k0[i], 0.3) - onFor(t, k1[i] - 0.6, 0.6);
+  }
   float drums = smoothstep(k0.w, k0.w + 0.5, t);
   // mist and a pale vermilion sun behind the grove; the mist rises in the rests
   float sd = length(p - vec2(0.75, 0.42)) - 0.3 + edgeWobble(p, 101.0, 0.02);
@@ -760,34 +772,40 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   }
   // the mist lifts over the middle distance while the flute plays
   addOpaque(P, vec3(0.95, 0.94, 0.9), softWash(abs(p.y + 0.35 + 0.1 * fbm3(vec2(p.x * 0.6 + t * 0.05, 7.0))) - 0.18, p, 105.0, 0.2) * rest * 0.35);
+  // the near leaves stir three times as fast in the rests (their clock runs
+  // faster, rather than being scaled: t * (1 + 2 * rest) jumps ahead
+  // by seconds as rest comes up, and the leaves thrashed)
+  float leafT = t + 2.0 * restFor;
   for (int i = 0; i < 2; i++) {
     float fi = float(i);
     float x0 = (i == 0 ? -1.25 : 1.35) - t * 0.035;
     bamboo(P, p, x0, 0.042, 0.05 + sway * 1.5, 0.55, 1.0, fi + 130.0);
-    bambooLeaves(P, p, vec2(x0 + 0.05, 0.55 - fi * 0.9), 1.0 - fi * 2.0, 0.24, 0.95, fi + 131.0, t * (1.0 + 2.0 * rest));
-    bambooLeaves(P, p, vec2(x0 - 0.04, 0.1 + fi * 0.3), -1.0 + fi * 2.0, 0.2, 0.9, fi + 133.0, t * (1.0 + 2.0 * rest));
+    bambooLeaves(P, p, vec2(x0 + 0.05, 0.55 - fi * 0.9), 1.0 - fi * 2.0, 0.24, 0.95, fi + 131.0, leafT);
+    bambooLeaves(P, p, vec2(x0 - 0.04, 0.1 + fi * 0.3), -1.0 + fi * 2.0, 0.2, 0.9, fi + 133.0, leafT);
   }
   // the shakuhachi's answers: a breath of ink for each rest
   float br = breath(p, t, k0.x, k1.x, 0.3, 104.0) + breath(p, t, k0.y, k1.y, -0.05, 107.0) + breath(p, t, k0.z, k1.z, 0.5, 109.0);
   br = min(br, 1.0);
   P.od += od(SUMI) * br * 0.85;
-  // taiko: each strong accent throws a splash of ink, the loudest in
-  // vermilion; it spreads over a quarter of a second and soaks away slowly
-  for (int i = 0; i < 8; i++) {
-    float age = uAccents[i].x;
-    float str = uAccents[i].y;
-    if (age > 4.0 || age > t || str < 0.75) continue;
+  // taiko: each drum hit throws a splash of ink, sized by how hard it was
+  // hit, the loudest in vermilion; it spreads over a quarter of a second and
+  // soaks away slowly, so the splashes gather while the drums play
+  for (int i = 0; i < 16; i++) {
+    float age = uHits[i].x;
+    float str = uHits[i].y;
+    if (age > 4.0 || age > t || str < 0.45) continue;
     float hs = t - age;    // when it was hit, in scene time: nothing splashes in the rests
     if ((hs > k0.x && hs < k1.x) || (hs > k0.y && hs < k1.y) || (hs > k0.z && hs < k1.z)) continue;
-    float ht = uAccents[i].w;
+    float ht = uHits[i].w;
     vec2 h = hash22(vec2(ht, 11.0));
     vec2 c = vec2((h.x - 0.5) * 2.8, (h.y - 0.5) * 1.3);
-    float size = (0.05 + 0.11 * str) * easeOut(age * 4.0);
+    float size = (0.02 + 0.14 * str * str) * easeOut(age * 4.0);
     if (length((p - c) * vec2(1.0, 0.5)) > size * 2.4 + 0.02) continue;
     float d = sdSplash(p - c, h.x * 40.0, size);
-    float fade = uAccents[i].z * (1.0 - smoothstep(1.5, 4.0, age)) * smoothstep(0.0, 0.06, age);
-    vec3 col = str > 0.8 ? VERMILION : SUMI;
+    float fade = uHits[i].z * (1.0 - smoothstep(1.5, 4.0, age)) * smoothstep(0.0, 0.06, age);
+    vec3 col = str > 0.9 ? VERMILION : SUMI;
     P.od += od(col) * wash(d, p, h.y * 30.0, 0.008) * fade * 0.95;
+    if (str < 0.65) continue;    // only the bigger splashes run
     for (int k = 0; k < 2; k++) {
       float fk = float(k);
       float dx = (hash11(ht + fk) - 0.5) * size * 1.2;

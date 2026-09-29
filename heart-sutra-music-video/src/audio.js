@@ -135,16 +135,16 @@ function pickAccents(hits) {
 export function featuresAt(f, t) {
   const i = Math.min(f.level.length - 1, Math.max(0, Math.floor(t * RATE)));
   const level = f.level[i] || 0;
-  // The last 8 hits before t (and the last 8 accents), newest first, as
+  // The last 16 hits before t (and the last 8 accents), newest first, as
   // [age, strength, keep, seed]. A
-  // hit drops off the list when the eighth hit after it comes, so keep fades
-  // it out over the half second before that: whatever a scene draws for it
-  // can fade too, rather than vanish. seed is the hit's number in the song,
+  // hit drops off the list when the 16th hit after it comes (the 8th for
+  // accents), so keep fades it out over the half second before that:
+  // whatever a scene draws for it can fade too, rather than vanish. seed is the hit's number in the song,
   // for scenes to place what they draw for it: it has to come from here,
   // because working the hit's time out again on the GPU (time - age, in 32-bit
   // floats) comes out slightly different every frame, and anything random
   // built on it would jump about while playing.
-  const hits = recent(f.hits, t), accents = recent(f.accents, t);
+  const hits = recent(f.hits, t, 16), accents = recent(f.accents, t, 8);
   // a pulse on every hit: it rises over a few hundredths of a second rather
   // than jumping (anything sized or brightened by it would jitter at the
   // drum rate), peaks at 1 and dies away over about a third of a second
@@ -155,15 +155,15 @@ export function featuresAt(f, t) {
   return { level, pulse, beat, hits, accents };
 }
 
-function recent(list, t) {
+function recent(list, t, n) {
   let lo = 0, hi = list.length;
   while (lo < hi) { const m = (lo + hi) >> 1; if (list[m].t <= t) lo = m + 1; else hi = m; }
   const out = [];
-  for (let k = lo - 1; k >= 0 && out.length < 8; k--) {
-    const next = list[k + 8];
+  for (let k = lo - 1; k >= 0 && out.length < n; k--) {
+    const next = list[k + n];
     const keep = next ? Math.min(1, Math.max(0, (next.t - t) / 0.5)) : 1;
     out.push([t - list[k].t, list[k].s, keep, k]);
   }
-  while (out.length < 8) out.push([99, 0, 0, 0]);
+  while (out.length < n) out.push([99, 0, 0, 0]);
   return out;
 }
