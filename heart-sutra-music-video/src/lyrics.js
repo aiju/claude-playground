@@ -61,7 +61,10 @@ export const CUES = [
   // Chorus
   { t0: 78.65, t1: 86.2, text: '色[しき]即[そく]是[ぜ]空[くう]', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi' },
   { t0: 82.4, t1: 86.4, text: '空[くう]即[そく]是[ぜ]色[しき]', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi' },
-  { t0: 84.2, t1: 91.3, text: 'रूपं शून्यता शून्यतैव रूपम्', roman: 'ru-pam shun-ya-ta shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.86, size: 0.075, ink: 'shu' },
+  // the two halves mirror each other across the fold of the blot, as the
+  // words do: रूपं शून्यता below, शून्यतैव रूपम् above (swapped in the final chorus)
+  { t0: 84.2, t1: 91.3, text: 'रूपं शून्यता', roman: 'ru-pam shun-ya-ta', script: 'sa', x: 0.5, y: 0.86, size: 0.075, ink: 'shu' },
+  { t0: 85.9, t1: 91.3, text: 'शून्यतैव रूपम्', roman: 'shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.14, size: 0.075, ink: 'shu' },
   { t0: 89.1, t1: 96.4, text: 'この 掌[てのひら]に 宇[う]宙[ちゅう]が 透[す]ける', script: 'ja', dir: 'v', x: 0.86, y: 0.10, size: 0.068, ink: 'sumi' },
   { t0: 94.9, t1: 109.5, text: '生[う]まれず 滅[ほろ]びず 光[ひかり]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 
@@ -96,7 +99,8 @@ export const CUES = [
   // Final chorus
   { t0: 182.45, t1: 189.6, text: '色[しき]即[そく]是[ぜ]空[くう]', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi' },
   { t0: 185.95, t1: 189.8, text: '空[くう]即[そく]是[ぜ]色[しき]', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi' },
-  { t0: 187.7, t1: 194.5, text: 'रूपं शून्यता शून्यतैव रूपम्', roman: 'ru-pam shun-ya-ta shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.075, size: 0.075, ink: 'shu' },
+  { t0: 187.7, t1: 194.5, text: 'रूपं शून्यता', roman: 'ru-pam shun-ya-ta', script: 'sa', x: 0.5, y: 0.075, size: 0.075, ink: 'shu' },
+  { t0: 189.5, t1: 194.5, text: 'शून्यतैव रूपम्', roman: 'shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.925, size: 0.075, ink: 'shu' },
   { t0: 192.25, t1: 200.0, text: '彼[ひ]岸[がん]の 風[かぜ]に 私[わたし]は 解[ほど]ける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
   { t0: 198.45, t1: 213.2, text: '生[う]まれず 滅[ほろ]びず 詩[うた]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 

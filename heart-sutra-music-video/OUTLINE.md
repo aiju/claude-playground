@@ -127,8 +127,9 @@ shimmer, flare and flow outwards…
 ### Chorus: paper and colour
 
 **8 · Form is emptiness** 1:19–1:29 📷
-*色即是空* (right) and *空即是色* (left) in large sumi, with
-*रूपं शून्यता शून्यतैव रूपम्* in vermilion below.
+*色即是空* (right) and *空即是色* (left) in large sumi, then in vermilion
+*रूपं शून्यता* below and *शून्यतैव रूपम्* above, mirrored across the fold as the
+words are.
 …and white washi is left behind. On the downbeat a five-colour inkblot bursts
 open from the fold: rose, ultramarine, gamboge, sap green and violet, glazing
 and back-running into each other. It never holds still: its layers breathe and
@@ -220,7 +221,7 @@ the foreground, and every accent bursts gold dust outwards.
 ### Final chorus
 
 **18 · Form is emptiness II** 3:03–3:12 📷
-*色即是空 / 空即是色*, *रूपं शून्यता शून्यतैव रूपम्*.
+*色即是空 / 空即是色*, *रूपं शून्यता* above and *शून्यतैव रूपम्* below.
 The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
 never the same.
 
