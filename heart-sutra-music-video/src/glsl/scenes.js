@@ -439,18 +439,21 @@ void sEye(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addPig(P, CERULEAN, inside * (0.1 + 0.15 * fbm3(e * 2.0 + 9.0)));
   P.od += od(PRUSSIAN) * exp(-max(-lens, 0.0) / 0.04) * inside * 0.45;
   // iris, round (its fibres are sampled around a circle, so they have no
-  // seam where the angle wraps round)
-  float r = length(e);
-  vec2 dir = e / max(r, 1e-4);
+  // seam where the angle wraps round). It's drawn in its own units, scaled
+  // by 1.115, which leaves about 0.03 between it and the lids while the eye
+  // is seen fully open (it breathes: then it's near its narrowest).
+  vec2 ie = e / 1.115;
+  float r = length(ie);
+  vec2 dir = ie / max(r, 1e-4);
   float irisD = r - 0.24;
   float iris = smoothstep(0.004, -0.004, irisD) * inside;
   float fibres = 0.5 + 0.5 * gnoise(dir * 28.0 + r * 6.0 + t * 0.1);
   P.od += (od(TURQUOISE) * (0.5 + 0.5 * fibres) + od(COBALT) * smoothstep(0.1, 0.24, r) * 0.6) * iris * 1.1;
   P.od += od(PRUSSIAN) * iris * exp(-max(-irisD, 0.0) / 0.018) * 0.8;
-  addOpaque(P, goldCol(e * 3.0, t), iris * smoothstep(0.18, 0.1, r) * smoothstep(0.075, 0.1, r) * (0.25 + 0.5 * fibres));
+  addOpaque(P, goldCol(ie * 3.0, t), iris * smoothstep(0.18, 0.1, r) * smoothstep(0.075, 0.1, r) * (0.25 + 0.5 * fibres));
   float pupil = smoothstep(0.004, -0.004, r - 0.085 - 0.01 * open) * inside;
   P.od += od(INDIGO) * pupil * 2.2;
-  addOpaque(P, vec3(0.97, 0.95, 0.9), smoothstep(0.03, 0.02, length(e - vec2(0.07, 0.07))) * inside * 0.8);
+  addOpaque(P, vec3(0.97, 0.95, 0.9), smoothstep(0.03, 0.02, length(ie - vec2(0.07, 0.07))) * inside * 0.8);
   // the outline of the eye in gold: a clean, even line
   float gold = smoothstep(0.0055, 0.003, abs(lens)) + exp(-abs(lens) / 0.012) * 0.12;
   addOpaque(P, goldCol(e, t), min(gold, 1.0) * smoothstep(0.0, 0.2, open));
