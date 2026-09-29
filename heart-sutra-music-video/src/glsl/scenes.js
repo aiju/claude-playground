@@ -796,7 +796,9 @@ void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float openAmt = ease(opening);
   vec2 g = q - mix(vec2(-0.02, 0.11), vec2(-0.01, -0.04), openAmt);
   float r = length(g), ang = atan(g.y, g.x);
-  float R = mix(0.14 + 0.01 * sin(t * 2.1), 0.4, openAmt) + 1.5 * well;
+  // it grows in one sweep from the hand opening to the end of 透ける,
+  // slowly at first and never stopping: the palm by 宇宙が, then the fingers
+  float R = 0.14 + 0.01 * sin(t * 2.1) * (1.0 - openAmt) + 1.76 * pow(ease(span01(t, k0.x, k1.y)), 1.8);
   float reveal = smoothstep(0.0, 0.12, R - r - 0.08 * fbm3(g * 3.0 + t * 0.2));
   float fill = inside * reveal * (1.0 - cover * (1.0 - well));
   float spin = t * 0.28;
