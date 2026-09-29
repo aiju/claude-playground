@@ -388,19 +388,51 @@ void sSeaFloor(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   4: { fn: 'sEye', src: /* glsl */ `
 // ================================================================ 4 · 目を開く the eye
+// The eye is painted in as it opens, like the eyes of a statue at its
+// 開眼 (eye-opening): a pale underdrawing of the closed eye, then on 目を開く
+// a bold stroke along the upper lid and a light one along the lower, which
+// is still wet enough to run.
+
+// Height of the eye's upper edge at x, for an opening of half-height w: the
+// lens is two circle arcs meeting at x = ±0.8 (written to stay exact as w
+// goes to 0).
+float lidArc(float x, float w) {
+  float r = (0.64 + w * w) / (2.0 * w);
+  return w - x * x / (r + sqrt(max(r * r - x * x, 0.0)));
+}
+
 void sEye(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   seaBase(p, t, P, 0.25);
   float open = easeOut(span01(t, k0.x, k1.x)) * (0.92 + 0.08 * sin(t * 0.7));
   vec2 e = p - vec2(0.0, 0.02);
-  // lids: Rorschach blots folded above and below the eye
-  float lidT = blotSDF(vec2(e.x * 0.8, e.y - 0.36 - 0.16 * open) * 1.3, 11.0, 0.85, t, 1.0);
-  float lidB = blotSDF(vec2(e.x * 0.8, -e.y - 0.32 - 0.14 * open) * 1.4, 12.0, 0.75, t, 1.0);
-  float lids = min(lidT, lidB);
-  P.od += od(PRUSSIAN) * wash(lids, e, 13.0, 0.025) * gran(e, 0.8) * 0.9;
-  P.od += od(ULTRA) * softWash(lids - 0.04, e, 14.0, 0.08) * 0.35;
+  float w = max(0.001, 0.34 * open);
+  // the water pales around the eye, more as it opens
+  lift(P, softWash(length(e * vec2(0.5, 1.0)) - 0.5, e, 20.0, 0.3) * (0.3 + 0.45 * open));
+  // the underdrawing, in pale ink (薄墨): the closed eye's line, which
+  // becomes the lower lid
+  float yl = -lidArc(clamp(e.x, -0.8, 0.8), w) - 0.012;
+  P.od += od(SUMI) * inkLine(e.y - yl, e, 0.003, 17.0) * smoothstep(0.8, 0.66, abs(e.x)) * 0.5;
+  // the upper lid: one stroke from left to right, landing with a press,
+  // swelling, then lifting off dry just past the outer corner
+  float x0 = -0.78, x1 = 0.86;
+  float head = mix(-0.05, 1.05, easeOut(span01(t, k0.x, k0.x + 1.3)));
+  float xu = clamp(e.x, x0, x1);
+  float uu = (xu - x0) / (x1 - x0);
+  float yu = lidArc(xu, w) + 0.024 + 0.35 * max(0.0, xu - 0.55) * max(0.0, xu - 0.55);
+  float wu = 0.036 * (0.8 + 0.2 * sin(uu * PI)) * (1.0 - 0.92 * smoothstep(0.6, 1.0, uu)) * (0.85 + 0.3 * gnoise(vec2(e.x * 4.0, 18.0)));
+  float du = length(vec2(e.x - xu, e.y - yu)) - wu;
+  float fly = dryBrush(vec2(e.x * 0.5 + 18.0, (e.y - yu) / max(wu, 0.004) * 0.12), 18.0, 0.25 - 0.45 * uu);
+  float upper = wash(du + edgeWobble(e * 2.0, 18.0, 0.004), e, 18.0, 0.01) * smoothstep(head, head - 0.03, uu) * mix(1.0, fly, smoothstep(0.5, 0.95, uu));
+  P.od += od(SUMI) * upper * 0.95;
+  // the lower lid, lighter and quicker, a moment later
+  float headL = mix(-0.05, 1.05, easeOut(span01(t, k0.x + 0.9, k0.x + 1.8)));
+  float ul = (e.x + 0.7) / 1.42;
+  float wl = 0.016 * pow(max(sin(clamp(ul, 0.0, 1.0) * PI), 0.0), 0.6) * (0.8 + 0.4 * gnoise(vec2(e.x * 5.0, 19.0)));
+  float lower = wash(abs(e.y - yl + 0.004) - wl, e, 19.0, 0.006) * smoothstep(headL, headL - 0.03, ul) * step(0.0, ul) * step(ul, 1.0);
+  P.od += od(SUMI) * lower * 0.8;
   // the opening: a lens between the lids
   float lens = sdVesica(e.yx, 0.8, max(0.001, 0.34 * open)) + edgeWobble(e, 15.0, 0.02);
-  float inside = smoothstep(0.004, -0.004, lens);
+  float inside = smoothstep(0.004, -0.004, lens) * smoothstep(0.01, 0.06, open);
   float sclera = 0.5 + 0.25 * fbm3(e * 3.0 + 2.0);
   lift(P, inside * sclera);
   addPig(P, CERULEAN, inside * (0.1 + 0.15 * fbm3(e * 2.0 + 9.0)));
@@ -419,17 +451,17 @@ void sEye(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addOpaque(P, vec3(0.97, 0.95, 0.9), smoothstep(0.03, 0.02, length(e - vec2(0.07, 0.07)) + 0.004 * gnoise(e * 50.0)) * inside * 0.8);
   // the outline of the eye in gold ink
   addOpaque(P, goldCol(e, t), inkLine(lens, e, 0.006, 16.0) * smoothstep(0.02, 0.1, open));
-  // ink running from the lower lid
-  vec2 q = vec2(abs(e.x), e.y);
-  for (int i = 0; i < 2; i++) {
+  // the wet lower stroke runs in a few places, once the brush has passed
+  for (int i = 0; i < 3; i++) {
     float fi = float(i);
-    float x = 0.2 + fi * 0.26;
-    float len = (0.08 + 0.1 * hash11(fi + 3.0)) * easeOut(span01(t, k0.y, k1.y));
-    vec2 a = vec2(x, -0.33 - 0.03 * fi), b = a + vec2(0.01 * sin(fi * 3.0), -len);
-    vec2 dq = q + vec2(0.005 * sin(q.y * 35.0 + fi * 2.0), 0.0);
-    float drip = sdTaper(dq, a, b, 0.009, 0.004);
-    drip = smin(drip, length(dq - b) - 0.009, 0.008);
-    P.od += od(PRUSSIAN) * wash(drip, e, fi, 0.008) * 0.8;
+    float x = -0.32 + fi * 0.36 + 0.06 * hash11(fi + 3.0);
+    float start = max(k0.y, k0.x + 0.9 + 0.9 * (x + 0.7) / 1.42 + 0.2);
+    float len = (0.07 + 0.09 * hash11(fi + 5.0)) * easeOut(span01(t, start, start + 2.5));
+    vec2 a = vec2(x, -lidArc(x, w) - 0.016), b = a + vec2(0.008 * sin(fi * 3.0), -len);
+    vec2 dq = e + vec2(0.004 * sin(e.y * 35.0 + fi * 2.0), 0.0);
+    float drip = sdTaper(dq, a, b, 0.007, 0.004);
+    drip = smin(drip, length(dq - b) - 0.008, 0.008);
+    P.od += od(SUMI) * wash(drip, e, fi, 0.008) * 0.7 * step(0.001, len);
   }
   addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, t * 0.02), 45.0, 21.0, 0.05) * 0.8);
 }

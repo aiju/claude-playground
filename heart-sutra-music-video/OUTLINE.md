@@ -91,8 +91,11 @@ floor.
 
 **4 · The eye opens** 0:42–0:49 📷
 *観る者は 静かに 目を開く*, vertical, left.
-Two blots fold into lids above and below and part on 目を開く (0:46). Behind them is an iris
-of turquoise, cobalt and gold, and a little ink runs from the lower lid.
+The eye is painted in as it opens, like a statue's eyes at its 開眼 (eye-opening):
+a pale underdrawing of the closed eye, then on 目を開く (0:46) one bold sumi
+stroke along the upper lid, landing with a press and lifting off dry past the
+corner, and a light one along the lower lid, which runs in a few places. The
+water pales around it, and inside is an iris of turquoise, cobalt and gold.
 
 **5 · Wind and sand** 0:49–0:55 📷
 *形も 心も 風の砂*, horizontal, bottom.
