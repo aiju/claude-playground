@@ -201,7 +201,7 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // the stupa: a folded blot that rises from its terraces up to its finial
   // while प्रज्ञापारमिता is sung, breathing with the pulse
   {
-    float build = ease(span01(t, k0.x - 0.4, k1.x - 1.2));
+    float build = ease(span01(t, k0.x - 0.4, k0.y - 0.7));      // complete by 0:18.6
     vec2 base = vec2(0.0, -0.42 + 1.1 * sink);
     float sc = 0.9 * (1.0 + 0.012 * sin(t * 1.3) + 0.02 * uPulse);
     vec2 q = (p - base) / sc;
@@ -212,8 +212,9 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float env = -ds / 0.06 - 3.0 * smoothstep(-0.06, 0.06, q.y - (build * 1.25 - 0.06));
     float n = fbm(vec2(abs(q.x), q.y) * 2.6 + 21.0 + vec2(0.0, t * 0.03)) * 0.45 + gnoise(vec2(abs(q.x), q.y) * 11.0 + 21.0) * 0.1;
     float d = -(env + n - 0.1) * 0.06;
-    // where the water has reached it, it melts: the edge softens and spreads, and fades
-    float dis = ease(span01(t, k0.y + 0.2, k1.y - 0.4)) * uw;
+    // as the water arrives it melts, from the top down: the edge softens and
+    // spreads, and it fades, gone by the time the water is at full strength (0:20)
+    float dis = ease(span01(t, k0.y - 0.3 + 0.35 * clamp(0.6 - p.y, 0.0, 1.0), k0.y + 0.7));
     float crisp = wash(d, q, 21.0, 0.025);
     float melt = softWash(d - 0.07 * dis, q + vec2(0.0, 0.05 * dis), 21.0, 0.02 + 0.09 * dis);
     float body = mix(crisp, melt, dis) * (1.0 - 0.85 * dis);
