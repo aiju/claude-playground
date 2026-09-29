@@ -9,7 +9,8 @@
 import { CUES } from './lyrics.js';
 import { plain, scheduleCue } from './schedule.js';
 import { charMap, lineMap, writeControl, MAP_FONT } from './writing.js';
-import { setOutlineFont, hasOutline, drawGlyph, pieceCount } from './outlines.js';
+import { setOutlineFont, hasOutline, drawGlyph, pieceCount, glyphMetrics } from './outlines.js';
+import { TRACED } from './strokes-traced.js';
 
 export const FONT_JA = 'BrushJa';
 export const FONT_SA = 'BrushSa';
@@ -46,6 +47,12 @@ const paintChar = ch => (ctx, size) => {
   else { ctx.font = `${size}px ${FONT_JA}`; ctx.fillText(ch, 0, 0); }
 };
 const piecePaints = ch => (hasOutline(ch) ? Array.from({ length: pieceCount(ch) }, (_, k) => (ctx, size) => drawGlyph(ctx, ch, size, k)) : null);
+// strokes traced by hand over the font (strokes-traced.js), placed the way
+// drawGlyph places the character
+const traced = ch => (TRACED[ch] && hasOutline(ch) ? size => {
+  const { adv, upm, mid } = glyphMetrics(ch), k = size / upm;
+  return TRACED[ch].map(line => line.map(([x, y]) => [(x - adv / 2) * k, -(y - mid) * k]));
+} : null);
 const paintLine = text => (ctx, size) => { ctx.font = `${size}px ${FONT_SA}`; ctx.fillText(text, 0, size * 0.1); };
 
 let measurer = null;
@@ -66,7 +73,7 @@ export async function prepareWriting(onProgress = () => {}) {
       for (const ch of plain(cue.text)) {
         if (ch === ' ' || seen.has(ch)) continue;
         seen.add(ch);
-        jobs.push(() => charMap(ch, paintChar(ch), piecePaints(ch)));
+        jobs.push(() => charMap(ch, paintChar(ch), piecePaints(ch), traced(ch)));
       }
     }
   }
@@ -268,7 +275,7 @@ export class TextLayer {
     if (g.whole) c.fillText(g.ch, 0, size * 0.1);
     else paintChar(g.ch)(c, size);
 
-    const map = g.whole ? lineMap(g.ch, paintLine(g.ch), widthEm(g.ch)) : charMap(g.ch, paintChar(g.ch), piecePaints(g.ch));
+    const map = g.whole ? lineMap(g.ch, paintLine(g.ch), widthEm(g.ch)) : charMap(g.ch, paintChar(g.ch), piecePaints(g.ch), traced(g.ch));
     const sc = size / MAP_FONT;
     const dw = map.w * sc, dh = map.h * sc;
     // A glyph's control image is bigger than the glyph and overlaps its

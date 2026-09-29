@@ -75,6 +75,23 @@ function resample(pts, step) {
   return { pts: out, len };
 }
 
+// A smooth curve through the points of a hand-traced stroke (Catmull-Rom),
+// with a point every `step` pixels.
+function smoothLine(pts, step) {
+  if (pts.length < 2) return pts;
+  const out = [pts[0]];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const n = Math.max(1, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- glyph masks
 
 function mask(width, height, paint) {
@@ -321,28 +338,35 @@ function grow(u, m, w, h, start, heap, push, pop) {
 // reaches it. Where strokes cross, the earlier one inks the crossing. Ink
 // the font has but the strokes don't reach (the font and KanjiVG never
 // agree exactly) fills in from the nearest inked part as the brush passes.
-function strokeMap(ch, paint, piecePaints) {
+function strokeMap(ch, paint, piecePaints, traced) {
   const w = MAP_SIZE, h = MAP_SIZE;
   const m = mask(w, h, paint);
   const box = inkBox(m, w, h);
   const strokes = STROKES[ch];
-  if (!box || !strokes) return flowMap(m, w, h, false);
+  if (!box || (!strokes && !traced)) return flowMap(m, w, h, false);
 
-  const lines = strokes.map(d => resample(samplePath(d), 1.0));
-  const [ax, cx, ay, cy] = fitStrokes(lines, m, w, h, box);
-  // the strokes in map pixels, with arc length in map pixels
+  // the strokes as points in map pixels: traced by hand over the font, or
+  // KanjiVG's fitted onto the glyph
+  let lines;
+  if (traced) {
+    lines = traced(MAP_FONT).map(l => smoothLine(l.map(([x, y]) => [x + w / 2, y + h / 2]), 1.0));
+  } else {
+    const kvg = strokes.map(d => resample(samplePath(d), 1.0));
+    const [ax, cx, ay, cy] = fitStrokes(kvg, m, w, h, box);
+    lines = kvg.map(l => l.pts.map(([x, y]) => [cx + (x - 54.5) * ax, cy + (y - 54.5) * ay]));
+  }
+  // with arc length in map pixels
   const paths = lines.map(l => {
     const xs = [], ys = [], as = [];
     let a = 0;
-    l.pts.forEach(([x, y], k) => {
-      const px = cx + (x - 54.5) * ax, py = cy + (y - 54.5) * ay;
+    l.forEach(([px, py], k) => {
       if (k) a += Math.hypot(px - xs[k - 1], py - ys[k - 1]);
       xs.push(px); ys.push(py); as.push(a);
     });
     return { xs, ys, as, len: a,
       x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
   });
-  const pause = 7 * (ax + ay) / 2;   // the brush lifting between strokes
+  const pause = 7 * MAP_FONT / 109;   // the brush lifting between strokes
   let total = 0;
   const starts = paths.map(p => { const s = total; total += p.len + pause; return s; });
   total -= pause;
@@ -361,6 +385,16 @@ function strokeMap(ch, paint, piecePaints) {
   const brush = half * 1.3;         // the brush tip reaches a little ahead of its centre
   const tie = Math.max(1.5, 0.4 * half);
   const reach = 2.2 * half + 3;     // ink further than this from any stroke waits to be filled in
+  // each stroke's own half-width, for hand-traced strokes
+  const halves = paths.map(p => {
+    const ws = [];
+    for (let k = 0; k < p.xs.length; k++) {
+      const x = Math.round(p.xs[k]), y = Math.round(p.ys[k]);
+      if (x >= 0 && y >= 0 && x < w && y < h && depth[y * w + x] > 0.5) ws.push(depth[y * w + x]);
+    }
+    ws.sort((a, b) => a - b);
+    return ws.length ? Math.max(1.5, ws[ws.length >> 1]) : half;
+  });
 
   // The glyph's separate pieces. A stroke may only ink the pieces it actually
   // runs through: being close to a stroke isn't enough if the font draws that
@@ -386,7 +420,10 @@ function strokeMap(ch, paint, piecePaints) {
   const label = new Int16Array(w * h).fill(-1);
   const start = new Uint8Array(w * h);   // pixels the brush covers as it touches down
   const ds = new Float32Array(paths.length), as = new Float32Array(paths.length);
-  const timeOf = (s, d, a) => (starts[s] + Math.max(0, a - Math.sqrt(Math.max(0, brush * brush - d * d)))) / total;
+  const timeOf = (s, d, a) => {
+    const br = traced ? halves[s] * 1.3 : brush;
+    return (starts[s] + Math.max(0, a - Math.sqrt(Math.max(0, br * br - d * d)))) / total;
+  };
   const nearest = (s, px, py) => {
     // distance from (px, py) to stroke s, and the arc length at the closest point
     const p = paths[s];
@@ -414,12 +451,24 @@ function strokeMap(ch, paint, piecePaints) {
       dmin = Math.min(dmin, ds[s]);
     }
     if (dmin > reach) continue;
-    // of the strokes that pass over this pixel, the earliest inks it
     let bt = 2, bs = -1;
-    for (let s = 0; s < paths.length; s++) {
-      if (ds[s] > dmin + tie && ds[s] > 0.75 * half) continue;
-      const t = timeOf(s, ds[s], as[s]);
-      if (t < bt) { bt = t; bs = s; }
+    if (traced) {
+      // inside the body of one or more strokes: the earliest of them inks it,
+      // so strokes join along the edge of the one written first; outside all
+      // of them, the nearest
+      for (let s = 0; s < paths.length; s++) {
+        if (ds[s] > halves[s] * 1.05 + 0.5) continue;
+        const t = timeOf(s, ds[s], as[s]);
+        if (t < bt) { bt = t; bs = s; }
+      }
+      if (bs < 0) for (let s = 0; s < paths.length; s++) if (ds[s] <= dmin) { bt = timeOf(s, ds[s], as[s]); bs = s; break; }
+    } else {
+      // of the strokes that pass over this pixel, the earliest inks it
+      for (let s = 0; s < paths.length; s++) {
+        if (ds[s] > dmin + tie && ds[s] > 0.75 * half) continue;
+        const t = timeOf(s, ds[s], as[s]);
+        if (t < bt) { bt = t; bs = s; }
+      }
     }
     u[i] = bt; label[i] = bs;
     start[i] = as[bs] <= brush + 1.5 ? 1 : 0;
@@ -550,7 +599,23 @@ function strokeMap(ch, paint, piecePaints) {
   }
   grow(u, m, w, h, start, heap, push, pop);
   dilate(u, w, h, 5);
-  return { u, w, h, debug: { paths, half, pieces } };
+  // the margin beside a stroke must not show the edge of a later stroke's
+  // ink before its time: a margin pixel waits for all the ink around it
+  const margin = u.slice();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (m[i] > 30 || u[i] === FAR) continue;
+    let latest = u[i];
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const v = u[ny * w + nx];
+      if (v !== FAR && m[ny * w + nx] > 30 && v > latest) latest = v;
+    }
+    margin[i] = latest;
+  }
+  u.set(margin);
+  return { u, w, h, debug: { paths, half, pieces, label } };
 }
 
 // Flowing time map for text without stroke data: ink spreads through each
@@ -661,10 +726,12 @@ function flowMap(m, w, h, headline, bySize = false) {
 const cache = new Map();
 
 // Time map for a Japanese character drawn by paint(ctx, size); piecePaints,
-// if given, draw each of its pieces from the font's outlines.
-export function charMap(ch, paint, piecePaints = null) {
+// if given, draw each of its pieces from the font's outlines, and traced(size),
+// if given, returns its strokes traced by hand, as points in pixels around
+// the character's centre.
+export function charMap(ch, paint, piecePaints = null, traced = null) {
   const key = `ja:${ch}`;
-  if (!cache.has(key)) cache.set(key, strokeMap(ch, paint, piecePaints));
+  if (!cache.has(key)) cache.set(key, strokeMap(ch, paint, piecePaints, traced));
   return cache.get(key);
 }
 

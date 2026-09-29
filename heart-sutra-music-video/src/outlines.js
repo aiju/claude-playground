@@ -31,6 +31,11 @@ export function drawGlyph(ctx, ch, size, piece = null) {
 
 export const pieceCount = ch => glyphShape(ch).pieces.length;
 
+// Where a character sits: its advance width, units per em and the height of
+// the em box's middle, all in font units, to map font coordinates onto the
+// way drawGlyph places the character.
+export function glyphMetrics(ch) { return { adv: glyphShape(ch).adv, upm: font.upm, mid: font.mid }; }
+
 function glyphShape(ch) {
   if (shapes.has(ch)) return shapes.get(ch);
   const gi = font.glyphIndex(ch);
