@@ -104,7 +104,7 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
 | `src/timing.js`, `src/spectrogram.js` | The timing editor |
 | `src/edits.js`, `src/edit-ops.js`, `src/edit-store.js` | The editor's timings as JSON, its edit operations, and where it saves them (with the log for undo) |
-| `tools/` | Static server, still and video renderers, preview packager, font and stroke fetchers, alignment importer, timing writer |
+| `tools/` | Static server, still and video renderers, preview packager, font and stroke fetchers, alignment importer, timing writer and exporter |
 
 Paint is tracked as optical density, so washes glaze over each other the way
 transparent pigment does. Gold, white gouache and the lyrics sit on top as
@@ -137,6 +137,13 @@ Everything time-based lives in three files, all in song seconds:
   `k1` (ends) in scene time, so their order has meaning. For example, in
   *Full and empty* beat 0 fills the bowl, beat 1 drains it and beat 2 rinses
   the indigo away. Each beat's `label` says what it does.
+
+**`syllable-timings.json`** holds the syllable timings corrected by ear in
+the timing editor, which haven't been worked into `alignment.js` yet: for
+every sung line, each syllable's text, start and end, whether the line was
+checked, and, where it changed, when the line is on screen.
+`node tools/export-timings.mjs edits.json` writes it from the editor's edits
+(its download, or its database state).
 
 `src/schedule.js` turns a line into syllable times and character writing
 times. The video, through `text.js`, and the timing editor both use it.
