@@ -86,8 +86,8 @@ swim off the top of the frame before the sea floor.
 **3 · Sea floor** 0:35–0:42 📷
 *深き 智慧の 海の底*, vertical, right.
 Strata of Prussian blue and turquoise, light shafts from far above, kelp
-swaying, and dunes with a gold ridge line. Something luminous stirs in the dark
-at the centre: the eye, still closed.
+swaying, dunes with a gold ridge line, and a few bubbles wobbling up from the
+floor.
 
 **4 · The eye opens** 0:42–0:49 📷
 *観る者は 静かに 目を開く*, vertical, left.

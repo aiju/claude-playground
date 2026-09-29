@@ -340,13 +340,6 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 void sSeaFloor(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   vec2 cp = p + vec2(0.0, -t * 0.012);    // sinking slowly
   seaBase(cp, t, P, 0.0);
-  // something luminous stirring in the dark: the eye, not yet open
-  vec2 q = (p - vec2(0.0, 0.05)) * 1.8;
-  float d = blotSDF(q, 41.0, 0.55 + 0.25 * easeOut(t / 6.0), t, 0.8);
-  float b = softWash(d, q, 41.0, 0.05);
-  lift(P, b * 0.35);
-  addPig(P, TURQUOISE, b * 0.2);
-  addOpaque(P, goldCol(q, t), inkLine(d, q, 0.0025, 42.0) * 0.4 * easeOut(t / 4.0));
   // kelp swaying up from the floor
   for (int i = 0; i < 5; i++) {
     float fi = float(i);
@@ -366,6 +359,27 @@ void sSeaFloor(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addOpaque(P, goldCol(cp, t), inkLine(fd, cp, 0.0035, 5.0) * 0.8);
   float ridge2 = -0.5 + 0.05 * sin(cp.x * 2.6 + 3.0) + 0.04 * fbm3(vec2(cp.x * 3.0, 8.0));
   P.od += od(INDIGO) * wash(cp.y - ridge2 + edgeWobble(cp, 9.0, 0.03), cp, 9.0, 0.03) * 0.35;
+  // a few bubbles rising from the floor, wobbling as they go (drawn like
+  // the descent's), some in pairs; clear of the lyrics on the right
+  for (int i = 0; i < 6; i++) {
+    float fi = float(i);
+    vec2 h = hash22(vec2(fi, 33.0));
+    float x0 = -1.55 + 2.45 * fract(fi * 0.618 + h.x * 0.3);
+    float speed = 0.2 + 0.08 * h.y;
+    for (int j = 0; j < 2; j++) {
+      float fj = float(j);
+      if (j == 1 && h.y < 0.45) break;
+      float y = -0.62 + mod(t * speed + h.x * 2.0 - fj * 0.09, 2.0);
+      vec2 bq = p - vec2(x0 + 0.025 * sin(y * 7.0 + fi * 2.0 + fj), y);
+      if (length(bq) > 0.07) continue;
+      float rad = (0.02 + 0.014 * h.x) * (1.0 - 0.45 * fj) * (0.75 + 0.25 * (y + 0.62) / 2.0);
+      float on = smoothstep(-0.62, -0.52, y);
+      float ring = abs(length(bq) - rad);
+      lift(P, smoothstep(0.005, 0.0, ring) * on * 0.7 + smoothstep(rad, 0.0, length(bq)) * on * 0.2);
+      addPig(P, TURQUOISE, smoothstep(0.005, 0.0, ring) * on * 0.3);
+      addOpaque(P, vec3(0.92, 0.95, 0.95), smoothstep(rad * 0.35, 0.0, length(bq - vec2(-rad, rad) * 0.4)) * on * 0.7);
+    }
+  }
   // marine snow
   vec2 s = p + vec2(0.02 * sin(t * 0.3 + p.y * 3.0), t * 0.03);
   addOpaque(P, vec3(0.92, 0.94, 0.9), goldFlakes(s, 90.0, 2.0, 0.05) * 0.55);
