@@ -91,11 +91,13 @@ floor.
 
 **4 · The eye opens** 0:42–0:49 📷
 *観る者は 静かに 目を開く*, vertical, left.
-The eye is painted in as it opens, like a statue's eyes at its 開眼 (eye-opening):
-a pale underdrawing of the closed eye, then on 目を開く (0:46) one bold sumi
-stroke along the upper lid, landing with a press and lifting off dry past the
-corner, and a light one along the lower lid, which runs in a few places. The
-water pales around it, and inside is an iris of turquoise, cobalt and gold.
+An eye painted on, then becoming real, like a statue's eyes at its 開眼
+(eye-opening). On 観る者は one bold sumi stroke is painted from left to right,
+landing with a press and lifting off dry; on 静かに a lighter one beneath it.
+Together they make a slim black almond that needn't be an eye yet. On 目を開く
+(0:46) it opens, never closing to a line, and the gold outline, the white and
+an iris of turquoise, cobalt and gold show inside; the lower stroke is still
+wet and runs in a few places. The water pales around it.
 
 **5 · Wind and sand** 0:49–0:55 📷
 *形も 心も 風の砂*, horizontal, bottom.
