@@ -11,6 +11,8 @@
 // text:   Japanese carries the sung reading in brackets after each kanji,
 //         '深[ふか]き'; only the characters appear on screen.
 // roman:  for Sanskrit, the sung syllables, hyphenated as on the lyric sheet.
+// write:  optional, { character: 'even' or seconds } to write a character
+//         quicker than it's sung (see schedule.js).
 // t0..t1 is when a line is on screen; when each syllable is sung comes from
 // alignment.js (measured), attached below as `sylls`. Each cue also gets a
 // `key` that names it in the timing editor: the alignment key for a sung
@@ -74,7 +76,9 @@ export const CUES = [
   { t0: 161.05, t1: 168.4, text: '羯[ぎゃ]諦[てい] 羯[ぎゃ]諦[てい]', script: 'ja', dir: 'v', x: 0.82, y: 0.16, size: 0.12, ink: 'sumi' },
   { t0: 162.35, t1: 168.4, text: '波[は]羅[ら]羯[ぎゃ]諦[てい]', script: 'ja', dir: 'v', x: 0.62, y: 0.14, size: 0.13, ink: 'sumi' },
   { t0: 163.65, t1: 168.4, text: '波[は]羅[ら]僧[そう]羯[ぎゃ]諦[てい]', script: 'ja', dir: 'v', x: 0.40, y: 0.10, size: 0.135, ink: 'sumi' },
-  { t0: 165.45, t1: 168.6, text: '菩[ぼ]提[じ]薩[そ]婆[わ]訶[か]', script: 'ja', dir: 'v', x: 0.18, y: 0.08, size: 0.15, ink: 'sumi' },
+  // 訶 is sung on a long held か; written over all of it, it would still be
+  // unfinished when the line goes, so it's written as quickly as the rest
+  { t0: 165.45, t1: 168.6, text: '菩[ぼ]提[じ]薩[そ]婆[わ]訶[か]', script: 'ja', dir: 'v', x: 0.18, y: 0.08, size: 0.15, ink: 'sumi', write: { '訶': 'even' } },
 
   // Climax
   { t0: 168.2, t1: 175.3, text: 'गते गते पारगते', roman: 'ga-te ga-te pa-ra-ga-te', script: 'sa', x: 0.5, y: 0.2, size: 0.13, ink: 'gold' },

@@ -12,6 +12,12 @@
 //   `sing: [start, end]`  syllables spread evenly between the two;
 //   neither: spread from the cue's start at SECONDS_PER_MORA each, with a
 //     short rest at every space.
+//
+// A glyph is written while its syllables are sung, unless the cue overrides
+// it with `write: { '訶': 'even' }`: that character is then written from its
+// first syllable's start for as long as the other characters of the line
+// take on average (or for a number of seconds). For a character sung on a
+// long held note, which would otherwise still be writing when the line goes.
 
 const SMALL = new Set('ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ');
 export const SECONDS_PER_MORA = 0.34;
@@ -90,6 +96,7 @@ export function scheduleCue(cue) {
       g.w0 = a;
       g.w1 = Math.max(a + 0.22, b);
     });
+    overrideWriting(cue, glyphs);
     return (cue._sched = { s0: cue.sylls[0][0], s1: cue.sylls[count - 1][1], glyphs, syllables, measured: true });
   }
   let acc = 0;
@@ -103,5 +110,17 @@ export function scheduleCue(cue) {
       syllables.push({ text: m, t0: at(a + n * k / g.morae.length), t1: at(a + n * (k + 1) / g.morae.length), glyph: gi });
     });
   });
+  overrideWriting(cue, glyphs);
   return (cue._sched = { s0, s1, glyphs, syllables });
+}
+
+// Apply a cue's `write` overrides to its glyphs' writing times.
+function overrideWriting(cue, glyphs) {
+  if (!cue.write) return;
+  const own = glyphs.filter(g => cue.write[g.ch] == null);
+  const even = own.length ? own.reduce((s, g) => s + g.w1 - g.w0, 0) / own.length : 0.3;
+  for (const g of glyphs) {
+    const w = cue.write[g.ch];
+    if (w != null) g.w1 = g.w0 + (w === 'even' ? even : w);
+  }
 }
