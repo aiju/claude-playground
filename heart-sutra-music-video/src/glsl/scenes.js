@@ -640,9 +640,10 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float g = 0.25 + 0.85 * easeOut(t / 1.4) + 0.012 * t + 0.035 * sin(t * 0.9) + 0.06 * uPulse;
   float g2 = easeOut(span01(t, k0.y, k1.y));           // the second unfolding
   g += 0.08 * g2 * (1.0 - 0.5 * span01(t, k1.y, k1.y + 3.0));
+  float bright = v;  // 1 for the final chorus
   float tw = t * 4.0;                                   // the wet edges crawl
   // the page drifts slowly towards us
-  vec2 q = p * 0.95 * (1.0 - 0.05 * easeOut(t / 9.0));
+  vec2 q = p * (0.95 + 0.1 * bright) * (1.0 - 0.05 * easeOut(t / 9.0));
   vec2 flow = vec2(0.02 * sin(t * 0.3 + p.y * 2.0), -t * 0.02);    // pigment settling and swirling
   // fold crease
   P.od += od(PAYNE) * exp(-abs(p.x) / 0.004) * 0.06;
@@ -651,19 +652,19 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   vec2 o3 = vec2(0.0, 0.035 * sin(t * 0.52 + 2.1)), o4 = vec2(0.0, 0.03 * sin(t * 0.33 + 3.3));
   vec2 o5 = vec2(0.0, 0.04 * sin(t * 0.41 + 4.4));
   float s1 = 1.0 + 0.05 * sin(t * 0.61), s2 = 1.0 + 0.06 * sin(t * 0.43 + 1.0), s3 = 1.0 + 0.05 * sin(t * 0.57 + 2.0);
-  float d1 = blotSDF((q - o1) * 1.05 * s1, 1.0, g, tw, 1.1);
+  float d1 = blotSDF((q - o1) * 1.05 * s1, 1.0 + bright * 40.0, g, tw, 1.1);
   P.od += od(mix(ROSE, VERMILION, 0.25 + 0.25 * sin(t * 0.2))) * wash(d1, q + flow, 1.0, 0.03) * gran(q, 0.3) * 0.8;
-  float d2 = blotSDF((q - vec2(0.0, -0.18) - o2) * 1.25 * s2 / (1.0 + 0.3 * g2), 2.0, g * 0.95, tw, 1.0);
-  P.od += od(mix(ULTRA, COBALT, 0.4)) * wash(d2, q + flow, 2.0, 0.025) * gran(q, 0.9) * 0.75;
-  float d3 = blotSDF((q - vec2(0.0, 0.2) - o3) * 1.7 * s3, 3.0, g, tw, 0.9);
+  float d2 = blotSDF((q - vec2(0.0, -0.18) - o2) * 1.25 * s2 / (1.0 + 0.3 * g2), 2.0 + bright * 40.0, g * 0.95, tw, 1.0);
+  P.od += od(mix(ULTRA, COBALT, 0.4 + 0.3 * bright)) * wash(d2, q + flow, 2.0, 0.025) * gran(q, 0.9) * 0.75;
+  float d3 = blotSDF((q - vec2(0.0, 0.2) - o3) * 1.7 * s3, 3.0 + bright * 40.0, g, tw, 0.9);
   P.od += od(GAMBOGE) * wash(d3, q + flow, 3.0, 0.03) * 0.8;
-  float d4 = blotSDF((q - vec2(0.0, -0.5) - o4) * 1.9 / (1.0 + 0.25 * g2), 4.0, g * 0.9, tw, 1.0);
-  P.od += od(SAPGREEN) * wash(d4, q + flow, 4.0, 0.02) * gran(q, 0.5) * 0.65;
-  float d5 = blotSDF((q - vec2(0.0, 0.5) - o5) * 2.1, 5.0, g, tw, 1.1);
+  float d4 = blotSDF((q - vec2(0.0, -0.5) - o4) * 1.9 / (1.0 + 0.25 * g2), 4.0 + bright * 40.0, g * 0.9, tw, 1.0);
+  P.od += od(mix(SAPGREEN, TURQUOISE, bright)) * wash(d4, q + flow, 4.0, 0.02) * gran(q, 0.5) * 0.65;
+  float d5 = blotSDF((q - vec2(0.0, 0.5) - o5) * 2.1, 5.0 + bright * 40.0, g, tw, 1.1);
   P.od += od(VIOLET) * wash(d5, q + flow, 5.0, 0.02) * gran(q, 0.7) * 0.7;
   // the second unfolding: a glaze of turquoise opens up and down the fold
   // behind the rest, and everything swells once more
-  float d6 = blotSDF(q * vec2(1.45, 0.9), 6.0, 0.15 + 1.0 * g2, tw, 1.0);
+  float d6 = blotSDF(q * vec2(1.45, 0.9), 6.0 + bright * 40.0, 0.15 + 1.0 * g2, tw, 1.0);
   P.od += od(mix(TURQUOISE, CERULEAN, 0.4)) * wash(d6, q + flow, 6.0, 0.025) * gran(q, 0.6) * 0.45 * step(0.001, g2);
   // tide lines: water still spreading out from each wash
   for (int i = 0; i < 3; i++) {
@@ -698,6 +699,7 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     vec3 col = h.y > 0.5 ? ROSE : h.x > 0.5 ? ULTRA : GAMBOGE;
     P.od += od(col) * wash(d, dq, ht, 0.006) * fade * 0.7;
   }
+  if (bright > 0.5) addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.02), 40.0, 31.0, 0.06) * 0.8);
 }
 ` },
   9: { fn: 'sPalm', src: /* glsl */ `
@@ -831,63 +833,29 @@ void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   10: { fn: 'sWheel', src: /* glsl */ `
 // ================================================================ 10 · 光は巡る wheel of light
-// Eight petals of colour turning around a gold sun. The second time (v = 1)
-// the petals the figure came undone into come home: they fly back in from
-// the right and settle into the wheel, each of its petals filling as its
-// own land (beat 0). Near the end the colour drains away (beat 1) until
-// only the ring is left, which glides onto the ensō that follows.
 void sWheel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float bright = v;
   vec3 cols[8] = vec3[8](ROSE, VERMILION, GAMBOGE, SAPGREEN, TURQUOISE, COBALT, ULTRA, VIOLET);
   float spin = t * 0.08;
   float grow = easeOut((t + 0.5) / 2.5);
-  float drain = bright * ease(span01(t, k0.y, k1.y));
   for (int i = 0; i < 8; i++) {
     float fi = float(i);
     float a = fi * TAU / 8.0 + spin;
-    vec2 dir = vec2(cos(a), sin(a));
-    vec2 c = 0.42 * dir;
-    float gi = grow;
-    if (bright > 0.5) {
-      // five petals come home to this one, each on its own curving path
-      gi = 0.0;
-      for (int k = 0; k < 5; k++) {
-        float fk = float(k);
-        float fj = fi * 5.0 + fk;
-        vec2 h = hash22(vec2(fj, 101.0)), h2 = hash22(vec2(fj, 102.0));
-        float s0 = k0.x - 0.5 + 0.15 * fk + 0.06 * fi + 0.4 * h.x;
-        float e = ease(span01(t, s0, s0 + 2.2 + 0.6 * h.y));
-        gi += smoothstep(0.55, 1.0, e) * 0.2;
-        if (e <= 0.0 || e >= 1.0) continue;
-        vec2 from = vec2(1.95 + 0.25 * h.y, -0.8 + 1.6 * h2.x);
-        vec2 to = c + dir * (fk - 2.0) * 0.05;
-        vec2 mid = mix(from, to, 0.5) + vec2(-0.2 * h2.y, 0.7 * (h.x - 0.5));
-        vec2 pos = (1.0 - e) * (1.0 - e) * from + 2.0 * (1.0 - e) * e * mid + e * e * to;
-        if (length(p - pos) > 0.09) continue;
-        float ang = mix(h2.y * TAU + e * 5.0 * (h.x - 0.5), a - PI * 0.5, smoothstep(0.6, 1.0, e));
-        vec2 lq = rot(-ang) * (p - pos);
-        float d = sdVesica(lq, 0.05, 0.018) + edgeWobble(lq * 20.0, fj, 0.004);
-        float alpha = smoothstep(0.0, 0.05, e) * (1.0 - smoothstep(0.8, 1.0, e));
-        P.od += od(cols[i]) * wash(d, lq, fj, 0.006) * alpha * 0.75;
-      }
-    }
+    vec2 c = 0.42 * vec2(cos(a), sin(a));
     vec2 q = rot(a) * (p - c);
-    float d = sdVesica(q.yx, max(0.26 * gi, 1e-3), max(0.13 * gi, 5e-4)) + edgeWobble(q * 1.5, fi * 5.0, 0.03);
-    float b = wash(d, q, fi * 5.0, 0.02) * step(0.01, gi);
-    P.od += od(cols[i]) * b * (0.55 + 0.2 * bright) * gran(q, 0.5) * (1.0 - drain);
+    float d = sdVesica(q.yx * vec2(1.0, 1.0), 0.26 * grow, 0.13 * grow) + edgeWobble(q * 1.5, fi * 5.0, 0.03);
+    float b = wash(d, q, fi * 5.0, 0.02);
+    P.od += od(cols[i]) * b * (0.55 + 0.2 * bright) * gran(q, 0.5);
   }
   // the centre: a gold sun with fine rays
   float r = length(p);
   float ang = atan(p.y, p.x);
   float sun = smoothstep(0.004, -0.004, r - 0.12 - 0.01 * gnoise(vec2(ang * 5.0, t)));
-  addOpaque(P, goldCol(p * 2.0, t), sun * 0.95 * (1.0 - drain));
+  addOpaque(P, goldCol(p * 2.0, t), sun * 0.95);
   float rays = smoothstep(0.93, 1.0, abs(sin(ang * 12.0 + t * 0.2))) * smoothstep(0.7, 0.15, r) * step(0.13, r);
-  addOpaque(P, goldCol(p, t), rays * 0.5 * (1.0 - drain));
-  // the ring; at the very end it glides up onto the ensō's circle
-  float toEnso = bright * ease(span01(t, k1.y, k1.y + 1.2));
-  float ring = length(p - vec2(0.0, 0.2 * toEnso)) - mix(0.62, 0.47, toEnso);
-  P.od += od(PAYNE) * inkLine(ring, p, 0.003, 91.0) * mix(0.4, 0.7, drain);
-  if (bright > 0.5) addOpaque(P, goldCol(p, t), goldFlakes(rot(t * 0.05) * p, 45.0, 92.0, 0.07) * 0.8 * (1.0 - drain));
+  addOpaque(P, goldCol(p, t), rays * 0.5);
+  P.od += od(PAYNE) * inkLine(r - 0.62, p, 0.003, 91.0) * 0.4;
+  if (bright > 0.5) addOpaque(P, goldCol(p, t), goldFlakes(rot(t * 0.05) * p, 45.0, 92.0, 0.07) * 0.8);
 }
 ` },
   11: { fn: 'sTaiko', src: /* glsl */ `
@@ -1432,113 +1400,6 @@ void sUnravel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     vec3 col = cols[int(mod(cell.x + cell.y + fi, 4.0))];
     P.od += od(col) * smoothstep(0.02, -0.02, pd) * on * zone * smoothstep(k0.x - 1.0, k0.x + 0.5, t) * 0.7;
   }
-}
-` },
-  19: { fn: 'sLotusFigure', src: /* glsl */ `
-// ================================================================ 19 · 色即是空 II the figure and the lotus
-// The final chorus. A folded blot bursts open on 色即是空 (beat 0) into a
-// figure seated in the lotus posture (結跏趺坐): a bud for a head, a petal
-// for a body, hands in the lap, crossed legs spreading like the outer
-// petals over a throne of petals, a halo behind. On 空即是色 (beat 1) the
-// arms rise from the lap into upturned petals and a second ring of petals
-// opens: the figure is a lotus in flower, and was all along.
-
-// A petal from its base a to its tip b, w wide.
-float sdPetal(vec2 q, vec2 a, vec2 b, float w) {
-  vec2 c = 0.5 * (a + b), d = b - a;
-  float h = 0.5 * length(d);
-  vec2 u = d / max(2.0 * h, 1e-4);
-  return sdVesica(vec2(dot(q - c, vec2(u.y, -u.x)), dot(q - c, u)), h, w);
-}
-
-// A shape given as a distance, made into a blot: its edge frayed and
-// crawling like the folded blots' (q is already folded, x >= 0).
-float frayed(float d, vec2 q, float seed, float tw, float amt) {
-  float n = fbm(q * 2.4 + seed * 1.7 + tw * 0.02) * 0.6 + gnoise(q * 11.0 + seed) * 0.25;
-  return d - n * amt;
-}
-
-void sLotusFigure(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  float g = easeOut(span01(t, k0.x - 0.15, k1.x));        // bursting open from the fold
-  float g2 = ease(span01(t, k0.y, k1.y));                // the lotus opening
-  float tw = t * 4.0;
-  // the page drifts slowly towards us; the blot swells once more as it flowers
-  float sc = mix(0.3, 1.0, g) * (1.0 + 0.04 * g2 + 0.012 * sin(t * 0.9) + 0.03 * uPulse) * (1.0 + 0.04 * easeOut(t / 9.0));
-  vec2 flow = vec2(0.02 * sin(t * 0.3 + p.y * 2.0), -t * 0.015);
-  // fold crease
-  P.od += od(PAYNE) * exp(-abs(p.x) / 0.004) * 0.06;
-  // folded coordinates, warped a little so every edge is a real blot's
-  vec2 f = vec2(abs(p.x), p.y) / sc;
-  f += 0.085 * warp2(f * 1.7 + 19.0 + tw * 0.02);
-  // each layer breathes at its own pace, so they slide over one another
-  vec2 o1 = vec2(0.0, 0.02 * sin(t * 0.45)), o2 = vec2(0.0, 0.025 * sin(t * 0.37 + 1.3)), o3 = vec2(0.0, 0.02 * sin(t * 0.52 + 2.1));
-
-  // a faint folded blot of its own underneath, so it's a real inkblot
-  float d0 = blotSDF(vec2(p.x, p.y + 0.05) / sc * 1.1, 47.0, 1.0, tw, 1.15);
-  P.od += od(mix(ROSE, VIOLET, 0.4)) * wash(d0, p + flow, 47.0, 0.03) * gran(p, 0.4) * 0.22 * g;
-  // the halo behind, and a ring of gold round it
-  float halo = length(f - vec2(0.0, 0.3) - o3) - (0.5 + 0.08 * g2);
-  P.od += od(VIOLET) * softWash(frayed(halo, f, 191.0, tw, 0.09), f + flow, 191.0, 0.06) * 0.3;
-  addOpaque(P, goldCol(p, t), inkLine(halo + 0.02, f, 0.004, 192.0) * g * 0.55);
-  // the second ring of petals, opening behind the rest on 空即是色
-  float ring2 = sdPetal(f - o2, vec2(0.07, -0.1), vec2(0.66, mix(-0.08, 0.42, g2)), 0.11 * g2);
-  ring2 = min(ring2, sdPetal(f - o2, vec2(0.05, 0.0), vec2(0.4, mix(0.1, 0.62, g2)), 0.08 * g2));
-  P.od += od(mix(TURQUOISE, CERULEAN, 0.4)) * wash(frayed(ring2, f, 193.0, tw, 0.08), f + flow, 193.0, 0.025) * gran(f, 0.6) * 0.55 * step(0.001, g2);
-  // crossed legs spreading like the outer petals, over a throne of petals
-  float legs = sdPetal(f - o1, vec2(0.04, -0.27), vec2(0.8, mix(-0.2, -0.04, g2)), 0.13 + 0.03 * g2);
-  float throne = min(sdPetal(f - o1, vec2(0.0, -0.33), vec2(0.0, -0.68), 0.085),
-                     sdPetal(f - o1, vec2(0.06, -0.33), vec2(0.43, -0.62), 0.075));
-  float d1 = frayed(min(legs, throne), f, 194.0, tw, 0.12);
-  P.od += od(mix(ROSE, VERMILION, 0.25 + 0.25 * sin(t * 0.2))) * wash(d1, f + flow, 194.0, 0.03) * gran(f, 0.3) * 0.8;
-  // the body, and the arms: resting down to the lap, then rising into petals
-  float armA = mix(-0.98, 0.9, g2);
-  vec2 sh = vec2(0.12, 0.3);
-  float arms = sdPetal(f - o2, sh, sh + 0.46 * vec2(cos(armA), sin(armA)), 0.085);
-  float body = sdVesica(f - vec2(0.0, 0.08) - o2, 0.28, 0.16);
-  float d2 = frayed(min(body, arms), f, 195.0, tw, 0.11);
-  P.od += od(mix(ULTRA, COBALT, 0.6)) * wash(d2, f + flow, 195.0, 0.025) * gran(f, 0.9) * 0.75;
-  // hands in the lap: the seed pod at the heart of the flower
-  float lap = frayed(sdEllipse(f - vec2(0.0, -0.18) - o1, vec2(0.17, 0.075)), f, 196.0, tw, 0.05);
-  P.od += od(TURQUOISE) * wash(lap, f + flow, 196.0, 0.02) * gran(f, 0.5) * 0.3;
-  addOpaque(P, goldCol(p * 2.0, t), goldFlakes(f * 1.3, 60.0, 196.0, 0.25) * smoothstep(0.02, -0.02, lap) * g * 0.8);
-  // the head: a bud, with a spark of gold at its tip
-  float head = frayed(sdVesica(f - vec2(0.0, 0.52) - o3, 0.17, 0.105 + 0.015 * g2), f, 197.0, tw, 0.055);
-  P.od += od(GAMBOGE) * wash(head, f + flow, 197.0, 0.03) * 0.85;
-  addOpaque(P, goldCol(p * 2.0, t), smoothstep(0.03, 0.0, length(f - vec2(0.0, 0.66) - o3)) * g * 0.9);
-
-  // tide lines: water still spreading out from each wash
-  for (int i = 0; i < 3; i++) {
-    float fi = float(i);
-    float front = mod(t * 0.035 + fi * 0.04, 0.12);
-    float fade = (1.0 - front / 0.12) * smoothstep(0.0, 0.02, front);
-    float dd = i == 0 ? d1 : i == 1 ? d2 : head;
-    vec3 col = i == 0 ? ROSE : i == 1 ? ULTRA : GAMBOGE;
-    P.od += od(col) * exp(-sq((dd - front) / 0.004)) * fade * 0.3 * g;
-  }
-  // backruns where the washes met while wet, spreading as they dry
-  float anyW = smoothstep(0.02, -0.02, min(min(d1, d2), head));
-  P.od += od(ROSE) * backrun(f + flow, 7.0, 3.5 - 0.6 * easeOut(t / 8.0)) * anyW * 0.3;
-  // drops thrown out by the fold, and fresh ones on the drums, mirrored
-  vec2 sq_ = vec2(abs(p.x), p.y);
-  float spread = smoothstep(1.1, 0.6, length(sq_ * vec2(0.85, 1.0))) * smoothstep(0.2, 0.9, g) * smoothstep(-0.02, 0.04, min(anyW > 0.5 ? -1.0 : min(min(d1, d2), min(head, ring2)), 1.0));
-  float sp1 = splatter(sq_, 29.0, 6.0, 0.03, 0.12) + edgeWobble(sq_ * 3.0, 29.0, 0.006);
-  float sp2 = splatter(sq_ + 0.3, 39.0, 13.0, 0.016, 0.1) + edgeWobble(sq_ * 4.0, 39.0, 0.004);
-  P.od += od(ROSE) * wash(sp1, sq_, 29.0, 0.006) * spread * 0.8;
-  P.od += od(TURQUOISE) * wash(sp2, sq_, 39.0, 0.005) * spread * 0.8;
-  for (int i = 0; i < 6; i++) {
-    float age = uAccents[i].x;
-    if (age > 4.0 || age > t) continue;
-    float ht = uAccents[i].w;
-    vec2 h = hash22(vec2(ht, 19.0));
-    vec2 c = vec2(0.6 + h.x * 0.8, (h.y - 0.5) * 1.5);
-    vec2 dq = sq_ - c;
-    float rad = (0.012 + 0.03 * uAccents[i].y) * (0.6 + 0.8 * easeOut(age / 1.2)) * easeOut(age * 5.0);
-    float d = length(dq) - rad + edgeWobble(dq * 6.0, ht, 0.006);
-    float fade = uAccents[i].z * smoothstep(4.0, 1.5, age);
-    vec3 col = h.y > 0.5 ? ROSE : h.x > 0.5 ? COBALT : GAMBOGE;
-    P.od += od(col) * wash(d, dq, ht, 0.006) * fade * 0.7;
-  }
-  addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.02), 40.0, 31.0, 0.06) * 0.8);
 }
 ` },
   20: { fn: 'sEnso', src: /* glsl */ `

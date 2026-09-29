@@ -225,13 +225,8 @@ the foreground, and every accent bursts gold dust outwards.
 
 **18 · Form is emptiness II** 3:03–3:12 📷
 *色即是空 / 空即是色*, *रूपं शून्यता* above and *शून्यतैव रूपम्* below.
-A new blot, the climax of the fold. On 色即是空 (3:03) it bursts open into a
-figure seated in the lotus posture (結跏趺坐): a gamboge bud for a head with a
-spark of gold, a blue petal of a body, hands in the lap, crossed legs spreading
-like the outer petals over a throne of petals, a violet halo behind. On 空即是色
-(3:06) the arms rise from the lap into upturned petals and a turquoise ring of
-petals opens behind: the figure is a lotus in flower, and was all along. The
-edges fray and crawl like every folded blot, and gold leaf drifts over it.
+The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
+never the same.
 
 **19 · Unravelling** 3:12–3:18 📷
 *彼岸の 風に 私は 解ける*, vertical, right. The characters themselves drift
@@ -243,11 +238,7 @@ mountains are mountains again.
 
 **20 · Wheel of light II** 3:18–3:32 📷
 *生まれず 滅びず 詩は 巡る*, on the ring.
-The petals the figure came undone into come home: they fly back in from the
-right on curving paths and settle into the wheel, each of its petals filling
-as its own land (3:18–3:22), with gold leaf turning in it. From 3:28 the colour
-drains away until only the ring is left, and as the ensō comes in the ring
-glides up onto its circle, where the brush starts.
+The wheel returns, brighter, with gold leaf turning in it.
 
 ### Outro
 
