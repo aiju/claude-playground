@@ -16,6 +16,9 @@
 // `key` that names it in the timing editor: the alignment key for a sung
 // line, and 'deco:色#1' or 'seal:ॐ#1' for the others.
 //
+// 挂礙 (けいげ, 'obstruction', from 心無罣礙) is a variant spelling of 罣礙:
+// the brush font has no 罣.
+//
 // The sutra quotations (色即是空…, 不生不滅…, 羯諦…) are sung as their
 // Japanese readings; they are shown in kanji so the screen carries the
 // characters themselves.
@@ -32,8 +35,8 @@ export const CUES = [
   // Verse 1
   { t0: 35.75, t1: 43.2, text: '深[ふか]き 智[ち]慧[え]の 海[うみ]の底[そこ]', script: 'ja', dir: 'v', x: 0.84, y: 0.14, size: 0.078, ink: 'gold' },
   { t0: 42.4, t1: 50.6, text: '観[み]る者[もの]は 静[しず]かに 目[め]を開[ひら]く', script: 'ja', dir: 'v', x: 0.14, y: 0.10, size: 0.072, ink: 'gold' },
-  { t0: 49.6, t1: 57.4, text: 'かたちも こころも 風[かぜ]の砂[すな]', script: 'ja', dir: 'h', x: 0.5, y: 0.83, size: 0.074, ink: 'gold' },
-  { t0: 56.4, t1: 64.8, text: '五[いつ]つの ひかりが ほどけてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.070, ink: 'gold' },
+  { t0: 49.6, t1: 57.4, text: '形[かたち]も 心[こころ]も 風[かぜ]の砂[すな]', script: 'ja', dir: 'h', x: 0.5, y: 0.83, size: 0.074, ink: 'gold' },
+  { t0: 56.4, t1: 64.8, text: '五[いつ]つの 光[ひかり]が 解[ほど]けてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.070, ink: 'gold' },
   // the five skandhas (五蘊), one inside each light; not sung, they come undone with the lights
   { t0: 56.7, t1: 62.0, text: '色[しき]', script: 'ja', dir: 'h', x: 0.5, y: 0.28, size: 0.05, ink: 'gold', deco: true },
   { t0: 57.0, t1: 62.5, text: '受[じゅ]', script: 'ja', dir: 'h', x: 0.3875, y: 0.425, size: 0.05, ink: 'gold', deco: true },
@@ -51,11 +54,11 @@ export const CUES = [
   { t0: 82.4, t1: 86.4, text: '空[くう]即[そく]是[ぜ]色[しき]', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi' },
   { t0: 84.2, t1: 91.3, text: 'रूपं शून्यता शून्यतैव रूपम्', roman: 'ru-pam shun-ya-ta shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.86, size: 0.075, ink: 'shu' },
   { t0: 89.1, t1: 96.4, text: 'この てのひらに 宇[う]宙[ちゅう]が 透[す]ける', script: 'ja', dir: 'v', x: 0.86, y: 0.10, size: 0.068, ink: 'sumi' },
-  { t0: 94.9, t1: 109.5, text: 'うまれず ほろびず 光[ひかり]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
+  { t0: 94.9, t1: 109.5, text: '生[う]まれず 滅[ほろ]びず 光[ひかり]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 
   // Verse 2
-  { t0: 135.9, t1: 141.6, text: '恐[おそ]れの 鎖[くさり]も さかさまの 夢[ゆめ]も', script: 'ja', dir: 'v', x: 0.12, y: 0.06, size: 0.062, ink: 'sumi', mirror: 0.62 },
-  { t0: 139.5, t1: 145.2, text: 'けいげなき 心[こころ]に 溶[と]けてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.066, ink: 'sumi' },
+  { t0: 135.9, t1: 141.6, text: '恐[おそ]れの 鎖[くさり]も 逆[さか]さまの 夢[ゆめ]も', script: 'ja', dir: 'v', x: 0.12, y: 0.06, size: 0.062, ink: 'sumi', mirror: 0.62 },
+  { t0: 139.5, t1: 145.2, text: '挂[けい]礙[げ]なき 心[こころ]に 溶[と]けてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.066, ink: 'sumi' },
   { t0: 143.05, t1: 149.0, text: '向[む]こう岸[ぎし]で 誰[だれ]かが 呼[よ]んでいる', script: 'ja', dir: 'h', x: 0.5, y: 0.2, size: 0.066, ink: 'sumi' },
   { t0: 147.15, t1: 151.0, text: '名[な]前[まえ]の ない 声[こえ]で', script: 'ja', dir: 'h', x: 0.5, y: 0.8, size: 0.07, ink: 'indigo' },
 
@@ -83,8 +86,8 @@ export const CUES = [
   { t0: 182.45, t1: 189.6, text: '色[しき]即[そく]是[ぜ]空[くう]', script: 'ja', dir: 'v', x: 0.84, y: 0.12, size: 0.17, ink: 'sumi' },
   { t0: 185.95, t1: 189.8, text: '空[くう]即[そく]是[ぜ]色[しき]', script: 'ja', dir: 'v', x: 0.16, y: 0.12, size: 0.17, ink: 'sumi' },
   { t0: 187.7, t1: 194.5, text: 'रूपं शून्यता शून्यतैव रूपम्', roman: 'ru-pam shun-ya-ta shun-ya-tai-va ru-pam', script: 'sa', x: 0.5, y: 0.075, size: 0.075, ink: 'shu' },
-  { t0: 192.25, t1: 200.0, text: '彼[ひ]岸[がん]の 風[かぜ]に 私[わたし]は ほどける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
-  { t0: 198.45, t1: 213.2, text: 'うまれず ほろびず 詩[うた]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
+  { t0: 192.25, t1: 200.0, text: '彼[ひ]岸[がん]の 風[かぜ]に 私[わたし]は 解[ほど]ける', script: 'ja', dir: 'v', x: 0.85, y: 0.1, size: 0.07, ink: 'sumi', unravel: true },
+  { t0: 198.45, t1: 213.2, text: '生[う]まれず 滅[ほろ]びず 詩[うた]は 巡[めぐ]る', script: 'ja', dir: 'ring', x: 0.5, y: 0.5, size: 0.064, ink: 'sumi', radius: 0.36 },
 
   // Outro
   { t0: 223.9, t1: 230.5, text: 'बोधि स्वाहा', roman: 'bo-dhi sva-ha', script: 'sa', x: 0.5, y: 0.83, size: 0.068, ink: 'sumi' },

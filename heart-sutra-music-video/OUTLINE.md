@@ -95,16 +95,16 @@ Two blots fold into lids above and below and part on 目を開く (0:46). Behind
 of turquoise, cobalt and gold, and a little ink runs from the lower lid.
 
 **5 · Wind and sand** 0:49–0:55 📷
-*かたちも こころも 風の砂*, horizontal, bottom.
+*形も 心も 風の砂*, horizontal, bottom.
 The eye erodes into dunes of granulating ochre and sienna. Wind drags the
 pigment from left to right, gold dry-brush lines mark the ridges, and grains
 stream off the crests.
 
 **6 · Five lights** 0:56–1:04 📷
-*五つの ひかりが ほどけてゆく*, vertical, right, plus the five skandhas
+*五つの 光が 解けてゆく*, vertical, right, plus the five skandhas
 *色 受 想 行 識* in small gold, one inside each light.
 Five lights come up one by one in rose, gamboge, turquoise, violet and cerulean.
-On ほどけてゆく (1:00) each one comes undone into spiralling threads, and its
+On 解けてゆく (1:00) each one comes undone into spiralling threads, and its
 little kanji dissolves with it.
 
 **7 · Full and empty** 1:04–1:19 📷
@@ -139,7 +139,7 @@ crossing. On 宇宙が透ける (1:32) the outline fades and the galaxy spills p
 the edges of the hand, its stars drifting outwards. The chorus blot fades behind.
 
 **10 · Wheel of light** 1:35–1:48 📷
-*うまれず ほろびず 光は 巡る*, set around a circle that slowly turns.
+*生まれず 滅びず 光は 巡る*, set around a circle that slowly turns.
 Eight petals of colour turn in a ring around a gold sun with fine rays.
 
 ### Instrumental
@@ -163,8 +163,8 @@ crossing slowly in a loose V.
 ### Verse 2: the river
 
 **13 · Chains, upside down** 2:09–2:23 📷
-*恐れの 鎖も さかさまの 夢も* (left, with its reflection in the water),
-*けいげなき 心に 溶けてゆく* (right).
+*恐れの 鎖も 逆さまの 夢も* (left, with its reflection in the water),
+*挂礙なき 心に 溶けてゆく* (right).
 The fold turns horizontal: a lake mirrors mountains and pines upside down, and
 the reflection holds a moon that isn't in the sky. An iron-and-rust chain
 hangs steeply through the middle of the frame, between the two lines. On
@@ -214,13 +214,13 @@ The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
 never the same.
 
 **19 · Unravelling** 3:12–3:18 📷
-*彼岸の 風に 私は ほどける*, vertical, right. The characters themselves drift
+*彼岸の 風に 私は 解ける*, vertical, right. The characters themselves drift
 apart after they're written.
 A robed figure stands in a pale dawn, and the wind from the other shore takes it
 apart from one side into petals of colour.
 
 **20 · Wheel of light II** 3:18–3:32 📷
-*うまれず ほろびず 詩は 巡る*, on the ring.
+*生まれず 滅びず 詩は 巡る*, on the ring.
 The wheel returns, brighter, with gold leaf turning in it.
 
 ### Outro

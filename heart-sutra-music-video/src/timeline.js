@@ -23,7 +23,7 @@ export const SCENES = [
     beats: [{ t: 46.3, t1: 48.98, label: 'eye opens on 目を開く' }, { t: 47.2, t1: 50.6, label: 'ink runs from the lid' }] },
   { name: 'Wind and sand', t0: 49.4, scene: 5, tr: 1.5, style: 1 },
   { name: 'Five lights', t0: 55.9, scene: 6, tr: 1.5, style: 3,
-    beats: [{ t: 60.17, t1: 64.4, label: 'lights come undone on ほどけてゆく' }] },
+    beats: [{ t: 60.17, t1: 64.4, label: 'lights come undone on 解けてゆく' }] },
   { name: 'Full and empty', t0: 64.45, scene: 7, tr: 1.0, style: 0,
     beats: [{ t: 68.4, t1: 71.0, label: 'the moon waxes full on 満ちて' }, { t: 71.58, t1: 75.08, label: 'and wanes to nothing on 空っぽで' }, { t: 75.42, t1: 78.97, label: 'indigo rinses away' }] },
   { name: 'Form is emptiness', t0: 78.9, scene: 8, tr: 0.6, style: 3,
@@ -50,7 +50,7 @@ export const SCENES = [
   { name: 'Form is emptiness II', t0: 182.65, scene: 8, v: 1, tr: 1.2, style: 3,
     beats: [{ t: 182.76, t1: 184.2, label: 'blot bursts open' }, { t: 186.25, t1: 187.8, label: 'unfolds again on 空即是色' }] },
   { name: 'Unravelling', t0: 192.3, scene: 18, tr: 1.5, style: 1,
-    beats: [{ t: 193.35, t1: 198.41, label: 'figure comes undone on 風に…ほどける' }] },
+    beats: [{ t: 193.35, t1: 198.41, label: 'figure comes undone on 風に…解ける' }] },
   { name: 'Wheel of light II', t0: 198.3, scene: 10, v: 1, tr: 1.5, style: 3,
     beats: [{ t: 198.74, t1: 201.5, label: 'wheel petals open' }] },
   // the wordless stretch after the final chorus (see OUTLINE.md)
