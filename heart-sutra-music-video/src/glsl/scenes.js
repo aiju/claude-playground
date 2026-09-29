@@ -546,8 +546,9 @@ void sFiveLights(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 // ================================================================ 7 · 満ちて 空っぽで full and empty
 // A gold moon over a night sea. It waxes full on 満ちて and wanes on 空っぽで
 // until only its outline is left, an empty circle; then the indigo rinses
-// away for the chorus. The moon neither gains nor loses anything: only the
-// light on it moves.
+// away for the chorus, and where it has gone the empty circle has a corona,
+// like the sun's in a total eclipse. The moon neither gains nor loses
+// anything: only the light on it moves.
 void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float rinse = smoothstep(k0.z, k1.z, t);
   float rr = length(p * vec2(0.8, 1.0)) + 0.25 * fbm(p * 1.4 + 71.0);
@@ -578,6 +579,25 @@ void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // the dark part of the disc: faint earthshine, then the gold outline that
   // stays when all the light has gone
   P.od += od(PRUSSIAN) * smoothstep(0.004, -0.004, disc) * (1.0 - lit) * 0.35 * dyed;
+  // the corona, shown where the indigo has rinsed away: a few long
+  // streamers and fine rays in gold, drifting outwards and shimmering (all
+  // sampled around a circle, so there's no seam where the angle wraps)
+  float cOn = (1.0 - dyed) * smoothstep(k0.z, k0.z + 1.2, t);
+  if (cOn > 0.0) {
+    float cr = length(m);
+    vec2 cd = m / max(cr, 1e-4);
+    float x = max(cr - R, 0.0);
+    float lobes = 0.5 + 0.5 * gnoise(cd * 2.2 + vec2(t * 0.12, t * 0.25) + 81.0);    // streamers lengthen and shorten
+    float reach = (0.05 + 0.32 * lobes * lobes) * (0.8 + 0.4 * (0.5 + 0.5 * gnoise(cd * 5.0 + vec2(-t * 1.1, t * 0.9) + 85.0)));   // their tips flare
+    float rays = pow(0.5 + 0.5 * gnoise(cd * 38.0 + t * 0.03 + 82.0), 2.5);
+    rays *= 0.5 + 0.5 * gnoise(cd * 19.0 + vec2(t * 1.6, -t * 1.3) + 84.0);        // rays brighten and fade
+    rays *= 0.55 + 0.45 * gnoise(cd * 12.0 + vec2(x * 6.0 - t * 1.2, 83.0));      // knots flowing out along them
+    float shimmer = 0.72 + 0.25 * gnoise(cd * 6.0 + vec2(t * 1.4, -t * 1.1)) + 0.12 * gnoise(cd * 15.0 + vec2(-t * 3.0, t * 2.6));
+    float outside = smoothstep(-0.003, 0.003, cr - R);
+    float corona = (exp(-x / 0.03) * 0.6 + exp(-x / reach) * (0.2 + 1.0 * rays)) * shimmer * outside;
+    P.od += od(GAMBOGE) * exp(-x / (reach * 1.4)) * 0.25 * shimmer * outside * cOn;
+    addOpaque(P, goldCol(m * 2.0, t), min(corona, 1.0) * 0.85 * cOn);
+  }
   addOpaque(P, goldCol(m, t), inkLine(disc, m, 0.0035, 73.0) * (0.35 + 0.6 * wane) * smoothstep(0.0, 1.5, t));
 
   // the sea: slow swells, and the moon's path broken into strokes of gold

@@ -120,7 +120,9 @@ A gold-leaf moon over a night sea, a thin crescent at first. It waxes full on
 in, then wanes on 空っぽで (1:12) until only its gold outline is left: an empty
 circle, the same moon, nothing gained or lost. The frame drums send small rings
 across the water. From 1:15 the indigo rinses away from the centre, pushing a
-dark wet front ahead of it…
+dark wet front ahead of it, and where it has gone the empty circle has a
+corona, like the sun's in a total eclipse: gold streamers and fine rays that
+shimmer, flare and flow outwards…
 
 ### Chorus: paper and colour
 
