@@ -873,11 +873,11 @@ float rangeH(float x, float fi) {
 
 // The far flock: six small, hazy cranes in a loose, uneven line, flying
 // left to right low over the middle ranges. They're slower than the cranes
-// above and already on their way when the scene opens, so the two flocks
-// pass each other about halfway through the note. Drawn among the ranges:
-// the nearer ones hide them and the mist below veils them.
+// above; the first comes in at the left edge as the scene opens, and the two
+// flocks pass each other late in the note. Drawn among the ranges: the
+// nearer ones hide them and the mist below veils them.
 void farFlock(inout Paint P, vec2 p, float t, float pan) {
-  vec2 lead = vec2(-0.35 + 0.32 * t, -0.16 + 0.015 * sin(t * 0.35));
+  vec2 lead = vec2(-1.9 + 0.32 * t, -0.16 + 0.015 * sin(t * 0.35));
   if (p.x > lead.x + 0.2 || p.x < lead.x - 1.25 || abs(p.y - lead.y + 0.04) > 0.2) return;
   float ink = 0.0, dark = 0.0;
   for (int j = 0; j < 6; j++) {
