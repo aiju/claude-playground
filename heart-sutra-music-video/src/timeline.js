@@ -26,7 +26,7 @@ export const SCENES = [
   { name: 'Five lights', t0: 55.9, scene: 6, tr: 1.5, style: 3,
     beats: [{ t: 60.17, t1: 64.4, label: 'lights come undone on 解けてゆく' }] },
   { name: 'Full and empty', t0: 64.45, scene: 7, tr: 1.0, style: 0,
-    beats: [{ t: 68.4, t1: 71.0, label: 'the moon waxes full on 満ちて' }, { t: 71.58, t1: 75.08, label: 'and wanes to nothing on 空っぽで' }, { t: 75.42, t1: 78.97, label: 'indigo rinses away' }] },
+    beats: [{ t: 65.0, t1: 71.0, label: 'the moon fills from a dark disc, full at the end of 満ちて' }, { t: 71.58, t1: 75.08, label: 'and wanes to nothing on 空っぽで' }, { t: 75.42, t1: 78.97, label: 'indigo rinses away' }] },
   { name: 'Form is emptiness', t0: 78.9, scene: 8, tr: 0.6, style: 3,
     beats: [{ t: 78.97, t1: 80.4, label: 'blot bursts open' }, { t: 82.7, t1: 84.2, label: 'unfolds again on 空即是色' }] },
   { name: 'Universe in a palm', t0: 89.1, scene: 9, tr: 1.5, style: 0,

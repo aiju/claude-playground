@@ -544,8 +544,8 @@ void sFiveLights(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   7: { fn: 'sFullEmpty', src: /* glsl */ `
 // ================================================================ 7 · 満ちて 空っぽで full and empty
-// A gold moon over a night sea. It waxes slowly from a thin crescent, then
-// the rest of the way to full on 満ちて, and wanes on 空っぽで until only its
+// A gold moon over a night sea. It fills with light from a dark disc, full at
+// the end of 満ちて (beat 0), and wanes on 空っぽで (beat 1) until only its
 // outline is left, an empty circle; then the indigo rinses
 // away for the chorus, and where it has gone the empty circle has a corona,
 // like the sun's in a total eclipse. The moon neither gains nor loses
@@ -561,19 +561,13 @@ void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float hz = -0.34;
   vec2 mc = vec2(0.0, 0.3 + 0.04 * easeOut(t / 4.0));   // rising a little at first
   float R = 0.27;
-  // phase: a thin crescent creeping towards half from the start, then on
-  // 満ちて the rest of the way to full, carrying on at the pace it had (a
-  // Hermite curve from 0.3 with the slow part's slope, to 1 at rest); it
-  // wanes to nothing on 空っぽで
-  float u = span01(t, k0.x, k1.x);
-  float s = 0.3 * (k1.x - k0.x) / max(k0.x, 1e-3);
-  float wax = t < k0.x ? 0.3 * span01(t, 0.0, k0.x)
-    : (2.0 * u * u * u - 3.0 * u * u + 1.0) * 0.3 + (u * u * u - 2.0 * u * u + u) * s + (3.0 * u * u - 2.0 * u * u * u);
-  float wane = ease(span01(t, k0.y, k1.y));
+  // phase: from dark to full in one eased sweep (the lit part is (1 - k) / 2
+  // of the disc, so it fills evenly), then waning to nothing on 空っぽで
+  float wax = ease(span01(t, k0.x, k1.x)), wane = ease(span01(t, k0.y, k1.y));
   vec2 m = p - mc;
   float disc = length(m) - R;
   float half_ = sqrt(max(R * R - m.y * m.y, 0.0));
-  float k = mix(0.72, -1.0, wax);                     // waxing: the lit part grows from the right
+  float k = mix(1.0, -1.0, wax);                      // waxing: the lit part grows from the right
   float litWax = smoothstep(-0.006, 0.006, m.x - k * half_);
   float litWane = smoothstep(-0.006, 0.006, (1.0 - 2.0 * wane) * half_ - m.x);   // waning: it shrinks to the left
   float lit = (wane > 0.0 ? litWane : litWax) * smoothstep(0.004, -0.004, disc);
