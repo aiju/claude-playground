@@ -131,7 +131,7 @@ hit throws a fresh drop that spreads and fades. On 空即是色 (1:23) it unfold
 second time, a turquoise glaze opening up and down the fold behind the rest.
 
 **9 · Universe in a palm** 1:29–1:35 📷
-*この てのひらに 宇宙が 透ける*, vertical, right.
+*この 掌に 宇宙が 透ける*, vertical, right.
 A loose sumi outline of an open hand is brushed in, and the hand drifts up and
 turns a little as if held out to us. A spiral galaxy in indigo, violet and rose
 seeps into it from the palm, turning, with white-gouache stars and a comet
