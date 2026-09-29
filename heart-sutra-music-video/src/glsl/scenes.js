@@ -833,7 +833,8 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 // ================================================================ 17 · 鶴 cranes over the mountains
 // After the drums, one long held note: mountains in layers of mist, the
 // sun from the grove sinking behind them, and three red-crowned cranes
-// crossing slowly in a loose V.
+// crossing slowly in a loose V, while a far flock crosses the other way
+// low over the middle ranges.
 
 // A crane in flight facing left, about 0.8 wide; flap is the wing phase.
 // Returns distances to its white parts (x), its black parts (y) and its
@@ -870,6 +871,44 @@ float rangeH(float x, float fi) {
   return base + (0.34 - fi * 0.05) * r * swell + 0.02 * gnoise(vec2(x * 11.0, fi * 2.0));
 }
 
+// The far flock: six small, hazy cranes in a loose, uneven line, flying
+// left to right low over the middle ranges. They're slower than the cranes
+// above and already on their way when the scene opens, so the two flocks
+// pass each other about halfway through the note. Drawn among the ranges:
+// the nearer ones hide them and the mist below veils them.
+void farFlock(inout Paint P, vec2 p, float t, float pan) {
+  vec2 lead = vec2(-0.35 + 0.32 * t, -0.16 + 0.015 * sin(t * 0.35));
+  if (p.x > lead.x + 0.2 || p.x < lead.x - 1.25 || abs(p.y - lead.y + 0.04) > 0.2) return;
+  float ink = 0.0, dark = 0.0;
+  for (int j = 0; j < 6; j++) {
+    float fj = float(j);
+    vec2 h = hash22(vec2(fj, 231.0));
+    float sc = 0.22 + 0.06 * h.y;
+    // trailing back and a little down from the lead, each drifting in its
+    // place; small birds beat their wings faster, each in its own time
+    vec2 c = lead + vec2(-fj * 0.18 - 0.05 * h.x + 0.03 * sin(t * 0.4 + fj * 1.7),
+                         -0.012 * fj + 0.05 * (h.y - 0.5) + 0.012 * sin(t * 0.55 + fj * 2.3));
+    float flap = t * TAU / (0.8 + 0.2 * h.x) + h.y * TAU;
+    c.y -= 0.02 * sc * sin(flap);
+    vec2 q = (p - c) / sc;
+    q.x = -q.x;    // facing right
+    if (length(q) > 0.6) continue;
+    vec3 d = sdCrane(q, flap) * sc;
+    ink = max(ink, smoothstep(0.002, -0.002, min(d.x, d.y)));
+    dark = max(dark, smoothstep(0.002, -0.002, d.y));
+  }
+  if (ink <= 0.0) return;
+  float occ = 1.0;
+  for (int i = 2; i < 4; i++) {
+    float fi = float(i);
+    float x = p.x + pan * (0.4 + fi * 0.6) + fi * 3.7;
+    float base = 0.05 - fi * 0.22;
+    occ *= 1.0 - smoothstep(0.004, -0.004, p.y - rangeH(x, fi)) * smoothstep(base - 0.2, base + 0.12, p.y);
+  }
+  P.od += od(PAYNE) * ink * occ * 0.3;
+  P.od += od(SUMI) * dark * occ * 0.5;
+}
+
 void sCranes(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float pan = t * 0.02;
   // morning sky, and the sun sinking behind the far range
@@ -891,6 +930,7 @@ void sCranes(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     P.od += od(ULTRA) * body * foot * 0.06 * (3.0 - fi);
     // dry-brush texture strokes on the slopes (皴)
     P.od += od(SUMI) * dryBrush(rot(0.5) * p * vec2(2.5, 1.0) + fi, 205.0 + fi, -0.1) * smoothstep(0.0, -0.06, d) * smoothstep(-0.2, -0.02, d) * foot * 0.07 * (fi + 1.0) / 4.0;
+    if (i == 1) farFlock(P, p, t, pan);
     // mist drifting between the ranges
     addOpaque(P, vec3(0.955, 0.935, 0.885), softWash(abs(p.y - base + 0.1 + 0.05 * fbm3(vec2(p.x * 0.7 - t * 0.04, fi))) - 0.05, p, 206.0 + fi, 0.08) * 0.55);
   }

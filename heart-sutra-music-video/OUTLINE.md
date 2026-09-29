@@ -159,7 +159,9 @@ shake leaves down.
 No lyrics.
 One long held note. Ranges of mountains in layers of mist, the grove's sun
 sinking behind them, pines on the nearest ridge, and three red-crowned cranes
-crossing slowly in a loose V.
+crossing slowly in a loose V. Far below them a flock of six small, hazy cranes
+flies the other way over the middle ranges, slower, and the two flocks pass
+each other about halfway through the note.
 
 ### Verse 2: the river
 
