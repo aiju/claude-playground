@@ -27,7 +27,7 @@ export const CUES = [
   // Intro
   { t0: 5.8, t1: 15.0, text: 'ॐ', roman: 'om', script: 'sa', x: 0.5, y: 0.5, size: 0.30, ink: 'gold' },
   { t0: 14.0, t1: 20.6, text: 'प्रज्ञापारमिता', roman: 'praj-nya pa-ra-mi-ta', script: 'sa', x: 0.5, y: 0.8, size: 0.085, ink: 'gold' },
-  { t0: 17.7, t1: 26.0, text: 'प्रज्ञापारमिता', roman: 'praj-nya pa-ra-mi-ta', script: 'sa', x: 0.66, y: 0.24, size: 0.11, ink: 'gold' },
+  { t0: 17.7, t1: 26.0, text: 'प्रज्ञापारमिता', roman: 'praj-nya pa-ra-mi-ta', script: 'sa', x: 0.72, y: 0.24, size: 0.10, ink: 'gold' },
 
   // Verse 1
   { t0: 35.75, t1: 43.2, text: '深[ふか]き 智[ち]慧[え]の 海[うみ]の底[そこ]', script: 'ja', dir: 'v', x: 0.84, y: 0.14, size: 0.078, ink: 'gold' },

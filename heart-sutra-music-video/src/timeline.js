@@ -13,9 +13,11 @@ export const BPM = 136;
 export const SCENES = [
   { name: 'Singing bowl', t0: 0.0, scene: 0, tr: 0,
     beats: [{ t: 0.2, label: 'bowl ring' }, { t: 3.8, label: 'bowl ring' }, { t: 7.4, label: 'bowl ring' }, { t: 11.0, label: 'bowl ring' }] },
-  { name: 'Prajñā', t0: 13.7, scene: 1, tr: 1.5, style: 0 },
-  { name: 'Descent', t0: 21.4, scene: 2, tr: 1.2, style: 3,
-    beats: [{ t: 22.5, t1: 27.3, label: 'sinking fast past the surface light' }, { t: 27.3, t1: 34.8, label: 'the choir chant: a shoal gathers into a folded ring' }] },
+  // one continuous shot from the stupa into the sea
+  { name: 'Prajñā and the descent', t0: 13.7, scene: 2, tr: 1.5, style: 0,
+    beats: [{ t: 14.34, t1: 20.79, label: 'a stupa rises out of the fold on प्रज्ञापारमिता ×2' },
+      { t: 19.3, t1: 22.4, label: 'the water comes down over it and it melts; the jellyfish rises from below' },
+      { t: 22.4, t1: 27.3, label: 'sinking fast past the surface light' }, { t: 27.3, t1: 34.8, label: 'the choir chant: a shoal gathers into a folded ring' }] },
   { name: 'Sea floor', t0: 34.8, scene: 3, tr: 2.0, style: 2 },
   { name: 'The eye opens', t0: 42.4, scene: 4, tr: 1.2, style: 3,
     beats: [{ t: 46.3, t1: 48.98, label: 'eye opens on 目を開く' }, { t: 47.2, t1: 50.6, label: 'ink runs from the lid' }] },

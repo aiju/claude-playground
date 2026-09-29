@@ -128,31 +128,15 @@ void sBowl(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addOpaque(P, goldCol(q, t), goldFlakes(q, 70.0, 3.0, 0.05) * 0.7);
 }
 ` },
-  1: { fn: 'sPrajna', src: /* glsl */ `
-// ================================================================ 1 · 般若 prajñā
-void sPrajna(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  konshi(P, p, 1.3);
-  float g = 0.75 + 0.3 * easeOut(t / 9.0) + 0.05 * uPulse;
-  vec2 q = p * 1.1 - vec2(0.0, 0.1);
-  float d = blotSDF(q, 21.0, g, t, 1.0);
-  float body = wash(d, q, 21.0, 0.025);
-  lift(P, body * 0.7);
-  addPig(P, TURQUOISE, body * 0.3);
-  addPig(P, VIOLET, body * smoothstep(0.1, -0.4, q.y) * 0.2);
-  addPig(P, ULTRA, softWash(d - 0.05, q, 22.0, 0.06) * 0.35);
-  P.od += od(PRUSSIAN) * exp(-max(-d, 0.0) / 0.015) * smoothstep(0.004, -0.004, d) * 0.6;
-  addOpaque(P, goldCol(p, t), inkLine(d, q, 0.003, 22.0) * 0.75);
-  // gold dust rising in the pulse
-  vec2 r = p + vec2(0.012 * sin(p.y * 4.0 + t), -t * 0.05);
-  addOpaque(P, goldCol(r, t), goldFlakes(r, 60.0, 23.0, 0.06) * 0.9);
-  addOpaque(P, goldCol(r, t), goldFlakes(r * 1.7, 120.0, 24.0, 0.05) * (0.5 + 0.5 * uPulse));
-}
-` },
   2: { fn: 'sDescent', src: /* glsl */ `
-// ================================================================ 2 · 沈む descent
-// We sink: the surface light falls away above, bubbles and drifting pigment
-// stream upwards past us, a jellyfish rises by, and on the choir chant a
-// shoal of gold fish gathers into a ring folded like an inkblot.
+// ================================================================ 2 · 般若 · 沈む prajñā, and the descent
+// One continuous shot, so there's no seam between the chant and the sea.
+// A folded blot rises out of the indigo in the shape of a stupa (beat 0).
+// Then the light of a water surface comes down from above and floods over
+// it, and the stupa melts into the sea like wet ink, while a jellyfish
+// rises from below (beat 1). We sink: the surface falls away, bubbles and
+// drifting pigment stream up past us (beat 2), and on the choir chant a
+// shoal of gold fish gathers into a ring folded like an inkblot (beat 3).
 
 // A small fish swimming along dir, centred at c.
 float sdFish(vec2 p, vec2 c, vec2 dir, float size, float wag) {
@@ -165,23 +149,85 @@ float sdFish(vec2 p, vec2 c, vec2 dir, float size, float wag) {
   return min(body, tail) * size;
 }
 
+// A stupa standing on y = 0, about 1.17 tall: stepped terraces, the dome,
+// the harmika, a spire of stacked parasols and a finial. rings is the
+// distance to the parasols alone.
+float sdStupa(vec2 q, out float rings) {
+  q.x = abs(q.x);
+  float d = sdBox(q - vec2(0.0, 0.04), vec2(0.6, 0.04)) - 0.01;
+  d = smin(d, sdBox(q - vec2(0.0, 0.115), vec2(0.5, 0.035)) - 0.01, 0.015);
+  d = smin(d, sdBox(q - vec2(0.0, 0.18), vec2(0.42, 0.03)) - 0.01, 0.015);
+  d = smin(d, max(sdEllipse(q - vec2(0.0, 0.2), vec2(0.34, 0.32)), 0.2 - q.y), 0.02);
+  d = smin(d, sdBox(q - vec2(0.0, 0.56), vec2(0.085, 0.045)) - 0.005, 0.01);
+  d = min(d, sdBox(q - vec2(0.0, 0.615), vec2(0.115, 0.012)) - 0.004);
+  d = min(d, sdSeg(q, vec2(0.0, 0.62), vec2(0.0, 1.08)) - 0.012);
+  rings = 1e3;
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i);
+    rings = min(rings, sdEllipse(q - vec2(0.0, 0.67 + fi * 0.058), vec2(0.088 - fi * 0.01, 0.017)));
+  }
+  d = min(d, rings);
+  d = smin(d, min(length(q - vec2(0.0, 1.11)) - 0.03, sdTaper(q, vec2(0.0, 1.1), vec2(0.0, 1.18), 0.018, 0.002)), 0.01);
+  return d;
+}
+
 void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  // how far we've sunk: quickly past the surface, then settling for the chant
-  float sink = 0.04 * t + 0.9 * ease(span01(t, 0.0, k1.x));
-  float deep = smoothstep(-1.0, k1.y, t);
-  konshi(P, p, 1.0 + 0.35 * deep);
-  // the surface, falling away above: a web of light on the underside of the waves
-  float sy = 0.5 + 1.1 * sink;
+  float flood = span01(t, k0.y, k1.y);
+  float sub = smoothstep(k0.y, k0.y + 1.5, t);                 // how far into the water we are
+  float sink = 0.04 * max(0.0, t - k0.z) + 0.9 * ease(span01(t, k0.z, k1.z));
+  float deep = smoothstep(k0.z - 1.0, k1.w, t);
+  konshi(P, p, 1.0 + 0.3 * deep + 0.15 * (1.0 - sub));
+  // the water comes in from above: a wet front sweeps down the page, and
+  // behind it we're under the surface, with its web of light overhead
+  float fy = mix(1.25, -1.35, easeOut(flood)) + 0.1 * fbm3(vec2(p.x * 1.3, t * 0.15));
+  float uw = smoothstep(fy - 0.1, fy + 0.1, p.y);                          // the water has reached here
+  float edge = exp(-pow((p.y - fy) / 0.05, 2.0)) * step(0.001, flood) * (1.0 - flood);
+  lift(P, edge * 0.35);
+  P.od += od(PRUSSIAN) * exp(-pow((p.y - fy + 0.06) / 0.012, 2.0)) * step(0.001, flood) * (1.0 - flood) * 0.5;   // its tide line
+  float sy = 0.5 + 1.1 * sink;                                             // the surface, falling away as we sink
   vec2 wq = vec2(p.x * 2.2, (p.y - sy) * 5.0);
   float web = abs(fbm3(wq + vec2(t * 0.35, t * 0.2)) + 0.4 * fbm3(wq * 1.9 - t * 0.3));
-  float near = smoothstep(sy - 1.1, sy - 0.05, p.y);
+  float near = smoothstep(sy - 1.1, sy - 0.05, p.y) * uw;
   lift(P, (smoothstep(0.12, 0.0, web) * 0.55 + 0.35) * near);
   addPig(P, TURQUOISE, near * 0.25);
   // light shafts, dimming as we go down
   float sh = 0.5 + 0.5 * sin(p.x * 3.6 + (p.y - sy) * 0.9 + 1.4 * fbm3(vec2(p.x * 0.8, t * 0.05)) + t * 0.1);
-  sh = pow(sh, 4.0) * smoothstep(-1.4, sy, p.y) * (1.0 - 0.75 * deep);
+  sh = pow(sh, 4.0) * smoothstep(-1.4, sy, p.y) * (1.0 - 0.75 * deep) * uw * sub;
   lift(P, sh * 0.45);
   addPig(P, CERULEAN, sh * 0.2);
+
+  // the stupa: a folded blot that rises from its terraces up to its finial
+  // while प्रज्ञापारमिता is sung, breathing with the pulse
+  {
+    float build = ease(span01(t, k0.x - 0.4, k1.x - 1.2));
+    vec2 base = vec2(0.0, -0.42 + 1.1 * sink);
+    float sc = 0.9 * (1.0 + 0.012 * sin(t * 1.3) + 0.02 * uPulse);
+    vec2 q = (p - base) / sc;
+    q += 0.03 * warp2(q * 1.7 + 21.0 + t * 0.02);
+    q.x /= 0.3 + 0.7 * ease(build * 1.6);                 // unfolding from the crease
+    float rings;
+    float ds = sdStupa(q, rings);
+    float env = -ds / 0.06 - 3.0 * smoothstep(-0.06, 0.06, q.y - (build * 1.25 - 0.06));
+    float n = fbm(vec2(abs(q.x), q.y) * 2.6 + 21.0 + vec2(0.0, t * 0.03)) * 0.45 + gnoise(vec2(abs(q.x), q.y) * 11.0 + 21.0) * 0.1;
+    float d = -(env + n - 0.1) * 0.06;
+    // where the water has reached it, it melts: the edge softens and spreads, and fades
+    float dis = ease(span01(t, k0.y + 0.6, k1.y + 2.2)) * uw;
+    float crisp = wash(d, q, 21.0, 0.025);
+    float melt = softWash(d - 0.07 * dis, q + vec2(0.0, 0.05 * dis), 21.0, 0.02 + 0.09 * dis);
+    float body = mix(crisp, melt, dis) * (1.0 - 0.85 * dis);
+    lift(P, body * 0.95 + softWash(d - 0.09, q, 25.0, 0.1) * 0.3 * (1.0 - dis) * step(0.001, build));   // it glows
+    addPig(P, TURQUOISE, body * 0.26);
+    addPig(P, VIOLET, body * smoothstep(0.35, 0.0, q.y) * 0.2);
+    addPig(P, GAMBOGE, softWash(length((q - vec2(0.0, 0.33)) * vec2(1.0, 1.3)) - 0.13, q, 23.0, 0.08) * body * 0.4);   // a light inside the dome
+    addPig(P, ULTRA, softWash(d - 0.05, q, 22.0, 0.06) * 0.35 * (1.0 - dis) * step(0.001, build));
+    P.od += od(PRUSSIAN) * exp(-max(-d, 0.0) / 0.012) * smoothstep(0.004, -0.004, d) * 0.55 * (1.0 - dis);
+    addOpaque(P, goldCol(q, t), inkLine(d, q, 0.003, 22.0) * 0.8 * (1.0 - dis) * step(0.001, build));
+    addOpaque(P, goldCol(q * 2.0, t), smoothstep(0.004, -0.004, rings + 0.004) * smoothstep(0.02, -0.02, d) * 0.7 * (1.0 - dis));
+    // the gold of its outline drifting up off it as it goes
+    vec2 fq = q + vec2(0.01 * sin(q.y * 9.0 + t), -dis * 0.25 - t * 0.02);
+    addOpaque(P, goldCol(fq, t), goldFlakes(fq, 70.0, 24.0, 0.3) * smoothstep(0.08, 0.0, abs(d)) * dis * (1.0 - dis) * 2.0);
+  }
+
   // strata of suspended pigment streaming upwards, the nearest fastest
   for (int i = 0; i < 3; i++) {
     float fi = float(i);
@@ -189,11 +235,11 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float yy = (p.y - sink * speed - t * 0.01) / (0.55 - fi * 0.1) + fi * 0.37;
     float f = fract(yy) - 0.5;
     float wisp = abs(f + 0.18 * fbm3(vec2(p.x * (0.9 + fi * 0.4) + floor(yy) * 3.1, fi))) - (0.035 + 0.02 * fi);
-    float wb = softWash(wisp, p + fi, fi + 20.0, 0.06);
+    float wb = softWash(wisp, p + fi, fi + 20.0, 0.06) * uw * sub;
     P.od += od(mix(PRUSSIAN, VIOLET, fi * 0.35)) * wb * (0.12 + 0.05 * fi);
   }
   // bubbles rising in a few loose columns, faster than we sink
-  {
+  if (sub > 0.0) {
     float cw = 0.32;
     float col = floor((p.x + 2.0) / cw);
     vec2 hc = hash22(vec2(col, 5.0));
@@ -204,15 +250,16 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
       float hb = hash11(cell + col * 7.0);
       float rad = 0.01 + 0.018 * hb;
       vec2 bq = vec2(p.x - bx - 0.03 * sin(yy * 0.7 + col), (fract(yy) - 0.5) / 7.0);
-      float on = step(0.4, hb);
+      float on = step(0.4, hb) * uw * sub;
       float ring = abs(length(bq) - rad);
       lift(P, smoothstep(0.004, 0.0, ring) * on * 0.5 + smoothstep(rad, 0.0, length(bq)) * on * 0.15);
       addOpaque(P, vec3(0.92, 0.95, 0.95), smoothstep(rad * 0.35, 0.0, length(bq - vec2(-rad, rad) * 0.4)) * on * 0.6);
     }
   }
 
-  // the jellyfish, rising past on the left
-  vec2 c = vec2(-0.72, -0.85 + 0.12 * t + 0.25 * sink + 0.02 * sin(t * 0.9));
+  // the jellyfish, rising from below the frame and on past us on the left
+  float tj = t - (k1.y - 1.0);
+  vec2 c = vec2(-0.72, -0.85 + 0.12 * tj + 0.25 * sink + 0.02 * sin(t * 0.9));
   vec2 q = (p - c) / 0.78;
   float pulse = 1.0 + 0.06 * sin(t * 2.2) + 0.05 * uLevel;
   vec2 bq = q / vec2(pulse, 2.0 - pulse);
@@ -246,14 +293,14 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 
   // the shoal: streaming up past us, then gathering into a ring on the chant,
   // mirrored about the middle like a folded blot
-  float gather = ease(span01(t, k0.y, k0.y + 3.5));
+  float gather = ease(span01(t, k0.w, k0.w + 3.5));
   vec2 sp = vec2(abs(p.x), p.y);
   float R = 0.44 + 0.04 * sin(t * 0.8) + 0.05 * uLevel;
   for (int i = 0; i < 16; i++) {
     float fi = float(i);
     vec2 h = hash22(vec2(fi, 7.0));
     // before: a school swimming up past us in an S (and its mirror image)
-    float st = t + fi * 0.04;
+    float st = tj + fi * 0.04;
     vec2 school = vec2(0.85 + 0.35 * sin(st * 0.6), -1.25 + 0.2 * st);
     vec2 pa = school + (h - 0.5) * vec2(0.55, 0.4) + 0.04 * vec2(sin(st * 2.0 + fi), cos(st * 1.7 + fi));
     vec2 da = normalize(vec2(0.35 * 0.6 * cos(st * 0.6), 0.2));
@@ -275,10 +322,12 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     addOpaque(P, goldCol(sp * 3.0 + fi, t), body * 0.85);
   }
 
-  // marine snow, rising as we sink
-  vec2 r = p + vec2(0.015 * sin(t * 0.4 + p.y * 3.0), -sink * 0.7 - t * 0.02);
-  addOpaque(P, vec3(0.9, 0.93, 0.92), goldFlakes(r, 90.0, 36.0, 0.05) * 0.5);
+  // gold dust rising through the indigo, which becomes marine snow in the water
+  vec2 r = p + vec2(0.015 * sin(t * 0.4 + p.y * 3.0), -sink * 0.7 - t * 0.03);
+  addOpaque(P, vec3(0.9, 0.93, 0.92), goldFlakes(r, 90.0, 36.0, 0.05) * 0.5 * uw * sub);
   addOpaque(P, goldCol(r, t), goldFlakes(r * 1.3, 38.0, 37.0, 0.06) * 0.85);
+  vec2 r2 = p + vec2(0.012 * sin(p.y * 4.0 + t), -t * 0.05);
+  addOpaque(P, goldCol(r2, t), goldFlakes(r2 * 1.7, 120.0, 24.0, 0.05) * (0.5 + 0.5 * uPulse) * (1.0 - uw * sub));
 }
 ` },
   3: { fn: 'sSeaFloor', src: /* glsl */ `

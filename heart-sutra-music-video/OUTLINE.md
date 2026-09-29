@@ -65,47 +65,49 @@ Deep indigo paper fades in from bare paper. A dark bloom breathes under the ॐ.
 Each bowl strike sends a ring of lifted water and gold dust outwards, and cut
 gold leaf drifts slowly upwards.
 
-**2 · Prajñā** 0:14–0:21 📷
-*प्रज्ञापारमिता*, low centre.
-A folded inkblot lifts out of the indigo: luminous turquoise with a gold-ink
-contour, breathing with the pulse that starts here. Gold dust rises.
-
-**3 · Descent** 0:21–0:35 📷
-*प्रज्ञापारमिता*, larger, top right.
-We sink. First the underside of the surface, a web of light, falls away above
-us; then light shafts dim, bubbles rise in loose columns and strata of pigment
-stream upwards past us. A jellyfish with a folded-blot pattern in its bell
-rises past on the left, and a school of gold fish (with its mirror image)
-swims up in an S. When the choir chant starts (0:27) the two schools gather
-into one ring, folded like a paper flower, circling until the sea floor.
+**2 · Prajñā, and the descent** 0:14–0:35 📷
+*प्रज्ञापारमिता* low centre, then again, larger, top right.
+One continuous shot, with no cut into the sea. As प्रज्ञापारमिता is sung, a
+folded blot rises out of the indigo in the shape of a stupa: it opens from
+the crease, terraces first, then the dome with a light inside, the harmika
+and the gold rings of the spire. From 0:19 the water comes in from above,
+a wet front with a tide line sweeping down the page, and behind it we're
+under the surface, its web of light overhead. Where the water reaches the
+stupa it melts like wet ink and its gold drifts up off it, while a jellyfish
+rises from below. Then we sink: the surface falls away above us, light
+shafts dim, bubbles rise in loose columns and strata of pigment stream
+upwards past us. The jellyfish rises past on the left, and a school of gold
+fish (with its mirror image) swims up in an S. When the choir chant starts
+(0:27) the two schools gather into one ring, folded like a paper flower,
+circling until the sea floor.
 
 ### Verse 1: the depths
 
-**4 · Sea floor** 0:35–0:42 📷
+**3 · Sea floor** 0:35–0:42 📷
 *深き 智慧の 海の底*, vertical, right.
 Strata of Prussian blue and turquoise, light shafts from far above, kelp
 swaying, and dunes with a gold ridge line. Something luminous stirs in the dark
 at the centre: the eye, still closed.
 
-**5 · The eye opens** 0:42–0:49 📷
+**4 · The eye opens** 0:42–0:49 📷
 *観る者は 静かに 目を開く*, vertical, left.
 Two blots fold into lids above and below and part on 目を開く (0:46). Behind them is an iris
 of turquoise, cobalt and gold, and a little ink runs from the lower lid.
 
-**6 · Wind and sand** 0:49–0:55 📷
+**5 · Wind and sand** 0:49–0:55 📷
 *かたちも こころも 風の砂*, horizontal, bottom.
 The eye erodes into dunes of granulating ochre and sienna. Wind drags the
 pigment from left to right, gold dry-brush lines mark the ridges, and grains
 stream off the crests.
 
-**7 · Five lights** 0:56–1:04 📷
+**6 · Five lights** 0:56–1:04 📷
 *五つの ひかりが ほどけてゆく*, vertical, right, plus the five skandhas
 *色 受 想 行 識* in small gold, one inside each light.
 Five lights come up one by one in rose, gamboge, turquoise, violet and cerulean.
 On ほどけてゆく (1:00) each one comes undone into spiralling threads, and its
 little kanji dissolves with it.
 
-**8 · Full and empty** 1:04–1:19 📷
+**7 · Full and empty** 1:04–1:19 📷
 *何も 失くさず 何も 得ず* (right), *ただ 満ちて ただ 空っぽで* (left),
 *रूपं शून्यता* (over the sea).
 A gold-leaf moon over a night sea, a thin crescent at first. It waxes full on
@@ -117,7 +119,7 @@ dark wet front ahead of it…
 
 ### Chorus: paper and colour
 
-**9 · Form is emptiness** 1:19–1:29 📷
+**8 · Form is emptiness** 1:19–1:29 📷
 *色即是空* (right) and *空即是色* (left) in large sumi, with
 *रूपं शून्यता शून्यतैव रूपम्* in vermilion below.
 …and white washi is left behind. On the downbeat a five-colour inkblot bursts
@@ -128,7 +130,7 @@ ripple outwards from each wash, the page drifts closer, and every strong drum
 hit throws a fresh drop that spreads and fades. On 空即是色 (1:23) it unfolds a
 second time, a turquoise glaze opening up and down the fold behind the rest.
 
-**10 · Universe in a palm** 1:29–1:35 📷
+**9 · Universe in a palm** 1:29–1:35 📷
 *この てのひらに 宇宙が 透ける*, vertical, right.
 A loose sumi outline of an open hand is brushed in, and the hand drifts up and
 turns a little as if held out to us. A spiral galaxy in indigo, violet and rose
@@ -136,13 +138,13 @@ seeps into it from the palm, turning, with white-gouache stars and a comet
 crossing. On 宇宙が透ける (1:32) the outline fades and the galaxy spills past
 the edges of the hand, its stars drifting outwards. The chorus blot fades behind.
 
-**11 · Wheel of light** 1:35–1:48 📷
+**10 · Wheel of light** 1:35–1:48 📷
 *うまれず ほろびず 光は 巡る*, set around a circle that slowly turns.
 Eight petals of colour turn in a ring around a gold sun with fine rays.
 
 ### Instrumental
 
-**12 · Shakuhachi and taiko** 1:48–2:02 📷
+**11 · Shakuhachi and taiko** 1:48–2:02 📷
 No lyrics.
 A sumi-e bamboo grove at three depths drifts past, with mist and a pale
 vermilion sun. It's a call and response: in each bar of drums the strong hits
@@ -152,7 +154,7 @@ breath of ink drawn across the grove, running dry towards its end, while the
 mist lifts and the leaves stir. From 1:58 the drums play straight through and
 shake leaves down.
 
-**13 · Cranes over the mountains** 2:02–2:09 📷
+**12 · Cranes over the mountains** 2:02–2:09 📷
 No lyrics.
 One long held note. Ranges of mountains in layers of mist, the grove's sun
 sinking behind them, pines on the nearest ridge, and three red-crowned cranes
@@ -160,7 +162,7 @@ crossing slowly in a loose V.
 
 ### Verse 2: the river
 
-**14 · Chains, upside down** 2:09–2:23 📷
+**13 · Chains, upside down** 2:09–2:23 📷
 *恐れの 鎖も さかさまの 夢も* (left, with its reflection in the water),
 *けいげなき 心に 溶けてゆく* (right).
 The fold turns horizontal: a lake mirrors mountains and pines upside down, and
@@ -169,7 +171,7 @@ hangs steeply through the middle of the frame, between the two lines. On
 溶けてゆく (2:21) its links soften, bleed and wash away one by one from the top
 down, and it's gone before the next line is written.
 
-**15 · The far shore** 2:23–2:30 📷
+**14 · The far shore** 2:23–2:30 📷
 *向こう岸で 誰かが 呼んでいる* (top), *名前の ない 声で* (bottom, indigo).
 A wide river painted in long strokes, reeds in the foreground and a tiny figure
 on the far bank. The figure's voice crosses the water as ripples. On the riser
@@ -177,7 +179,7 @@ on the far bank. The figure's voice crosses the water as ripples. On the riser
 
 ### Bridge
 
-**16 · Neither / nor** 2:30–2:41 📷
+**15 · Neither / nor** 2:30–2:41 📷
 The calls *不生 不滅 · 不垢 不浄 · 不増 不減* are in sumi on the left. The
 responses *अनुत्पन्ना अनिरुद्धा · अमला अविमला · अनूना अपरिपूर्णाः* are in
 vermilion on the right.
@@ -190,14 +192,14 @@ mirror image runs backwards in time on the right:
 
 ### Build and climax: crossing over
 
-**17 · Crossing** 2:41–2:48 📷
+**16 · Crossing** 2:41–2:48 📷
 *羯諦 羯諦 → 波羅羯諦 → 波羅僧羯諦 → 菩提薩婆訶*, in columns stepping from right
 to left and growing larger.
 A small boat crosses the river from left to right. Dry-brush strokes rush past,
 faster and faster with the drums. The sky warms from blue to gold as the far
 shore comes near.
 
-**18 · The other shore** 2:48–3:03 📷
+**17 · The other shore** 2:48–3:03 📷
 *गते गते पारगते* (top) and *पारसंगते बोधि स्वाहा* (bottom) in large gold, then
 the echo in smaller vermilion.
 Sunrise. A vermilion and gamboge sun lifts out of violet mountains under a deep
@@ -206,24 +208,24 @@ the foreground, and every accent bursts gold dust outwards.
 
 ### Final chorus
 
-**19 · Form is emptiness II** 3:03–3:12 📷
+**18 · Form is emptiness II** 3:03–3:12 📷
 *色即是空 / 空即是色*, *रूपं शून्यता शून्यतैव रूपम्*.
 The chorus blot comes back, reshuffled, with turquoise and gold leaf: the same,
 never the same.
 
-**20 · Unravelling** 3:12–3:18 📷
+**19 · Unravelling** 3:12–3:18 📷
 *彼岸の 風に 私は ほどける*, vertical, right. The characters themselves drift
 apart after they're written.
 A robed figure stands in a pale dawn, and the wind from the other shore takes it
 apart from one side into petals of colour.
 
-**21 · Wheel of light II** 3:18–3:32 📷
+**20 · Wheel of light II** 3:18–3:32 📷
 *うまれず ほろびず 詩は 巡る*, on the ring.
 The wheel returns, brighter, with gold leaf turning in it.
 
 ### Outro
 
-**22 · Ensō** 3:32–4:18 📷
+**21 · Ensō** 3:32–4:18 📷
 *बोधि स्वाहा* (3:44), then *प्रज्ञापारमिता* three times (3:59–4:09), then *ॐ*
 as a vermilion seal (落款).
 The colour drains to bare paper during the vocalise, and a single ensō is

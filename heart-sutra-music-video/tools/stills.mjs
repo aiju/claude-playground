@@ -12,7 +12,7 @@ import { launchOptions } from './browser.mjs';
 
 export const STORYBOARD = [
   [6.0, 'singing-bowl'],
-  [16.5, 'prajna'],
+  [18.5, 'prajna'],
   [31.0, 'descent'],
   [40.5, 'sea-floor'],
   [47.8, 'the-eye'],
