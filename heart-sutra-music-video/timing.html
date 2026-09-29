@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timing editor · Heart Sutra music video</title>
+</head>
+<body>
+<!-- page-start -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f5f3ee; --surface: #fcfbf8; --ink: #1c1b18; --ink-2: #57534b; --ink-3: #8f897d;
+    --rule: #e2ddd2; --band-a: #efebe2; --band-b: #e5e0d4; --hover: rgba(28, 27, 24, 0.06);
+    --ja: #2a78d6; --sa: #eb6834; --moment: #1baf7a; --loop: rgba(42, 120, 214, 0.10);
+    --ja-soft: rgba(42, 120, 214, 0.16); --sa-soft: rgba(235, 104, 52, 0.18); --sel: #a3279c; --warn: #b54a12;
+    --sans: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    --deva: "Noto Sans Devanagari", "Kohinoor Devanagari", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #121315; --surface: #1a1a19; --ink: #f1eee7; --ink-2: #c3c2b7; --ink-3: #8a877e;
+      --rule: #2d2d2a; --band-a: #222220; --band-b: #2a2a27; --hover: rgba(241, 238, 231, 0.07);
+      --ja: #3987e5; --sa: #d95926; --moment: #199e70; --loop: rgba(57, 135, 229, 0.16);
+      --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24); --sel: #e070d8; --warn: #f0985e;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121315; --surface: #1a1a19; --ink: #f1eee7; --ink-2: #c3c2b7; --ink-3: #8a877e;
+    --rule: #2d2d2a; --band-a: #222220; --band-b: #2a2a27; --hover: rgba(241, 238, 231, 0.07);
+    --ja: #3987e5; --sa: #d95926; --moment: #199e70; --loop: rgba(57, 135, 229, 0.16);
+    --ja-soft: rgba(57, 135, 229, 0.22); --sa-soft: rgba(217, 89, 38, 0.24); --sel: #e070d8; --warn: #f0985e;
+  }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
+  .wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px calc(var(--dock-h, 110px) + 24px); display: grid; gap: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header p { margin: 0; color: var(--ink-2); max-width: 80ch; }
+  .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  button, .seg label { font: 500 13px/1 var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 7px 11px; cursor: pointer; }
+  button:hover, .seg label:hover { background: var(--band-a); }
+  button:disabled { opacity: 0.45; cursor: default; background: var(--surface); }
+  button:focus-visible, .seg input:focus-visible + span, input[type=checkbox]:focus-visible { outline: 2px solid var(--ja); outline-offset: 2px; }
+  #play { min-width: 6.5em; background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  #play:hover { opacity: 0.88; }
+  .time { font: 500 15px/1 var(--mono); font-variant-numeric: tabular-nums; min-width: 12.5ch; }
+  .time small { color: var(--ink-3); font-size: 12px; }
+  .seg { display: inline-flex; }
+  .seg label { border-radius: 0; margin-left: -1px; padding: 0; }
+  .seg label:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg label:last-child { border-radius: 0 6px 6px 0; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; padding: 7px 10px; }
+  .seg input:checked + span { background: var(--ink); color: var(--surface); border-radius: inherit; }
+  .group { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+  .group[hidden] { display: none; }
+  #zoomLabel { font: 500 13px/1 var(--mono); min-width: 4.5ch; text-align: center; color: var(--ink); }
+  .loopchip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 14px;
+    background: var(--ja-soft); color: var(--ink); font-size: 13px; }
+  .loopchip[hidden] { display: none; }
+  .loopchip button { padding: 3px 8px; border-radius: 10px; }
+  .now { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 20px; align-items: end; min-height: 108px;
+    padding: 12px 16px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+  .now .where { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--ink-2); font-size: 13px; }
+  .now .where b { color: var(--ink); font-weight: 500; }
+  .lines { display: grid; gap: 4px; min-width: 0; }
+  .line { font-size: 30px; line-height: 1.9; white-space: nowrap; overflow-x: auto; color: var(--ink-3); }
+  .line.current { color: var(--ink); }
+  .line.next { font-size: 18px; line-height: 1.8; }
+  .line .g { display: inline-block; padding: 0 1px; border-radius: 4px; }
+  .line .g.sung { color: var(--ink); }
+  .line.ja .g.on { background: var(--ja-soft); box-shadow: inset 0 -3px 0 var(--ja); }
+  .line rt { font-size: 0.42em; color: var(--ink-2); letter-spacing: 0.02em; }
+  .line rt .m.on { color: var(--ja); font-weight: 600; }
+  .line.sa .deva { font-family: var(--deva); display: block; line-height: 1.5; }
+  .line.sa .roman { font: 500 0.62em/1.6 var(--mono); color: var(--ink-3); display: block; }
+  .line.sa .roman .m.sung { color: var(--ink); }
+  .line.sa .roman .m.on { color: var(--sa); background: var(--sa-soft); border-radius: 3px; }
+  .line.idle { font-size: 15px; color: var(--ink-3); font-style: italic; }
+  .now .hint { color: var(--ink-3); font-size: 12px; text-align: right; }
+  .roll-wrap { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  #roll { display: block; width: 100%; cursor: crosshair; touch-action: pan-y; }
+  #overview { display: block; width: 100%; height: 44px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; cursor: pointer; }
+  #tip { position: absolute; pointer-events: none; max-width: 340px; padding: 7px 10px; border-radius: 6px; font-size: 12.5px; line-height: 1.45;
+    background: var(--ink); color: var(--surface); box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+  #tip .t { font-family: var(--mono); opacity: 0.8; }
+  #status { color: var(--ink-2); font: 13px/1.4 var(--mono); }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 24px; color: var(--ink-2); font-size: 13px; }
+  .legend h2 { margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  .legend ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
+  @media (max-width: 640px) {
+    .dock .transport { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .dock .transport > * { flex: none; }
+    .dock .selbar:has(> span > .hint) { display: none; }
+    .now { grid-template-columns: 1fr; }
+    .now .hint { text-align: left; }
+    .line { font-size: 24px; }
+  }
+  .editbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; background: var(--surface);
+    border: 1px solid var(--rule); border-radius: 8px; }
+  #saveStatus { color: var(--ink-2); font-size: 13px; min-width: 16ch; }
+  #saveStatus.warn { color: var(--warn); }
+  #tapOffset { width: 5.5em; font: 13px var(--mono); padding: 5px 6px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); }
+  #calibText { font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+  #calibText[hidden] { display: none; }
+  .editbar .push { margin-left: auto; }
+  /* the playback controls and the selection stay at the bottom of the window */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--rule);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08); padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .dock-in { max-width: 1480px; margin: 0 auto; display: grid; gap: 6px; }
+  .dock-edit { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+  .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 32px; padding: 2px 12px;
+    border-left: 3px solid var(--sel); color: var(--ink-2); font-size: 13.5px; }
+  .selbar b { color: var(--ink); font-weight: 600; }
+  .selbar .t { font: 13px var(--mono); color: var(--ink); }
+  .selbar .was { color: var(--ink-3); font: 12px var(--mono); }
+  .selbar .hint { color: var(--ink-3); }
+  .selbar input { font: 13px var(--sans); padding: 5px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); }
+  .selbar button { padding: 5px 9px; }
+  details.history { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px; }
+  details.history summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  #history { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; max-height: 260px; overflow-y: auto; }
+  #history li { display: flex; gap: 12px; align-items: baseline; font-size: 13px; }
+  #history li button { border: 0; background: none; padding: 2px 0; text-align: left; color: var(--ink); font-weight: 400; }
+  #history li button:hover { text-decoration: underline; background: none; }
+  #history li .t { font: 11.5px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  #history li.undone button { text-decoration: line-through; color: var(--ink-3); }
+  #history li.empty { color: var(--ink-3); }
+  kbd { font: 12px var(--mono); padding: 1px 5px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); color: var(--ink); }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Timing editor</h1>
+    <p>Every syllable and event where the video currently places it, against the song, to correct by ear. Blue and orange blocks are when each syllable is sung, first measured by aligning the lyrics to the vocals; the grey spectrogram underneath is the actual singing. Drag anything to move it.</p>
+  </header>
+  <div class="editbar">
+    <label class="group"><input id="clicks" type="checkbox"> Click at each onset</label>
+    <label class="group"><input id="replay" type="checkbox" checked> Replay after an edit</label>
+    <span class="group">Tap offset <input id="tapOffset" type="number" step="5" value="0" aria-label="Tap offset in milliseconds"> ms
+      <button id="calibrate" type="button">Calibrate</button></span>
+    <span id="calibText" hidden></span>
+    <button id="download" class="push" type="button">Download edits</button>
+  </div>
+  <section class="now" aria-live="off">
+    <div class="where" id="where"></div>
+    <div class="lines" id="lines"></div>
+    <div class="hint">click a syllable to hear it · click a line to loop it</div>
+  </section>
+  <div class="roll-wrap">
+    <canvas id="roll" aria-label="Timeline of syllables, lyric lines, scenes and audio"></canvas>
+    <div id="tip" hidden></div>
+  </div>
+  <canvas id="overview" aria-label="Whole song overview"></canvas>
+  <details class="history" open>
+    <summary>Edits <span id="historyCount"></span></summary>
+    <ol id="history"></ol>
+  </details>
+  <section class="legend">
+    <div>
+      <h2>Lanes</h2>
+      <ul>
+        <li><span class="sw" style="background:var(--ja)"></span>Japanese syllable, kana below and its kanji above; a faint bar underneath shows where the syllables were before your edits</li>
+        <li><span class="sw" style="background:var(--sa)"></span>Sanskrit syllable, as on the lyric sheet</li>
+        <li><span class="sw" style="background:var(--moment)"></span>Something a scene does at a set time</li>
+        <li><span class="sw" style="background:var(--ink-3)"></span>Lines: thin bar while shown, thick bar while sung; "medium" or "low" marks a less certain timing, "alt" the other aligner's start, "✓ by ear" a line you've checked</li>
+        <li><span class="sw" style="background:repeating-linear-gradient(135deg, var(--ja-soft) 0 3px, var(--ink-3) 3px 4px)"></span>Hatched syllable: the two aligners disagreed by over 0.5 s</li>
+        <li><span class="sw" style="background:var(--band-b)"></span>Other singing: vocalises and chant with no lyric line</li>
+        <li><span class="sw" style="background:var(--band-b)"></span>Sections (estimated), scenes and their handovers (hatched)</li>
+        <li><span class="sw" style="background:var(--ink-2)"></span>Detected drum hits over loudness; beat lines at 136 BPM</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Keys</h2>
+      <ul>
+        <li><kbd>Space</kbd> play or pause</li>
+        <li><kbd>←</kbd> <kbd>→</kbd> 1 s back or forward, with <kbd>Shift</kbd> 5 s</li>
+        <li><kbd>+</kbd> <kbd>−</kbd> zoom · drag empty space or shift-scroll to pan</li>
+        <li><kbd>F</kbd> follow the playhead · <kbd>L</kbd> stop looping</li>
+        <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> speed 1×, 0.75×, 0.5×</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Editing</h2>
+      <ul>
+        <li>Drag a syllable to move it, or its edge to move just that end. Syllables that touch move together; hold <kbd>⌥</kbd> while dragging to pull them apart.</li>
+        <li>Drag a kanji to move its syllables, or a line's thick bar to move the whole line (with <kbd>⌥</kbd>, without moving when it's on screen). <kbd>⇧</kbd>-click or <kbd>⇧</kbd>-drag to select several syllables, then drag one of them.</li>
+        <li>Drag the ends of a line's thin bar, scene starts and handover ends, beats, section starts and passages of other singing. <kbd>⌥</kbd>-click the section or other-singing lane to add one.</li>
+        <li><kbd>⌥←</kbd> <kbd>⌥→</kbd> nudge the selection 10 ms, with <kbd>⇧</kbd> 50 ms · <kbd>Tab</kbd> next syllable</li>
+        <li><kbd>J</kbd> while it plays: the selected syllable starts now, and the next one is selected. Hold <kbd>J</kbd> to set its end too.</li>
+        <li><kbd>⌘Z</kbd> undo · <kbd>⇧⌘Z</kbd> redo · <kbd>C</kbd> mark a line checked · <kbd>K</kbd> clicks · <kbd>⌫</kbd> delete a section · <kbd>Esc</kbd> deselect</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Where the timings come from</h2>
+      <ul>
+        <li>The lyrics were force-aligned to the song with two methods (Whisper large-v3 through stable-ts, and an MMS CTC aligner), each run on a separated vocal track and on the full mix. High confidence means they agreed within about 0.4 s. Scenes and their moments are anchored to those lyric times.</li>
+        <li>Edits are saved as you make them, with a log of every edit, in the page's own database (or, run locally, in this browser). Claude writes them back into the source files when you're done.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<div class="dock" id="dock">
+  <div class="dock-in">
+    <div class="selbar" id="selbar" aria-live="polite"></div>
+    <div class="transport">
+      <button id="play" type="button">Loading…</button>
+      <span class="time" id="time">0:00.00 <small>/ 4:17.80</small></span>
+      <span class="group">Speed
+        <span class="seg" role="radiogroup" aria-label="Playback speed">
+          <label><input type="radio" name="speed" value="1" checked><span>1×</span></label>
+          <label><input type="radio" name="speed" value="0.75"><span>0.75×</span></label>
+          <label><input type="radio" name="speed" value="0.5"><span>0.5×</span></label>
+        </span>
+      </span>
+      <span class="group">Zoom
+        <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+        <span id="zoomLabel">12 s</span>
+        <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+      </span>
+      <span class="group" id="listen" hidden>Listen
+        <span class="seg" role="radiogroup" aria-label="What to listen to">
+          <label><input type="radio" name="listen" value="mix" checked><span>Full mix</span></label>
+          <label><input type="radio" name="listen" value="vocals"><span>Vocals only</span></label>
+        </span>
+      </span>
+      <label class="group"><input id="follow" type="checkbox" checked> Follow playhead</label>
+      <span class="loopchip" id="loopchip" hidden><span id="loopText"></span><button id="loopOff" type="button">Stop looping</button></span>
+      <span id="status">Loading the song…</span>
+      <span class="dock-edit">
+        <button id="undo" type="button" disabled>Undo</button>
+        <button id="redo" type="button" disabled>Redo</button>
+        <span id="saveStatus">Connecting…</span>
+      </span>
+    </div>
+  </div>
+</div>
+<audio id="song" preload="auto">
+  <source src="audio/song.m4a" type='audio/mp4; codecs="opus"'>
+  <source src="audio/song.mp3" type="audio/mpeg">
+</audio>
+<script type="module" src="src/timing.js"></script>
+<!-- page-end -->
+</body>
+</html>

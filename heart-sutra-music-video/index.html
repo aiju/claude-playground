@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>般若 · Heart Sutra music video</title>
+</head>
+<body>
+<!-- page-start -->
+<style>
+  html, body { margin: 0; height: 100%; background: #0d0f16; color: #e8e0cf; font: 14px/1.4 system-ui, sans-serif; }
+  body { display: grid; place-items: center; overflow: hidden; }
+  #view { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; cursor: pointer; background: #f2ece0; }
+  #status { position: fixed; inset: 0; display: grid; place-items: center; font: 15px/1.4 ui-monospace, Menlo, monospace; letter-spacing: 0.04em;
+            color: #e8e0cf; background: #0d0f16; }
+  #status[hidden] { display: none; }
+  #ui { position: fixed; left: 16px; right: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center;
+        padding: 8px 12px; border-radius: 10px; background: rgba(13, 15, 22, 0.72); opacity: 0.2; transition: opacity 0.3s; }
+  #ui:hover, #ui:focus-within, #ui:not(.playing) { opacity: 1; }
+  #ui:not(.ready) { visibility: hidden; }
+  #ui button, #ui select { background: #e8e0cf; color: #0d0f16; border: 0; border-radius: 14px; padding: 5px 12px; font: inherit; cursor: pointer; }
+  #ui select { border-radius: 6px; padding: 4px 6px; max-width: 14em; }
+  #ui button:focus-visible, #ui select:focus-visible, #scrub:focus-visible { outline: 2px solid #d6b264; outline-offset: 2px; }
+  #play { min-width: 5em; }
+  #ui button.step { padding: 3px 8px; font-size: 12px; line-height: 1.2; border-radius: 6px; }
+  #ui.playing #play::after { content: 'Pause'; }
+  #ui:not(.playing) #play::after { content: 'Play'; }
+  #scrub { flex: 1 1 200px; accent-color: #d6b264; }
+  #label { min-width: 16em; font-variant-numeric: tabular-nums; }
+</style>
+<canvas id="view"></canvas>
+<div id="status">Loading</div>
+<div id="ui">
+  <button id="play" type="button" aria-label="Play or pause"></button>
+  <button id="back" class="step" type="button" aria-label="Back one frame" title="Back one frame (,)">◀︎ 1f</button>
+  <button id="fwd" class="step" type="button" aria-label="Forward one frame" title="Forward one frame (.)">1f ▶︎</button>
+  <input id="scrub" type="range" min="0" step="0.01" value="0" aria-label="Position in the song">
+  <span id="label"></span>
+  <select id="scene" aria-label="Jump to scene"></select>
+  <select id="res" aria-label="Resolution">
+    <option value="1080">1080p</option>
+    <option value="720">720p</option>
+    <option value="540">540p</option>
+  </select>
+  <button id="full" type="button">Fullscreen</button>
+</div>
+<script type="module" src="src/main.js"></script>
+<!-- page-end -->
+</body>
+</html>
