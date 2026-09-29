@@ -148,7 +148,8 @@ export class Renderer {
     if (u.uLevel) gl.uniform1f(u.uLevel, s.level);
     if (u.uPulse) gl.uniform1f(u.uPulse, s.pulse);
     if (u.uBeat) gl.uniform1f(u.uBeat, s.beat);
-    if (u.uHits) gl.uniform3fv(u.uHits, s.hits.flat());
+    if (u.uHits) gl.uniform4fv(u.uHits, s.hits.flat());
+    if (u.uAccents) gl.uniform4fv(u.uAccents, s.accents.flat());
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 

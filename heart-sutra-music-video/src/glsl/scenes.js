@@ -10,9 +10,14 @@
 //
 // Uniforms available here: uTime (song time), uLevel (loudness 0..1),
 // uPulse (decaying hit envelope 0..1), uBeat (beat phase 0..1),
-// uHits[i] = (seconds since hit, strength, keep) for the last eight drum
-// hits, newest first; keep fades from 1 to 0 before a hit drops off the list,
-// so anything drawn for a hit should be multiplied by it.
+// uAccents[i] is the same for the accents, the strong hits at least 0.25 s
+// apart: use these for anything drawn per hit, or a busy bar of drums
+// throws several things a second about the frame, which reads as flicker.
+// uHits[i] = (seconds since hit, strength, keep, seed) for the last eight
+// drum hits, newest first; keep fades from 1 to 0 before a hit drops off the
+// list, so anything drawn for a hit should be multiplied by it; seed is the
+// hit's number in the song, to place what's drawn for it (never derive that
+// from uTime - age, which wobbles from frame to frame in 32-bit floats).
 
 // Helpers more than one scene uses.
 export const shared = /* glsl */ `
@@ -537,14 +542,13 @@ void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(OCHRE) * smoothstep(tide + 0.01, tide - 0.02, p.y) * 0.25 * dyed;
   // drum hits: rings spreading on the water
   for (int i = 0; i < 4; i++) {
-    float age = uHits[i].x;
+    float age = uAccents[i].x;
     if (age > 2.5 || age > t) continue;
-    float ht = uTime - age;
-    vec2 h = hash22(vec2(floor(ht * 50.0), 3.0));
+    vec2 h = hash22(vec2(uAccents[i].w, 3.0));
     vec2 c = vec2((h.x - 0.5) * 2.8, hz - 0.08 - h.y * 0.35);
     vec2 q = (p - c) * vec2(0.45, 1.6);
     float ring = abs(length(q) - (0.02 + age * 0.08));
-    float on = water * exp(-age * 1.6) * uHits[i].y * uHits[i].z * smoothstep(2.5, 1.5, age);
+    float on = water * exp(-age * 1.6) * uAccents[i].y * uAccents[i].z * smoothstep(2.5, 1.5, age);
     addOpaque(P, goldCol(q, t), smoothstep(0.01, 0.0, ring) * on * 0.35 * dyed);
   }
   addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.01), 45.0, 74.0, 0.03) * 0.6 * dyed * step(hz, p.y));
@@ -607,15 +611,15 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(ULTRA) * wash(sp2, sq, 19.0, 0.005) * spread * 0.8;
   // and fresh ones on the drums, mirrored, spreading as they soak in
   for (int i = 0; i < 6; i++) {
-    float age = uHits[i].x;
+    float age = uAccents[i].x;
     if (age > 4.0 || age > t) continue;
-    float ht = uTime - age;
-    vec2 h = hash22(vec2(floor(ht * 50.0), 8.0));
+    float ht = uAccents[i].w;
+    vec2 h = hash22(vec2(ht, 8.0));
     vec2 c = vec2(0.55 + h.x * 0.9, (h.y - 0.5) * 1.5);
     vec2 dq = sq - c;
-    float rad = (0.012 + 0.03 * uHits[i].y) * (0.6 + 0.8 * easeOut(age / 1.2));
+    float rad = (0.012 + 0.03 * uAccents[i].y) * (0.6 + 0.8 * easeOut(age / 1.2)) * easeOut(age * 5.0);
     float d = length(dq) - rad + edgeWobble(dq * 6.0, ht, 0.006);
-    float fade = uHits[i].z * smoothstep(4.0, 1.5, age);
+    float fade = uAccents[i].z * smoothstep(4.0, 1.5, age);
     vec3 col = h.y > 0.5 ? ROSE : h.x > 0.5 ? ULTRA : GAMBOGE;
     P.od += od(col) * wash(d, dq, ht, 0.006) * fade * 0.7;
   }
@@ -740,8 +744,10 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(VERMILION) * wash(sd, p, 101.0, 0.03) * 0.38;
   P.od += od(PAYNE) * softWash(-0.6 - p.y + 0.15 * fbm3(vec2(p.x * 0.8 + t * 0.03, 1.0)), p, 102.0, 0.25) * 0.12;
   P.od += od(PAYNE) * softWash(p.y - 0.7 + 0.15 * fbm3(vec2(p.x * 0.7 - t * 0.02, 2.0)), p, 103.0, 0.3) * 0.06;
-  // bamboo, three depths, drifting past; the wind moves it in the rests and the drums shake it
-  float sway = 0.015 * sin(t * 1.1) * rest + 0.01 * sin(t * 7.0) * uPulse * drums;
+  // bamboo, three depths, drifting past; the wind moves it in the rests, and
+  // it sways a little more while the drums play on (smoothly: jolting it on
+  // every hit made it jitter)
+  float sway = 0.015 * sin(t * 1.1) * rest + 0.008 * sin(t * 2.3) * drums * (0.5 + 0.5 * uLevel);
   for (int i = 0; i < 6; i++) {
     float fi = float(i);
     float x0 = -1.9 + fi * 0.72 + 0.2 * hash11(fi) - t * 0.01;
@@ -765,20 +771,21 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float br = breath(p, t, k0.x, k1.x, 0.3, 104.0) + breath(p, t, k0.y, k1.y, -0.05, 107.0) + breath(p, t, k0.z, k1.z, 0.5, 109.0);
   br = min(br, 1.0);
   P.od += od(SUMI) * br * 0.85;
-  // taiko: each strong hit throws a splash of ink, the loudest in vermilion
+  // taiko: each strong accent throws a splash of ink, the loudest in
+  // vermilion; it spreads over a quarter of a second and soaks away slowly
   for (int i = 0; i < 8; i++) {
-    float age = uHits[i].x;
-    float str = uHits[i].y;
-    if (age > 2.6 || age > t || str < 0.5) continue;
+    float age = uAccents[i].x;
+    float str = uAccents[i].y;
+    if (age > 4.0 || age > t || str < 0.75) continue;
     float hs = t - age;    // when it was hit, in scene time: nothing splashes in the rests
     if ((hs > k0.x && hs < k1.x) || (hs > k0.y && hs < k1.y) || (hs > k0.z && hs < k1.z)) continue;
-    float ht = uTime - age;
-    vec2 h = hash22(vec2(floor(ht * 60.0), 11.0));
+    float ht = uAccents[i].w;
+    vec2 h = hash22(vec2(ht, 11.0));
     vec2 c = vec2((h.x - 0.5) * 2.8, (h.y - 0.5) * 1.3);
-    float size = (0.05 + 0.11 * str) * easeOut(age * 8.0);
+    float size = (0.05 + 0.11 * str) * easeOut(age * 4.0);
     if (length((p - c) * vec2(1.0, 0.5)) > size * 2.4 + 0.02) continue;
     float d = sdSplash(p - c, h.x * 40.0, size);
-    float fade = uHits[i].z * (1.0 - smoothstep(1.2, 2.6, age));
+    float fade = uAccents[i].z * (1.0 - smoothstep(1.5, 4.0, age)) * smoothstep(0.0, 0.06, age);
     vec3 col = str > 0.8 ? VERMILION : SUMI;
     P.od += od(col) * wash(d, p, h.y * 30.0, 0.008) * fade * 0.95;
     for (int k = 0; k < 2; k++) {
@@ -797,8 +804,9 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     vec2 g = floor(lq), f = fract(lq) - 0.5;
     vec2 h = hash22(g + 140.0);
     float on = step(0.72, h.x) * drums * smoothstep(0.0, 1.5, (t - k0.w) - h.y * 1.5);
-    vec2 leafq = rot(h.y * TAU + t * (h.x - 0.8) * 3.0) * (f - (h - 0.5) * 0.4);
-    float leaf = sdVesica(leafq, 0.2, 0.045);
+    // (kept well inside its cell, so turning never clips its tips)
+    vec2 leafq = rot(h.y * TAU + t * (h.x - 0.8) * 3.0) * (f - (h - 0.5) * 0.2);
+    float leaf = sdVesica(leafq, 0.18, 0.04);
     P.od += od(SUMI) * wash(leaf / 3.5, p, h.y * 9.0, 0.004) * on * 0.8;
   }
 }
@@ -1103,9 +1111,9 @@ void sClimax(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(GAMBOGE) * softWash(sd - 0.12, p, 3.0, 0.12) * 0.3 * sky;
   // light breaking outward on every accent
   for (int i = 0; i < 3; i++) {
-    float age = uHits[i].x;
-    float ring = exp(-pow((r - 0.4 - age * 0.9) / (0.03 + age * 0.05), 2.0)) * exp(-age * 1.2) * uHits[i].y * uHits[i].z;
-    addOpaque(P, goldCol(p * 2.0, t), goldFlakes(p, 110.0, float(i) + floor(uTime), 0.5) * ring);
+    float age = uAccents[i].x;
+    float ring = exp(-pow((r - 0.4 - age * 0.9) / (0.03 + age * 0.05), 2.0)) * exp(-age * 1.2) * uAccents[i].y * uAccents[i].z;
+    addOpaque(P, goldCol(p * 2.0, t), goldFlakes(p, 110.0, uAccents[i].w * 3.7, 0.5) * ring);
   }
   // far shore mountains
   float m = hz + 0.1 + 0.12 * smoothstep(1.4, 0.2, abs(p.x)) * (0.6 + 0.4 * fbm3(vec2(p.x * 2.0, 1.0))) + 0.03 * gnoise(vec2(p.x * 9.0, 2.0));
@@ -1208,11 +1216,11 @@ void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   P.od += od(PAYNE) * exp(-max(edge, 0.0) / 0.03) * smoothstep(0.0, -0.02, edge + 0.02) * drawn * (1.0 - s) * 0.1;
   // bells: faint tide-mark rings on the paper
   for (int i = 0; i < 3; i++) {
-    float age = uHits[i].x;
+    float age = uAccents[i].x;
     float R = 0.1 + age * 0.3;
     float wob = 0.01 * fbm3(c * 4.0 + float(i));
     float ring = exp(-pow((r - R + wob) / 0.004, 2.0)) + 0.2 * smoothstep(R, R - 0.03, r) * smoothstep(R - 0.15, R - 0.03, r);
-    P.od += od(PAYNE) * ring * exp(-age * 0.5) * uHits[i].y * uHits[i].z * 0.1;
+    P.od += od(PAYNE) * ring * exp(-age * 0.5) * uAccents[i].y * uAccents[i].z * 0.1;
   }
 }
 ` },

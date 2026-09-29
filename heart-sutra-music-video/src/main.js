@@ -27,7 +27,7 @@ setResolution(+(params.get('h') || 1080), params.get('w') ? +params.get('w') : u
 
 function frameState(t) {
   const s = sceneAt(t);
-  const f = features ? featuresAt(features, t) : { level: 0, pulse: 0, beat: 0, hits: Array(8).fill([99, 0, 0]) };
+  const f = features ? featuresAt(features, t) : { level: 0, pulse: 0, beat: 0, hits: Array(8).fill([99, 0, 0, 0]), accents: Array(8).fill([99, 0, 0, 0]) };
   return {
     time: t,
     a: s.a.scene, vA: s.a.v || 0, tA: t - s.a.t0,

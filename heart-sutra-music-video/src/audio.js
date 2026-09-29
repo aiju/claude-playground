@@ -113,28 +113,57 @@ export function analyse(buffer) {
     }
     if (s > bestScore) { bestScore = s; best = off; }
   }
-  return { level: smooth, hits, beatOffset: best, period, duration: n / sr };
+  return { level: smooth, hits, accents: pickAccents(hits), beatOffset: best, period, duration: n / sr };
+}
+
+// The accents: the strong hits, at least a quarter of a second apart (the
+// stronger one wins). Scenes that draw something for a hit use these: with
+// every hit, a busy bar of drums throws several things a second at random
+// places, which reads as flicker.
+function pickAccents(hits) {
+  const out = [];
+  for (const h of hits) {
+    if (h.s < 0.7) continue;
+    const last = out[out.length - 1];
+    if (last && h.t - last.t < 0.25) { if (h.s > last.s) out[out.length - 1] = h; continue; }
+    out.push(h);
+  }
+  return out;
 }
 
 // Feature values at time t, ready to become uniforms.
 export function featuresAt(f, t) {
   const i = Math.min(f.level.length - 1, Math.max(0, Math.floor(t * RATE)));
   const level = f.level[i] || 0;
-  // last 8 hits before t, newest first, as [age, strength, keep]. A hit
-  // drops off the list when the eighth hit after it comes, so keep fades it
-  // out over the half second before that: whatever a scene draws for it can
-  // fade too, rather than vanish.
-  let lo = 0, hi = f.hits.length;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (f.hits[m].t <= t) lo = m + 1; else hi = m; }
-  const hits = [];
-  for (let k = lo - 1; k >= 0 && hits.length < 8; k--) {
-    const out = f.hits[k + 8];
-    const keep = out ? Math.min(1, Math.max(0, (out.t - t) / 0.5)) : 1;
-    hits.push([t - f.hits[k].t, f.hits[k].s, keep]);
-  }
-  while (hits.length < 8) hits.push([99, 0, 0]);
+  // The last 8 hits before t (and the last 8 accents), newest first, as
+  // [age, strength, keep, seed]. A
+  // hit drops off the list when the eighth hit after it comes, so keep fades
+  // it out over the half second before that: whatever a scene draws for it
+  // can fade too, rather than vanish. seed is the hit's number in the song,
+  // for scenes to place what they draw for it: it has to come from here,
+  // because working the hit's time out again on the GPU (time - age, in 32-bit
+  // floats) comes out slightly different every frame, and anything random
+  // built on it would jump about while playing.
+  const hits = recent(f.hits, t), accents = recent(f.accents, t);
+  // a pulse on every hit: it rises over a few hundredths of a second rather
+  // than jumping (anything sized or brightened by it would jitter at the
+  // drum rate), peaks at 1 and dies away over about a third of a second
   let pulse = 0;
-  for (const [age, s] of hits) pulse = Math.max(pulse, s * Math.exp(-age * 6));
+  for (const [age, s] of hits) pulse = Math.max(pulse, 2.2 * s * (1 - Math.exp(-age / 0.06)) * Math.exp(-age * 6));
+  pulse = Math.min(1, pulse);
   const beat = (((t - f.beatOffset) / f.period) % 1 + 1) % 1;
-  return { level, pulse, beat, hits };
+  return { level, pulse, beat, hits, accents };
+}
+
+function recent(list, t) {
+  let lo = 0, hi = list.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (list[m].t <= t) lo = m + 1; else hi = m; }
+  const out = [];
+  for (let k = lo - 1; k >= 0 && out.length < 8; k--) {
+    const next = list[k + 8];
+    const keep = next ? Math.min(1, Math.max(0, (next.t - t) / 0.5)) : 1;
+    out.push([t - list[k].t, list[k].s, keep, k]);
+  }
+  while (out.length < 8) out.push([99, 0, 0, 0]);
+  return out;
 }
