@@ -123,16 +123,24 @@ function startPlayer() {
   // step one frame (at FPS) either way, pausing first and landing on a frame
   const step = n => { pause(); seek(Math.round(offset * FPS + n) / FPS); };
 
-  let frames = 0, fpsAt = performance.now(), fps = 0;
+  // A frame that fails shouldn't stop the loop (the picture would freeze
+  // while the song plays on): the error is logged once and shown in the label.
+  let frames = 0, fpsAt = performance.now(), fps = 0, problem = null;
+  canvas.addEventListener('webglcontextlost', () => { problem = 'the graphics context was lost'; });
   const loop = () => {
     let t = now();
     if (t >= DURATION) { pause(); offset = DURATION; t = DURATION; }
-    render(t);
+    try {
+      render(t);
+    } catch (err) {
+      if (!problem) console.error(err);
+      problem = err.message;
+    }
     scrub.value = t;
     frames++;
     const n = performance.now();
     if (n - fpsAt > 1000) { fps = Math.round(frames * 1000 / (n - fpsAt)); frames = 0; fpsAt = n; }
-    label.textContent = `${fmtFrame(t)} · ${sceneAt(t).a.name} · ${fps} fps`;
+    label.textContent = `${fmtFrame(t)} · ${sceneAt(t).a.name} · ${fps} fps${problem ? ` · error: ${problem}` : ''}`;
     requestAnimationFrame(loop);
   };
 

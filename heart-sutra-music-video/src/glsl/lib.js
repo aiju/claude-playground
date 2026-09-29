@@ -234,6 +234,8 @@ void konshi(inout Paint P, vec2 p, float dens) {
   P.od += od(INDIGO) * dens * (1.0 + v);
 }
 
+// x * x: pow(x, 2.0) is undefined for x < 0 in GLSL, and some GPUs return NaN.
+float sq(float x) { return x * x; }
 // 0 before a, 1 after b, linear between.
 float span01(float t, float a, float b) { return clamp((t - a) / max(b - a, 1e-3), 0.0, 1.0); }
 float ease(float x) { x = clamp(x, 0.0, 1.0); return x * x * (3.0 - 2.0 * x); }

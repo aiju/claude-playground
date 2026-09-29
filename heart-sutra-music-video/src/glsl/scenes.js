@@ -120,7 +120,7 @@ void sBowl(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float r = 0.1 + age * 0.26;
     float w = 0.012 + age * 0.014;
     float wob = 0.02 * fbm3(p * 3.0 + float(i));
-    float band_ = exp(-pow((length(p) - r + wob) / w, 2.0));
+    float band_ = exp(-sq((length(p) - r + wob) / w));
     float k = exp(-age * 0.33);
     lift(P, band_ * 0.22 * k);
     addPig(P, CERULEAN, band_ * 0.1 * k);
@@ -188,9 +188,9 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // it fades in as it comes, at full strength 0.7 s after it starts (0:20)
   float wa = ease(span01(t, k0.y, k0.y + 0.7));
   float uw = smoothstep(fy - 0.1, fy + 0.1, p.y) * wa;                     // the water has reached here
-  float edge = exp(-pow((p.y - fy) / 0.05, 2.0)) * wa * (1.0 - flood);
+  float edge = exp(-sq((p.y - fy) / 0.05)) * wa * (1.0 - flood);
   lift(P, edge * 0.35);
-  P.od += od(PRUSSIAN) * exp(-pow((p.y - fy + 0.06) / 0.012, 2.0)) * wa * (1.0 - flood) * 0.5;   // its tide line
+  P.od += od(PRUSSIAN) * exp(-sq((p.y - fy + 0.06) / 0.012)) * wa * (1.0 - flood) * 0.5;   // its tide line
   float sy = 0.5 + 1.1 * sink;                                             // the surface, falling away as we sink
   vec2 wq = vec2(p.x * 2.2, (p.y - sy) * 5.0);
   float web = abs(fbm3(wq + vec2(t * 0.35, t * 0.2)) + 0.4 * fbm3(wq * 1.9 - t * 0.3));
@@ -555,7 +555,7 @@ void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float front = rinse * 2.4;
   float dyed = smoothstep(front - 0.05, front + 0.05, rr);
   konshi(P, p, 1.25 * dyed);
-  P.od += od(INDIGO) * exp(-pow((rr - front) / 0.03, 2.0)) * 0.9 * step(0.001, rinse);
+  P.od += od(INDIGO) * exp(-sq((rr - front) / 0.03)) * 0.9 * step(0.001, rinse);
 
   float hz = -0.34;
   vec2 mc = vec2(0.0, 0.3 + 0.04 * easeOut(t / 4.0));   // rising a little at first
@@ -589,14 +589,16 @@ void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float x = max(cr - R, 0.0);
     float lobes = 0.5 + 0.5 * gnoise(cd * 2.2 + vec2(t * 0.12, t * 0.25) + 81.0);    // streamers lengthen and shorten
     float reach = (0.05 + 0.32 * lobes * lobes) * (0.8 + 0.4 * (0.5 + 0.5 * gnoise(cd * 5.0 + vec2(-t * 1.1, t * 0.9) + 85.0)));   // their tips flare
-    float rays = pow(0.5 + 0.5 * gnoise(cd * 38.0 + t * 0.03 + 82.0), 2.5);
-    rays *= 0.5 + 0.5 * gnoise(cd * 19.0 + vec2(t * 1.6, -t * 1.3) + 84.0);        // rays brighten and fade
-    rays *= 0.55 + 0.45 * gnoise(cd * 12.0 + vec2(x * 6.0 - t * 1.2, 83.0));      // knots flowing out along them
+    // (gnoise can stray a little past ±1: clamped, as pow() of a negative
+    // number is NaN on some GPUs, which drew a line across the screen)
+    float rays = pow(clamp(0.5 + 0.5 * gnoise(cd * 38.0 + t * 0.03 + 82.0), 0.0, 1.0), 2.5);
+    rays *= clamp(0.5 + 0.5 * gnoise(cd * 19.0 + vec2(t * 1.6, -t * 1.3) + 84.0), 0.0, 1.0);   // rays brighten and fade
+    rays *= clamp(0.55 + 0.45 * gnoise(cd * 12.0 + vec2(x * 6.0 - t * 1.2, 83.0)), 0.0, 1.0);  // knots flowing out along them
     float shimmer = 0.72 + 0.25 * gnoise(cd * 6.0 + vec2(t * 1.4, -t * 1.1)) + 0.12 * gnoise(cd * 15.0 + vec2(-t * 3.0, t * 2.6));
     float outside = smoothstep(-0.003, 0.003, cr - R);
     float corona = (exp(-x / 0.03) * 0.6 + exp(-x / reach) * (0.2 + 1.0 * rays)) * shimmer * outside;
     P.od += od(GAMBOGE) * exp(-x / (reach * 1.4)) * 0.25 * shimmer * outside * cOn;
-    addOpaque(P, goldCol(m * 2.0, t), min(corona, 1.0) * 0.85 * cOn);
+    addOpaque(P, goldCol(m * 2.0, t), clamp(corona, 0.0, 1.0) * 0.85 * cOn);
   }
   addOpaque(P, goldCol(m, t), inkLine(disc, m, 0.0035, 73.0) * (0.35 + 0.6 * wane) * smoothstep(0.0, 1.5, t));
 
@@ -669,7 +671,7 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float fade = (1.0 - front / 0.12) * smoothstep(0.0, 0.02, front);
     float dd = i == 0 ? d1 : i == 1 ? d2 : d5;
     vec3 col = i == 0 ? ROSE : i == 1 ? ULTRA : VIOLET;
-    P.od += od(col) * exp(-pow((dd - front) / 0.004, 2.0)) * fade * 0.3;
+    P.od += od(col) * exp(-sq((dd - front) / 0.004)) * fade * 0.3;
   }
   // backruns where the washes met while wet, spreading as they dry
   float anyW = smoothstep(0.02, -0.02, min(min(d1, d2), min(d3, d5)));
@@ -801,7 +803,7 @@ float breath(vec2 p, float t, float a, float b, float y0, float seed) {
   float head = mix(x0, x1, easeOut(prog));
   float along = clamp((p.x - x0) / (x1 - x0), 0.0, 1.0);
   float y = y0 + 0.12 * sin(p.x * 1.2 + seed) + 0.05 * sin(p.x * 3.1 + seed * 2.0) + 0.012 * sin(p.x * 9.0 + t * 0.6);
-  float w = (0.006 + 0.022 * pow(sin(min(along * 1.15, 1.0) * PI), 0.7)) * (0.8 + 0.3 * gnoise(vec2(p.x * 2.5, seed)));
+  float w = (0.006 + 0.022 * pow(max(sin(min(along * 1.15, 1.0) * PI), 0.0), 0.7)) * (0.8 + 0.3 * gnoise(vec2(p.x * 2.5, seed)));
   float d = abs(p.y - y) - w;
   float drawn = smoothstep(head, head - 0.06, p.x);
   float fly = dryBrush(vec2(p.x * 0.5 + seed, (p.y - y) / max(w, 0.004) * 0.12), seed, 0.25 - 0.45 * along);
@@ -1242,7 +1244,7 @@ void sClimax(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // light breaking outward on every accent
   for (int i = 0; i < 3; i++) {
     float age = uAccents[i].x;
-    float ring = exp(-pow((r - 0.4 - age * 0.9) / (0.03 + age * 0.05), 2.0)) * exp(-age * 1.2) * uAccents[i].y * uAccents[i].z;
+    float ring = exp(-sq((r - 0.4 - age * 0.9) / (0.03 + age * 0.05))) * exp(-age * 1.2) * uAccents[i].y * uAccents[i].z;
     addOpaque(P, goldCol(p * 2.0, t), goldFlakes(p, 110.0, uAccents[i].w * 3.7, 0.5) * ring);
   }
   // far shore mountains
@@ -1360,7 +1362,7 @@ void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float age = uAccents[i].x;
     float R = 0.1 + age * 0.3;
     float wob = 0.01 * fbm3(c * 4.0 + float(i));
-    float ring = exp(-pow((r - R + wob) / 0.004, 2.0)) + 0.2 * smoothstep(R, R - 0.03, r) * smoothstep(R - 0.15, R - 0.03, r);
+    float ring = exp(-sq((r - R + wob) / 0.004)) + 0.2 * smoothstep(R, R - 0.03, r) * smoothstep(R - 0.15, R - 0.03, r);
     P.od += od(PAYNE) * ring * exp(-age * 0.5) * uAccents[i].y * uAccents[i].z * 0.1;
   }
 }
