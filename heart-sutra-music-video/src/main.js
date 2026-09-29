@@ -8,6 +8,7 @@ import { sceneAt, fadeAt, beatsOf, SCENES, DURATION } from './timeline.js';
 import { CUES } from './lyrics.js';
 
 const params = new URLSearchParams(location.search);
+const FPS = 30;   // the frame rate the video will be rendered at; the frame-step buttons step by one of these
 const capture = params.has('capture');
 
 const canvas = document.getElementById('view');
@@ -119,6 +120,8 @@ function startPlayer() {
     if (was) play();
   }
   const toggle = () => (playing ? pause() : play());
+  // step one frame (at FPS) either way, pausing first and landing on a frame
+  const step = n => { pause(); seek(Math.round(offset * FPS + n) / FPS); };
 
   let frames = 0, fpsAt = performance.now(), fps = 0;
   const loop = () => {
@@ -129,7 +132,7 @@ function startPlayer() {
     frames++;
     const n = performance.now();
     if (n - fpsAt > 1000) { fps = Math.round(frames * 1000 / (n - fpsAt)); frames = 0; fpsAt = n; }
-    label.textContent = `${fmt(t)} · ${sceneAt(t).a.name} · ${fps} fps`;
+    label.textContent = `${fmtFrame(t)} · ${sceneAt(t).a.name} · ${fps} fps`;
     requestAnimationFrame(loop);
   };
 
@@ -143,6 +146,8 @@ function startPlayer() {
 
   canvas.addEventListener('click', toggle);
   playBtn.addEventListener('click', toggle);
+  document.getElementById('back').addEventListener('click', () => step(-1));
+  document.getElementById('fwd').addEventListener('click', () => step(1));
   scrub.addEventListener('input', () => seek(+scrub.value));
   sceneSel.addEventListener('change', () => { seek(+sceneSel.value); sceneSel.blur(); });
   resSel.addEventListener('change', () => { setResolution(+resSel.value); resSel.blur(); });
@@ -155,7 +160,14 @@ function startPlayer() {
     if (e.code === 'ArrowRight') seek(now() + 5);
     if (e.code === 'ArrowLeft') seek(now() - 5);
     if (e.code === 'KeyF') document.getElementById('full').click();
+    if (e.code === 'Comma') step(-1);
+    if (e.code === 'Period') step(1);
   });
 }
 
 function fmt(t) { return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; }
+// m:ss:ff, with ff the frame within the second
+function fmtFrame(t) {
+  const f = Math.round(t * FPS);
+  return `${fmt(Math.floor(f / FPS))}:${String(f % FPS).padStart(2, '0')}`;
+}

@@ -22,6 +22,7 @@
   #ui select { border-radius: 6px; padding: 4px 6px; max-width: 14em; }
   #ui button:focus-visible, #ui select:focus-visible, #scrub:focus-visible { outline: 2px solid #d6b264; outline-offset: 2px; }
   #play { min-width: 5em; }
+  #ui button.step { padding: 3px 8px; font-size: 12px; line-height: 1.2; border-radius: 6px; }
   #ui.playing #play::after { content: 'Pause'; }
   #ui:not(.playing) #play::after { content: 'Play'; }
   #scrub { flex: 1 1 200px; accent-color: #d6b264; }
@@ -31,6 +32,8 @@
 <div id="status">Loading</div>
 <div id="ui">
   <button id="play" type="button" aria-label="Play or pause"></button>
+  <button id="back" class="step" type="button" aria-label="Back one frame" title="Back one frame (,)">◀︎ 1f</button>
+  <button id="fwd" class="step" type="button" aria-label="Forward one frame" title="Forward one frame (.)">1f ▶︎</button>
   <input id="scrub" type="range" min="0" step="0.01" value="0" aria-label="Position in the song">
   <span id="label"></span>
   <select id="scene" aria-label="Jump to scene"></select>

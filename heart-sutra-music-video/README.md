@@ -14,7 +14,8 @@ The scene-by-scene plan is in [OUTLINE.md](OUTLINE.md).
 node tools/serve.mjs      # then open http://localhost:8080
 ```
 
-Click or press space to play. ← and → skip 5 s, and F goes fullscreen. You can
+Click or press space to play. ← and → skip 5 s, the small ◀︎ 1f and 1f ▶︎
+buttons (or , and .) step one frame at 30 fps, and F goes fullscreen. You can
 jump to a scene from the menu or start at a time with `?t=83`. There's a
 resolution menu if a scene stutters. You'll need a browser with WebGL2.
 
