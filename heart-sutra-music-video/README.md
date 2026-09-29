@@ -75,6 +75,61 @@ node tools/render.mjs --gpu --fps 60                    # use this machine's GPU
 You need ffmpeg (or set `FFMPEG=/path/to/ffmpeg`). Without `--gpu` it renders
 on the CPU with SwiftShader, at about 2 s per 1080p frame.
 
+## The final render, for YouTube (on a Mac)
+
+`tools/render-youtube.mjs` renders the whole video on the GPU at 3840×2160 and
+60 fps, in the format YouTube recommends (H.264 High in MP4, BT.709, keyframes
+every half second, AAC at 384 kbps), and writes everything that goes up with
+it into `out/youtube/`.
+
+Once, to set up:
+
+1. Install [Google Chrome](https://www.google.com/chrome/) and
+   [Homebrew](https://brew.sh), then `brew install node ffmpeg`.
+2. Get the project and its one dependency:
+   ```sh
+   git clone https://github.com/aiju/claude-playground.git
+   cd claude-playground/heart-sutra-music-video
+   npm install
+   ```
+3. Copy the song's lossless master into `audio/` as `master.wav` (or `.flac`,
+   `.aif`). It stays on your machine: git ignores it. Without it, the render
+   uses `audio/song.m4a`.
+
+Then:
+
+```sh
+caffeinate -dims node tools/render-youtube.mjs --test   # 12 s, into out/youtube/test.mp4
+caffeinate -dims node tools/render-youtube.mjs          # the whole video
+```
+
+`caffeinate` keeps the Mac awake; keep it plugged in. A Chrome window opens
+(two, with the default `--jobs 2`): leave it on screen. The script prints
+which GPU it's rendering on and stops if Chrome has fallen back to software,
+then how long each frame takes and when it'll be done. It lines the master
+up with `song.m4a`, which every timing was measured against, and prints the
+offset it found. Watch the test through before the full run: problems that
+only show on a real GPU would show there.
+
+The render goes in 20-second chunks; if it stops for any reason, run the same
+command again and it carries on from the last finished chunk. Try `--jobs 3`
+if the frames come slowly and the Mac has memory to spare.
+
+In `out/youtube/` afterwards:
+
+| File | What to do with it |
+|---|---|
+| `heart-sutra-4k60.mp4` | Upload it |
+| `heart-sutra.ja.srt` | YouTube Studio → Subtitles → Add language: Japanese → Upload file (with timing) |
+| `heart-sutra.en.srt` | The same, as English: romanized lyrics over a translation |
+| `description.txt` | Chapters and credits, for the description |
+| `lyrics.txt` | The lyrics with romanization and translation, if you want them in the description |
+| `thumbnail.jpg` | A frame for the thumbnail (`--thumbnail 186` picks another time) |
+
+`node tools/youtube-extras.mjs` writes just the captions and text without
+rendering. The captions come from `src/captions.js` (the romanization and
+translation of each line), timed by the measured syllables.
+
 ## Render stills
 
 ```sh
@@ -100,6 +155,7 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/schedule.js` | When each syllable is sung and each character written, from the readings in `lyrics.js` |
 | `src/text.js` | Lays out the lyrics and writes each character while it's sung; sets the credits |
 | `src/credits.js` | The credits after the song: who made it and what it's built on |
+| `src/captions.js` | Romanization and English translation of every sung line, for the YouTube captions |
 | `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: for Japanese, each KanjiVG stroke is a brush moving over the font's glyph (strokes fitted to it, crossings inked by the earlier stroke, each stroke inking only the pieces of the glyph it runs through, the ink growing only outwards from where strokes touch down); for Devanagari, ink flowing through the letters, the headline appearing with them |
 | `src/outlines.js` | Reads glyph outlines from the brush font's TrueType data: Japanese is drawn from them, and they tell the writing which parts of a character the font draws as separate pieces |
 | `src/strokes.js` | Stroke paths for the lyric characters, generated from KanjiVG by `tools/fetch-strokes.mjs` |
@@ -108,7 +164,7 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
 | `src/timing.js`, `src/spectrogram.js` | The timing editor |
 | `src/edits.js`, `src/edit-ops.js`, `src/edit-store.js` | The editor's timings as JSON, its edit operations, and where it saves them (with the log for undo) |
-| `tools/` | Static server, still and video renderers, preview packager, font and stroke fetchers, alignment importer, timing writer and exporter |
+| `tools/` | Static server, still and video renderers (and the final one for YouTube, with its captions and description), preview packager, font and stroke fetchers, alignment importer, timing writer and exporter |
 
 Paint is tracked as optical density, so washes glaze over each other the way
 transparent pigment does. Gold, white gouache and the lyrics sit on top as

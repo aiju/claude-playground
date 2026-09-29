@@ -14,8 +14,10 @@ export function launchOptions({ gpu = false } = {}) {
   return {
     ...(exe ? { executablePath: exe } : { channel: 'chrome' }),
     headless: !gpu,
-    args: gpu
-      ? ['--ignore-gpu-blocklist', '--enable-gpu']
-      : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+    args: [
+      ...(gpu ? ['--ignore-gpu-blocklist', '--enable-gpu'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']),
+      // keep rendering at full speed when the window is covered or in the background
+      '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows',
+    ],
   };
 }

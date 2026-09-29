@@ -1,3 +1,6 @@
 out/
 # separated vocals for the timing checker; regenerate rather than commit
 audio/vocals.mp3
+
+# the lossless master of the song, for the final render; kept locally
+audio/master.*
