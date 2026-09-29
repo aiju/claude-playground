@@ -209,6 +209,111 @@ function fitStrokes(lines, m, w, h, box) {
   return best;
 }
 
+// Which of the font's pieces (outer contours with their holes, which may
+// overlap) each pixel lies in, as a bit mask. Soft edge pixels that no piece
+// covers well take the piece that covers them most.
+function piecesFromOutlines(piecePaints, m, w, h) {
+  const bits = new Uint32Array(w * h);
+  const most = new Uint8Array(w * h), best = new Uint32Array(w * h);
+  piecePaints.slice(0, 32).forEach((paint, c) => {
+    const pm = mask(w, h, paint);
+    for (let i = 0; i < pm.length; i++) {
+      if (pm[i] > 60) bits[i] |= 1 << c;
+      if (pm[i] > most[i]) { most[i] = pm[i]; best[i] = 1 << c; }
+    }
+  });
+  for (let i = 0; i < bits.length; i++) if (!bits[i] && m[i] > 30) bits[i] = best[i];
+  return bits;
+}
+
+// Without outlines: the separate pieces of ink in the mask. They're found
+// on the solid ink (4-connected, so pieces touching at a corner stay apart),
+// and soft edge pixels join the piece they border.
+function piecesFromMask(m, w, h) {
+  const id = new Int32Array(w * h).fill(-1);
+  let count = 0;
+  const solid = i => m[i] > 110;
+  for (let i = 0; i < m.length; i++) {
+    if (!solid(i) || id[i] >= 0) continue;
+    const list = [i];
+    id[i] = count;
+    for (let q = 0; q < list.length; q++) {
+      const x = list[q] % w, y = (list[q] / w) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (solid(j) && id[j] < 0) { id[j] = count; list.push(j); }
+      }
+    }
+    count++;
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const next = id.slice();
+    for (let i = 0; i < m.length; i++) {
+      if (id[i] >= 0 || m[i] <= 30) continue;
+      const x = i % w, y = (i / w) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        if (id[ny * w + nx] >= 0) { next[i] = id[ny * w + nx]; break; }
+      }
+    }
+    id.set(next);
+  }
+  return Uint32Array.from(id, c => (c >= 0 && c < 32 ? 1 << c : 0));
+}
+
+// The pieces at or nearest to (x, y), looking up to r pixels away.
+function piecesNear(bits, w, h, x, y, r) {
+  let best = 0, bd = 1e9;
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const nx = x + dx, ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+    const b = bits[ny * w + nx], d = dx * dx + dy * dy;
+    if (b && d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+
+// Make the ink appear only as a growing, connected mass: every pixel waits
+// until a path of already-inked pixels reaches it from where some stroke
+// touched down. A pixel's time becomes the lowest, over all such paths, of
+// the latest time along the path. Normally that is its own time; a bit of
+// ink that would otherwise light up on its own, cut off from everything
+// else inked so far, waits for the brush to arrive.
+function grow(u, m, w, h, start, heap, push, pop) {
+  const best = new Float32Array(u.length).fill(Infinity);
+  const ink = i => m[i] > 30 && u[i] !== FAR;
+  const flood = () => {
+    while (heap.length) {
+      const [t, i] = pop();
+      if (t > best[i]) continue;
+      const x = i % w, y = (i / w) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if ((!dx && !dy) || nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!ink(j)) continue;
+        const tj = Math.max(t, u[j]);
+        if (tj < best[j]) { best[j] = tj; push(tj, j); }
+      }
+    }
+  };
+  for (let i = 0; i < u.length; i++) if (start[i] && ink(i)) { best[i] = u[i]; push(u[i], i); }
+  flood();
+  // ink no stroke starts in (the font's own flourishes): each such piece
+  // starts from its earliest pixel
+  for (;;) {
+    let first = -1;
+    for (let i = 0; i < u.length; i++) if (ink(i) && best[i] === Infinity && (first < 0 || u[i] < u[first])) first = i;
+    if (first < 0) break;
+    best[first] = u[first]; push(u[first], first);
+    flood();
+  }
+  for (let i = 0; i < u.length; i++) if (ink(i)) u[i] = best[i];
+}
+
 // Stroke-order time map for one Japanese character.
 //
 // Each stroke is a brush of the glyph's stroke width moving along the
@@ -216,7 +321,7 @@ function fitStrokes(lines, m, w, h, box) {
 // reaches it. Where strokes cross, the earlier one inks the crossing. Ink
 // the font has but the strokes don't reach (the font and KanjiVG never
 // agree exactly) fills in from the nearest inked part as the brush passes.
-function strokeMap(ch, paint) {
+function strokeMap(ch, paint, piecePaints) {
   const w = MAP_SIZE, h = MAP_SIZE;
   const m = mask(w, h, paint);
   const box = inkBox(m, w, h);
@@ -257,8 +362,29 @@ function strokeMap(ch, paint) {
   const tie = Math.max(1.5, 0.4 * half);
   const reach = 2.2 * half + 3;     // ink further than this from any stroke waits to be filled in
 
+  // The glyph's separate pieces. A stroke may only ink the pieces it actually
+  // runs through: being close to a stroke isn't enough if the font draws that
+  // bit as a separate piece (the tops of 八 under the roof of 空). inPiece is a
+  // bit mask of the pieces each pixel belongs to (0: no restriction).
+  const inPiece = piecePaints ? piecesFromOutlines(piecePaints, m, w, h) : piecesFromMask(m, w, h);
+  const pieces = 32 - Math.clz32(inPiece.reduce((a, b) => a | b, 0));
+  const owns = paths.map(p => {
+    const hits = new Float32Array(pieces);
+    for (let k = 0; k < p.xs.length; k++) {
+      const bits = piecesNear(inPiece, w, h, Math.round(p.xs[k]), Math.round(p.ys[k]), 3);
+      for (let c = 0; c < pieces; c++) if (bits & (1 << c)) hits[c]++;
+    }
+    let most = 0;
+    for (let c = 1; c < pieces; c++) if (hits[c] > hits[most]) most = c;
+    if (!pieces || hits[most] === 0) return 0xffffffff;
+    let bits = 0;
+    for (let c = 0; c < pieces; c++) if (hits[c] > 0 && (c === most || hits[c] >= Math.max(3, 0.15 * p.xs.length))) bits |= 1 << c;
+    return bits;
+  });
+
   const u = new Float32Array(w * h).fill(FAR);
   const label = new Int16Array(w * h).fill(-1);
+  const start = new Uint8Array(w * h);   // pixels the brush covers as it touches down
   const ds = new Float32Array(paths.length), as = new Float32Array(paths.length);
   const timeOf = (s, d, a) => (starts[s] + Math.max(0, a - Math.sqrt(Math.max(0, brush * brush - d * d)))) / total;
   const nearest = (s, px, py) => {
@@ -277,9 +403,11 @@ function strokeMap(ch, paint) {
   for (let i = 0; i < m.length; i++) {
     if (m[i] <= 30) continue;
     const px = i % w, py = (i / w) | 0;
+    const here = inPiece[i];
     let dmin = 1e9;
     for (let s = 0; s < paths.length; s++) {
       const p = paths[s];
+      if (here && !(owns[s] & here)) { ds[s] = 1e9; continue; }
       const bx = Math.max(p.x0 - px, 0, px - p.x1), by = Math.max(p.y0 - py, 0, py - p.y1);
       if (Math.hypot(bx, by) > Math.min(dmin + tie, reach) + brush) { ds[s] = 1e9; continue; }
       nearest(s, px, py);
@@ -294,6 +422,7 @@ function strokeMap(ch, paint) {
       if (t < bt) { bt = t; bs = s; }
     }
     u[i] = bt; label[i] = bs;
+    start[i] = as[bs] <= brush + 1.5 ? 1 : 0;
   }
 
   // tidy the edges between strokes: a pixel surrounded by another stroke's
@@ -312,13 +441,14 @@ function strokeMap(ch, paint) {
         for (let b = 0; b < 8; b++) if (label[i + around[b]] === l) c++;
         if (c > bc) { bc = c; bl = l; }
       }
-      if (bl !== own && bc >= 5) next[i] = bl;
+      if (bl !== own && bc >= 5 && (!inPiece[i] || owns[bl] & inPiece[i])) next[i] = bl;
     }
     for (let i = 0; i < label.length; i++) {
       if (next[i] === label[i]) continue;
       label[i] = next[i];
       nearest(next[i], i % w, (i / w) | 0);
       u[i] = timeOf(next[i], ds[next[i]], as[next[i]]);
+      start[i] = as[next[i]] <= brush + 1.5 ? 1 : 0;
     }
   }
 
@@ -396,8 +526,31 @@ function strokeMap(ch, paint) {
     fixed[i] = nb.subarray(0, n).sort()[n >> 1];
   }
   u.set(fixed);
+  // each stroke touches down in one place: keep its biggest patch of start pixels
+  for (let st = 0; st < paths.length; st++) {
+    const patches = [];
+    const seen = new Uint8Array(u.length);
+    for (let i = 0; i < u.length; i++) {
+      if (!start[i] || label[i] !== st || seen[i]) continue;
+      const list = [i];
+      seen[i] = 1;
+      for (let k = 0; k < list.length; k++) {
+        const x = list[k] % w, y = (list[k] / w) | 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx, ny = y + dy, j = ny * w + nx;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h || seen[j] || !start[j] || label[j] !== st) continue;
+          seen[j] = 1;
+          list.push(j);
+        }
+      }
+      patches.push(list);
+    }
+    patches.sort((a, b) => b.length - a.length);
+    for (const p of patches.slice(1)) for (const i of p) start[i] = 0;
+  }
+  grow(u, m, w, h, start, heap, push, pop);
   dilate(u, w, h, 5);
-  return { u, w, h, debug: { paths, half } };
+  return { u, w, h, debug: { paths, half, pieces } };
 }
 
 // Flowing time map for text without stroke data: ink spreads through each
@@ -507,10 +660,11 @@ function flowMap(m, w, h, headline, bySize = false) {
 
 const cache = new Map();
 
-// Time map for a Japanese character drawn by paint(ctx, size).
-export function charMap(ch, paint) {
+// Time map for a Japanese character drawn by paint(ctx, size); piecePaints,
+// if given, draw each of its pieces from the font's outlines.
+export function charMap(ch, paint, piecePaints = null) {
   const key = `ja:${ch}`;
-  if (!cache.has(key)) cache.set(key, strokeMap(ch, paint));
+  if (!cache.has(key)) cache.set(key, strokeMap(ch, paint, piecePaints));
   return cache.get(key);
 }
 

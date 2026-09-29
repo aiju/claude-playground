@@ -99,7 +99,8 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/alignment.js` | When each line and syllable is actually sung (measured) |
 | `src/schedule.js` | When each syllable is sung and each character written, from the readings in `lyrics.js` |
 | `src/text.js` | Lays out the lyrics and writes each character while it's sung |
-| `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: for Japanese, each KanjiVG stroke is a brush moving over the font's glyph (strokes fitted to it, crossings inked by the earlier stroke); for Devanagari, ink flowing through the letters, the headline appearing with them |
+| `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: for Japanese, each KanjiVG stroke is a brush moving over the font's glyph (strokes fitted to it, crossings inked by the earlier stroke, each stroke inking only the pieces of the glyph it runs through, the ink growing only outwards from where strokes touch down); for Devanagari, ink flowing through the letters, the headline appearing with them |
+| `src/outlines.js` | Reads glyph outlines from the brush font's TrueType data: Japanese is drawn from them, and they tell the writing which parts of a character the font draws as separate pieces |
 | `src/strokes.js` | Stroke paths for the lyric characters, generated from KanjiVG by `tools/fetch-strokes.mjs` |
 | `src/audio.js` | Decodes the song and finds loudness, drum hits and the beat for the visuals to react to |
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
