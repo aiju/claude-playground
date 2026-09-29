@@ -156,14 +156,23 @@ float sdFish(vec2 p, vec2 c, vec2 dir, float size, float wag) {
 
 // A stupa standing on y = 0, about 1.17 tall: stepped terraces, the dome,
 // the harmika, a spire of stacked parasols and a finial. rings is the
-// distance to the parasols alone.
-float sdStupa(vec2 q, out float rings) {
+// distance to the parasols alone. tiers is the terraces, the dome and the
+// harmika as slabs stacked end to end: inside, it thins out along the
+// seams between them, which the scene paints as ledges. The distance it
+// returns has each of them reaching down into the one below instead, so
+// it stays deep along the seams, and the scene's edge noise can't open
+// holes there.
+float sdStupa(vec2 q, out float rings, out float tiers) {
   q.x = abs(q.x);
   float d = sdBox(q - vec2(0.0, 0.04), vec2(0.6, 0.04)) - 0.01;
-  d = smin(d, sdBox(q - vec2(0.0, 0.115), vec2(0.5, 0.035)) - 0.01, 0.015);
-  d = smin(d, sdBox(q - vec2(0.0, 0.18), vec2(0.42, 0.03)) - 0.01, 0.015);
-  d = smin(d, max(sdEllipse(q - vec2(0.0, 0.2), vec2(0.34, 0.32)), 0.2 - q.y), 0.02);
-  d = smin(d, sdBox(q - vec2(0.0, 0.56), vec2(0.085, 0.045)) - 0.005, 0.01);
+  tiers = smin(d, sdBox(q - vec2(0.0, 0.115), vec2(0.5, 0.035)) - 0.01, 0.015);
+  tiers = smin(tiers, sdBox(q - vec2(0.0, 0.18), vec2(0.42, 0.03)) - 0.01, 0.015);
+  tiers = smin(tiers, max(sdEllipse(q - vec2(0.0, 0.2), vec2(0.34, 0.32)), 0.2 - q.y), 0.02);
+  tiers = smin(tiers, sdBox(q - vec2(0.0, 0.56), vec2(0.085, 0.045)) - 0.005, 0.01);
+  d = smin(d, sdBox(q - vec2(0.0, 0.075), vec2(0.5, 0.075)) - 0.01, 0.015);
+  d = smin(d, sdBox(q - vec2(0.0, 0.105), vec2(0.42, 0.105)) - 0.01, 0.015);
+  d = smin(d, max(sdEllipse(q - vec2(0.0, 0.2), vec2(0.34, 0.32)), -q.y), 0.02);
+  d = smin(d, sdBox(q - vec2(0.0, 0.5275), vec2(0.085, 0.0775)) - 0.005, 0.01);
   d = min(d, sdBox(q - vec2(0.0, 0.615), vec2(0.115, 0.012)) - 0.004);
   d = min(d, sdSeg(q, vec2(0.0, 0.62), vec2(0.0, 1.08)) - 0.012);
   rings = 1e3;
@@ -210,25 +219,30 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     vec2 base = vec2(0.0, -0.42 + 1.1 * sink);
     float sc = 0.9 * (1.0 + 0.012 * sin(t * 1.3) + 0.02 * uPulse);
     vec2 q = (p - base) / sc;
-    q += 0.03 * warp2(q * 1.7 + 21.0 + t * 0.02);
+    // hand-drawn wobble, fading out above the dome: the spire is thinner
+    // than the wobble, which bent it crooked and tilted its parasols
+    q += 0.03 * warp2(q * 1.7 + 21.0 + t * 0.02) * smoothstep(0.6, 0.45, q.y);
     q.x /= 0.3 + 0.7 * ease(build * 1.6);                 // unfolding from the crease
-    float rings;
-    float ds = sdStupa(q, rings);
+    float rings, tiers;
+    float ds = sdStupa(q, rings, tiers);
     float env = -ds / 0.06 - 3.0 * smoothstep(-0.06, 0.06, q.y - (build * 1.25 - 0.06));
     float n = fbm(vec2(abs(q.x), q.y) * 2.6 + 21.0 + vec2(0.0, t * 0.03)) * 0.45 + gnoise(vec2(abs(q.x), q.y) * 11.0 + 21.0) * 0.1;
     float d = -(env + n - 0.1) * 0.06;
+    // inside, it's shaded by the tiers (the pale pools and dark lines of the
+    // ledges), but never so shallow that a seam looks like a hole
+    float dt = min(d - ds + tiers, max(d, -0.01));
     // as the water arrives it melts, from the top down: the edge softens and
     // spreads, and it fades, gone by the time the water is at full strength (0:20)
     float dis = ease(span01(t, k0.y - 0.3 + 0.35 * clamp(0.6 - p.y, 0.0, 1.0), k0.y + 0.7));
-    float crisp = wash(d, q, 21.0, 0.025);
+    float crisp = wash(dt, q, 21.0, 0.025);
     float melt = softWash(d - 0.07 * dis, q + vec2(0.0, 0.05 * dis), 21.0, 0.02 + 0.09 * dis);
     float body = mix(crisp, melt, dis) * (1.0 - 0.85 * dis);
-    lift(P, body * 0.95 + softWash(d - 0.09, q, 25.0, 0.1) * 0.3 * (1.0 - dis) * step(0.001, build));   // it glows
+    lift(P, body * 0.95 + softWash(dt - 0.09, q, 25.0, 0.1) * 0.3 * (1.0 - dis) * step(0.001, build));   // it glows
     addPig(P, TURQUOISE, body * 0.26);
     addPig(P, VIOLET, body * smoothstep(0.35, 0.0, q.y) * 0.2);
     addPig(P, GAMBOGE, softWash(length((q - vec2(0.0, 0.33)) * vec2(1.0, 1.3)) - 0.13, q, 23.0, 0.08) * body * 0.4);   // a light inside the dome
-    addPig(P, ULTRA, softWash(d - 0.05, q, 22.0, 0.06) * 0.35 * (1.0 - dis) * step(0.001, build));
-    P.od += od(PRUSSIAN) * exp(-max(-d, 0.0) / 0.012) * smoothstep(0.004, -0.004, d) * 0.55 * (1.0 - dis);
+    addPig(P, ULTRA, softWash(dt - 0.05, q, 22.0, 0.06) * 0.35 * (1.0 - dis) * step(0.001, build));
+    P.od += od(PRUSSIAN) * exp(-max(-dt, 0.0) / 0.012) * smoothstep(0.004, -0.004, d) * 0.55 * (1.0 - dis);
     addOpaque(P, goldCol(q, t), inkLine(d, q, 0.003, 22.0) * 0.8 * (1.0 - dis) * step(0.001, build));
     addOpaque(P, goldCol(q * 2.0, t), smoothstep(0.004, -0.004, rings + 0.004) * smoothstep(0.02, -0.02, d) * 0.7 * (1.0 - dis));
     // the gold of its outline drifting up off it as it goes
@@ -1326,9 +1340,10 @@ void sClimax(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float md = p.y - m;
   P.od += od(VIOLET) * wash(md, p, 3.0, 0.02) * step(hz - 0.002, p.y) * 0.75 * gran(p, 0.8);
   P.od += od(ULTRA) * wash(md + 0.05, p, 4.0, 0.02) * step(hz - 0.002, p.y) * 0.25;
-  // water, with the sun's reflection broken into strokes
+  // water, with the sun's reflection broken into strokes, except under the
+  // lotus, where a gap would show as a patch of blue against the gold
   float water = 1.0 - sky;
-  float refl = smoothstep(0.45, 0.0, abs(p.x - sc.x) + 0.2 * fbm3(p * 4.0)) * dryBrush(p, 185.0, 0.05);
+  float refl = smoothstep(0.45, 0.0, abs(p.x - sc.x) + 0.2 * fbm3(p * 4.0)) * mix(dryBrush(p, 185.0, 0.05), 1.0, smoothstep(-0.82, -0.9, p.y));
   P.od += od(CERULEAN) * water * (0.35 + 0.35 * dryBrush(p + 3.0, 186.0, 0.15));
   P.od += od(ULTRA) * water * smoothstep(hz, -1.0, p.y) * 0.45;
   lift(P, water * refl * 0.6);
