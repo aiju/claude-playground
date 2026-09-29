@@ -120,12 +120,19 @@ export function analyse(buffer) {
 export function featuresAt(f, t) {
   const i = Math.min(f.level.length - 1, Math.max(0, Math.floor(t * RATE)));
   const level = f.level[i] || 0;
-  // last 8 hits before t, newest first
+  // last 8 hits before t, newest first, as [age, strength, keep]. A hit
+  // drops off the list when the eighth hit after it comes, so keep fades it
+  // out over the half second before that: whatever a scene draws for it can
+  // fade too, rather than vanish.
   let lo = 0, hi = f.hits.length;
   while (lo < hi) { const m = (lo + hi) >> 1; if (f.hits[m].t <= t) lo = m + 1; else hi = m; }
   const hits = [];
-  for (let k = lo - 1; k >= 0 && hits.length < 8; k--) hits.push([t - f.hits[k].t, f.hits[k].s]);
-  while (hits.length < 8) hits.push([99, 0]);
+  for (let k = lo - 1; k >= 0 && hits.length < 8; k--) {
+    const out = f.hits[k + 8];
+    const keep = out ? Math.min(1, Math.max(0, (out.t - t) / 0.5)) : 1;
+    hits.push([t - f.hits[k].t, f.hits[k].s, keep]);
+  }
+  while (hits.length < 8) hits.push([99, 0, 0]);
   let pulse = 0;
   for (const [age, s] of hits) pulse = Math.max(pulse, s * Math.exp(-age * 6));
   const beat = (((t - f.beatOffset) / f.period) % 1 + 1) % 1;

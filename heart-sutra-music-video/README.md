@@ -4,7 +4,7 @@ A music video for a Heart Sutra song (Japanese verses, Sanskrit chant) made from
 watercolour inkblots. It is painted live in the browser by WebGL shaders: folded
 Rorschach blots, gold ink on indigo paper, sumi-e bamboo, a lotus at sunrise and
 a closing ensō. The lyrics write themselves onto the page as they're sung,
-stroke by stroke in calligraphic Japanese and letter by letter in Devanagari.
+stroke by stroke in calligraphic Japanese and syllable by syllable in Devanagari.
 
 The scene-by-scene plan is in [OUTLINE.md](OUTLINE.md).
 
@@ -67,7 +67,7 @@ download button.
 ```sh
 npm install
 node tools/render.mjs                                   # the whole song, into out/heart-sutra.mp4
-node tools/render.mjs --from 209.5 --to 226 --out out/shot-18.mp4
+node tools/render.mjs --from 212 --to 230 --out out/enso.mp4
 node tools/render.mjs --gpu --fps 60                    # use this machine's GPU
 ```
 
@@ -98,7 +98,7 @@ the CPU (SwiftShader), at about 1–4 s per 1080p frame.
 | `src/alignment.js` | When each line and syllable is actually sung (measured) |
 | `src/schedule.js` | When each syllable is sung and each character written, from the readings in `lyrics.js` |
 | `src/text.js` | Lays out the lyrics and writes each character while it's sung |
-| `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: KanjiVG stroke order for Japanese, a flowing fill with the headline last for Devanagari |
+| `src/writing.js` | Time maps that say when the brush reaches each pixel of a glyph: for Japanese, each KanjiVG stroke is a brush moving over the font's glyph (strokes fitted to it, crossings inked by the earlier stroke); for Devanagari, ink flowing through the letters, the headline appearing with them |
 | `src/strokes.js` | Stroke paths for the lyric characters, generated from KanjiVG by `tools/fetch-strokes.mjs` |
 | `src/audio.js` | Decodes the song and finds loudness, drum hits and the beat for the visuals to react to |
 | `src/renderer.js`, `src/main.js` | WebGL plumbing, the player, and the capture hook the tools use |
@@ -138,12 +138,13 @@ Everything time-based lives in three files, all in song seconds:
   *Full and empty* beat 0 fills the bowl, beat 1 drains it and beat 2 rinses
   the indigo away. Each beat's `label` says what it does.
 
-**`syllable-timings.json`** holds the syllable timings corrected by ear in
-the timing editor, which haven't been worked into `alignment.js` yet: for
-every sung line, each syllable's text, start and end, whether the line was
-checked, and, where it changed, when the line is on screen.
-`node tools/export-timings.mjs edits.json` writes it from the editor's edits
-(its download, or its database state).
+**`syllable-timings.json`** holds the syllable timings from the first pass by
+ear in the timing editor: for every sung line, each syllable's text, start
+and end, whether the line was checked, and, where it changed, when the line is
+on screen. They're worked into `alignment.js`, and the scenes, beats and
+on-screen windows were retimed to them. `node tools/export-timings.mjs
+edits.json` writes the file from the editor's edits (its download, or its
+database state) for the next pass.
 
 `src/schedule.js` turns a line into syllable times and character writing
 times. The video, through `text.js`, and the timing editor both use it.

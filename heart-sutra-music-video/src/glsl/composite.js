@@ -23,7 +23,7 @@ uniform float uTA, uTB, uVarA, uVarB, uMix;
 uniform vec4 uBeatA0, uBeatA1, uBeatB0, uBeatB1;   // each scene's beats (see scenes.js)
 uniform int uTrans;
 uniform float uLevel, uPulse, uBeat;
-uniform vec2 uHits[8];
+uniform vec3 uHits[8];       // last drum hits, newest first: seconds since, strength, keep (fades to 0 before it drops off)
 uniform float uFade;          // 0 = paper white, 1 = full picture (start and end)
 uniform sampler2D uText;      // lyric glyphs: colour + alpha
 uniform sampler2D uTextCtl;   // r: how much is written, g: how wet it is

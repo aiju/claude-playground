@@ -10,8 +10,9 @@
 //
 // Uniforms available here: uTime (song time), uLevel (loudness 0..1),
 // uPulse (decaying hit envelope 0..1), uBeat (beat phase 0..1),
-// uHits[i] = (seconds since hit, strength) for the last few drum hits,
-// newest first.
+// uHits[i] = (seconds since hit, strength, keep) for the last eight drum
+// hits, newest first; keep fades from 1 to 0 before a hit drops off the list,
+// so anything drawn for a hit should be multiplied by it.
 
 // Helpers more than one scene uses.
 export const shared = /* glsl */ `
@@ -149,14 +150,71 @@ void sPrajna(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   2: { fn: 'sDescent', src: /* glsl */ `
 // ================================================================ 2 · 沈む descent
+// We sink: the surface light falls away above, bubbles and drifting pigment
+// stream upwards past us, a jellyfish rises by, and on the choir chant a
+// shoal of gold fish gathers into a ring folded like an inkblot.
+
+// A small fish swimming along dir, centred at c.
+float sdFish(vec2 p, vec2 c, vec2 dir, float size, float wag) {
+  vec2 q = (p - c) / size;
+  q = vec2(dot(q, vec2(dir.y, -dir.x)), dot(q, dir));    // y along the fish, head first
+  q.x += 0.12 * sin(q.y * 5.0 + wag) * smoothstep(0.2, -0.6, q.y);
+  float body = sdVesica(q - vec2(0.0, 0.05), 0.5, 0.16);
+  float tail = sdTaper(q, vec2(0.0, -0.4), vec2(0.0, -0.72), 0.02, 0.2);
+  tail = max(tail, -(length(q - vec2(0.0, -0.95)) - 0.26));   // forked
+  return min(body, tail) * size;
+}
+
 void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  konshi(P, p, 1.25);
-  float up = smoothstep(-1.0, 1.4, p.y);
-  lift(P, up * 0.25);
-  // the bloom: a jellyfish drifting down past us
-  vec2 c = vec2(-0.35, 0.2 - 0.01 * t + 0.02 * sin(t * 0.9));
-  vec2 q = p - c;
-  float pulse = 1.0 + 0.05 * sin(t * 2.2) + 0.04 * uPulse;
+  // how far we've sunk: quickly past the surface, then settling for the chant
+  float sink = 0.04 * t + 0.9 * ease(span01(t, 0.0, k1.x));
+  float deep = smoothstep(-1.0, k1.y, t);
+  konshi(P, p, 1.0 + 0.35 * deep);
+  // the surface, falling away above: a web of light on the underside of the waves
+  float sy = 0.5 + 1.1 * sink;
+  vec2 wq = vec2(p.x * 2.2, (p.y - sy) * 5.0);
+  float web = abs(fbm3(wq + vec2(t * 0.35, t * 0.2)) + 0.4 * fbm3(wq * 1.9 - t * 0.3));
+  float near = smoothstep(sy - 1.1, sy - 0.05, p.y);
+  lift(P, (smoothstep(0.12, 0.0, web) * 0.55 + 0.35) * near);
+  addPig(P, TURQUOISE, near * 0.25);
+  // light shafts, dimming as we go down
+  float sh = 0.5 + 0.5 * sin(p.x * 3.6 + (p.y - sy) * 0.9 + 1.4 * fbm3(vec2(p.x * 0.8, t * 0.05)) + t * 0.1);
+  sh = pow(sh, 4.0) * smoothstep(-1.4, sy, p.y) * (1.0 - 0.75 * deep);
+  lift(P, sh * 0.45);
+  addPig(P, CERULEAN, sh * 0.2);
+  // strata of suspended pigment streaming upwards, the nearest fastest
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    float speed = 0.5 + 0.45 * fi;
+    float yy = (p.y - sink * speed - t * 0.01) / (0.55 - fi * 0.1) + fi * 0.37;
+    float f = fract(yy) - 0.5;
+    float wisp = abs(f + 0.18 * fbm3(vec2(p.x * (0.9 + fi * 0.4) + floor(yy) * 3.1, fi))) - (0.035 + 0.02 * fi);
+    float wb = softWash(wisp, p + fi, fi + 20.0, 0.06);
+    P.od += od(mix(PRUSSIAN, VIOLET, fi * 0.35)) * wb * (0.12 + 0.05 * fi);
+  }
+  // bubbles rising in a few loose columns, faster than we sink
+  {
+    float cw = 0.32;
+    float col = floor((p.x + 2.0) / cw);
+    vec2 hc = hash22(vec2(col, 5.0));
+    if (hc.x > 0.6) {
+      float bx = (col + 0.5) * cw - 2.0 + (hc.y - 0.5) * 0.15;
+      float yy = (p.y - sink * 1.4 - t * (0.22 + 0.12 * hc.y)) * 7.0 + hc.y * 10.0;
+      float cell = floor(yy);
+      float hb = hash11(cell + col * 7.0);
+      float rad = 0.01 + 0.018 * hb;
+      vec2 bq = vec2(p.x - bx - 0.03 * sin(yy * 0.7 + col), (fract(yy) - 0.5) / 7.0);
+      float on = step(0.4, hb);
+      float ring = abs(length(bq) - rad);
+      lift(P, smoothstep(0.004, 0.0, ring) * on * 0.5 + smoothstep(rad, 0.0, length(bq)) * on * 0.15);
+      addOpaque(P, vec3(0.92, 0.95, 0.95), smoothstep(rad * 0.35, 0.0, length(bq - vec2(-rad, rad) * 0.4)) * on * 0.6);
+    }
+  }
+
+  // the jellyfish, rising past on the left
+  vec2 c = vec2(-0.72, -0.85 + 0.12 * t + 0.25 * sink + 0.02 * sin(t * 0.9));
+  vec2 q = (p - c) / 0.78;
+  float pulse = 1.0 + 0.06 * sin(t * 2.2) + 0.05 * uLevel;
   vec2 bq = q / vec2(pulse, 2.0 - pulse);
   float dome = sdEllipse(bq, vec2(0.46, 0.34));
   float scallop = bq.y + 0.03 - 0.03 * abs(sin(bq.x * 13.0 + 0.3 * sin(t)));
@@ -166,34 +224,59 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addPig(P, TURQUOISE, b * 0.25);
   addPig(P, CERULEAN, b * smoothstep(0.0, 0.3, bq.y) * 0.15);
   addPig(P, VIOLET, softWash(bell - 0.03, q, 33.0, 0.08) * 0.3);
-  // four petals inside the bell, folded like an inkblot
   float inner = blotSDF((bq - vec2(0.0, 0.14)) * 3.4, 32.0, 0.75, t, 0.55);
   float ib = wash(inner, bq, 32.0, 0.01) * smoothstep(0.004, -0.004, bell);
   lift(P, ib * 0.3);
   addPig(P, ROSE, ib * 0.4);
-  addPig(P, VIOLET, ib * 0.15);
-  addOpaque(P, goldCol(q, t), inkLine(bell, q, 0.003, 34.0) * 0.75);
-  // frilled oral arms and fine tendrils trailing below, mirrored
+  addOpaque(P, goldCol(q, t), inkLine(bell, q, 0.004, 34.0) * 0.75);
   vec2 m = vec2(abs(q.x), q.y);
   float below = smoothstep(0.0, -0.08, m.y);
-  float arm = abs(m.x - 0.06 - 0.035 * sin(m.y * 9.0 + t * 1.4)) - 0.022 * (1.0 + 0.5 * gnoise(vec2(m.y * 30.0, t))) * smoothstep(-0.95, -0.2, m.y);
-  float ab = wash(arm + edgeWobble(m * 3.0, 38.0, 0.006), m, 38.0, 0.008) * below * smoothstep(-0.95, -0.55, m.y);
-  lift(P, ab * 0.4);
-  addPig(P, ROSE, ab * 0.35);
   for (int i = 0; i < 5; i++) {
     float fi = float(i);
-    float x0 = 0.14 + fi * 0.065;
-    float wave = 0.03 * sin(m.y * 7.0 + t * 1.3 + fi * 1.7) + 0.012 * sin(m.y * 17.0 - t * 2.0 + fi);
+    float x0 = 0.1 + fi * 0.07;
+    float wave = 0.04 * sin(m.y * 6.0 + t * 1.6 + fi * 1.7) + 0.015 * sin(m.y * 15.0 - t * 2.3 + fi);
     float d = abs(m.x - x0 - wave * smoothstep(0.0, -0.4, m.y));
-    float len = 0.5 + 0.35 * hash11(fi + 3.0);
+    float len = 0.55 + 0.4 * hash11(fi + 3.0);
     float on = below * smoothstep(-len, -len * 0.4, m.y);
-    float line = inkLine(d, q + fi, 0.0035, 35.0 + fi) * on;
+    float line = inkLine(d, q + fi, 0.004, 35.0 + fi) * on;
     lift(P, line * 0.35);
-    addPig(P, CERULEAN, line * 0.3);
+    addPig(P, ROSE, line * 0.2);
     addOpaque(P, goldCol(q, t), line * 0.3);
   }
-  // marine snow rising as we sink
-  vec2 r = p + vec2(0.015 * sin(t * 0.4 + p.y * 3.0), -t * 0.04);
+
+  // the shoal: streaming up past us, then gathering into a ring on the chant,
+  // mirrored about the middle like a folded blot
+  float gather = ease(span01(t, k0.y, k0.y + 3.5));
+  vec2 sp = vec2(abs(p.x), p.y);
+  float R = 0.44 + 0.04 * sin(t * 0.8) + 0.05 * uLevel;
+  for (int i = 0; i < 16; i++) {
+    float fi = float(i);
+    vec2 h = hash22(vec2(fi, 7.0));
+    // before: a school swimming up past us in an S (and its mirror image)
+    float st = t + fi * 0.04;
+    vec2 school = vec2(0.85 + 0.35 * sin(st * 0.6), -1.25 + 0.2 * st);
+    vec2 pa = school + (h - 0.5) * vec2(0.55, 0.4) + 0.04 * vec2(sin(st * 2.0 + fi), cos(st * 1.7 + fi));
+    vec2 da = normalize(vec2(0.35 * 0.6 * cos(st * 0.6), 0.2));
+    // circling: round the right half of the ring, meeting their mirror images
+    float u = fract(fi / 16.0 + t * 0.035);
+    float ang = -PI * 0.5 + u * PI;
+    // the ring has three lobes a side, like a folded paper flower
+    float rr = R * (1.0 + 0.2 * sin(ang * 3.0 + t * 0.3) + 0.1 * (h.x - 0.5)) + 0.02 * sin(t * 1.3 + fi);
+    vec2 pb = vec2(0.0, 0.02) + rr * vec2(cos(ang), sin(ang));
+    vec2 db = vec2(-sin(ang), cos(ang));
+    vec2 c = mix(pa, pb, gather);
+    vec2 dir = normalize(mix(da, db, gather));
+    float fade = mix(1.0, smoothstep(0.0, 0.12, u) * smoothstep(1.0, 0.88, u), gather);
+    float size = 0.075 * (0.8 + 0.4 * h.y);
+    if (length(sp - c) > size * 1.2) continue;
+    float fd = sdFish(sp, c, dir, size, t * 9.0 + fi * 2.0);
+    float body = smoothstep(0.003, -0.003, fd) * fade;
+    addPig(P, TURQUOISE, softWash(fd - 0.006, sp, fi, 0.01) * fade * 0.3);
+    addOpaque(P, goldCol(sp * 3.0 + fi, t), body * 0.85);
+  }
+
+  // marine snow, rising as we sink
+  vec2 r = p + vec2(0.015 * sin(t * 0.4 + p.y * 3.0), -sink * 0.7 - t * 0.02);
   addOpaque(P, vec3(0.9, 0.93, 0.92), goldFlakes(r, 90.0, 36.0, 0.05) * 0.5);
   addOpaque(P, goldCol(r, t), goldFlakes(r * 1.3, 38.0, 37.0, 0.06) * 0.85);
 }
@@ -355,69 +438,117 @@ void sFiveLights(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   7: { fn: 'sFullEmpty', src: /* glsl */ `
 // ================================================================ 7 · 満ちて 空っぽで full and empty
+// A gold moon over a night sea. It waxes full on 満ちて and wanes on 空っぽで
+// until only its outline is left, an empty circle; then the indigo rinses
+// away for the chorus. The moon neither gains nor loses anything: only the
+// light on it moves.
 void sFullEmpty(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  // the indigo starts to rinse away from the centre before the chorus
   float rinse = smoothstep(k0.z, k1.z, t);
   float rr = length(p * vec2(0.8, 1.0)) + 0.25 * fbm(p * 1.4 + 71.0);
   float front = rinse * 2.4;
   float dyed = smoothstep(front - 0.05, front + 0.05, rr);
   konshi(P, p, 1.25 * dyed);
   P.od += od(INDIGO) * exp(-pow((rr - front) / 0.03, 2.0)) * 0.9 * step(0.001, rinse);
-  // drum hits drop ink that blooms and spreads (mirrored)
-  for (int i = 0; i < 6; i++) {
+
+  float hz = -0.34;
+  vec2 mc = vec2(0.0, 0.3 + 0.04 * easeOut(t / 4.0));   // rising a little at first
+  float R = 0.27;
+  // phase: a thin crescent, waxing to full (満ちて), waning to nothing (空っぽで)
+  float wax = ease(span01(t, k0.x, k1.x)), wane = ease(span01(t, k0.y, k1.y));
+  vec2 m = p - mc;
+  float disc = length(m) - R;
+  float half_ = sqrt(max(R * R - m.y * m.y, 0.0));
+  float k = mix(0.72, -1.0, wax);                     // waxing: the lit part grows from the right
+  float litWax = smoothstep(-0.006, 0.006, m.x - k * half_);
+  float litWane = smoothstep(-0.006, 0.006, (1.0 - 2.0 * wane) * half_ - m.x);   // waning: it shrinks to the left
+  float lit = (wane > 0.0 ? litWane : litWax) * smoothstep(0.004, -0.004, disc);
+  // the moonlight: gold leaf, with a soft glow in the sky around it
+  float glow = exp(-max(disc, 0.0) / 0.12) * (0.25 + 0.75 * (wax - wane * wax)) * (1.0 - step(disc, 0.0) * 0.6);
+  lift(P, glow * 0.35 * dyed * step(hz, p.y));
+  addPig(P, CERULEAN, glow * 0.12 * dyed);
+  vec3 gold = goldCol(m * 2.0, t);
+  float maria = 0.8 + 0.2 * fbm3(m * 7.0 + 3.0);      // the dark seas on its face
+  addOpaque(P, gold * maria, lit * 0.92);
+  // the dark part of the disc: faint earthshine, then the gold outline that
+  // stays when all the light has gone
+  P.od += od(PRUSSIAN) * smoothstep(0.004, -0.004, disc) * (1.0 - lit) * 0.35 * dyed;
+  addOpaque(P, goldCol(m, t), inkLine(disc, m, 0.0035, 73.0) * (0.35 + 0.6 * wane) * smoothstep(0.0, 1.5, t));
+
+  // the sea: slow swells, and the moon's path broken into strokes of gold
+  float water = smoothstep(hz + 0.004, hz - 0.004, p.y + 0.004 * sin(p.x * 9.0 + t));
+  float swell = 0.5 + 0.5 * sin(p.y * 40.0 / (max(hz - p.y, 0.0) + 0.15) + p.x * 1.5 + t * 0.6 + 0.8 * fbm3(p * 3.0));
+  P.od += od(PRUSSIAN) * water * (0.25 + 0.2 * swell) * dyed;
+  float path = smoothstep(0.28 + 0.25 * (hz - p.y), 0.0, abs(p.x - 0.02 * sin(p.y * 30.0)) + 0.12 * fbm3(p * vec2(3.0, 12.0) + vec2(0.0, t * 0.2)));
+  float strokes = dryBrush(vec2(p.x * 3.0 + t * 0.05, p.y * 1.5), 75.0, 0.05);
+  float moonlight = wax * (1.0 - wane) + 0.15;
+  addOpaque(P, goldCol(p * 3.0, t), water * path * strokes * moonlight * 0.75 * dyed);
+  // the tide comes in and goes out with it: a wet line creeping up the sand
+  float tide = hz - 0.45 + 0.12 * wax - 0.12 * wane + 0.015 * sin(p.x * 4.0 + t * 0.8);
+  P.od += od(PAYNE) * inkLine(p.y - tide - 0.02 * fbm3(vec2(p.x * 3.0, 2.0)), p, 0.003, 76.0) * 0.5 * dyed;
+  P.od += od(OCHRE) * smoothstep(tide + 0.01, tide - 0.02, p.y) * 0.25 * dyed;
+  // drum hits: rings spreading on the water
+  for (int i = 0; i < 4; i++) {
     float age = uHits[i].x;
-    if (age > 6.0 || age > t) continue;
+    if (age > 2.5 || age > t) continue;
     float ht = uTime - age;
     vec2 h = hash22(vec2(floor(ht * 50.0), 3.0));
-    vec2 c = vec2(0.25 + h.x * 1.2, (h.y - 0.5) * 1.5);
-    vec2 q = vec2(abs(p.x), p.y) - c;
-    float rad = 0.04 + 0.16 * sqrt(age) * uHits[i].y;
-    float d = length(q) - rad + edgeWobble(q * 2.0, ht, 0.03);
-    float b = wash(d, q, ht, 0.015) * exp(-age * 0.35);
-    lift(P, b * 0.5 * dyed);
-    addPig(P, CERULEAN, b * 0.3);
-    addOpaque(P, goldCol(q, t), inkLine(d, q, 0.002, ht) * exp(-age * 0.5) * 0.6);
+    vec2 c = vec2((h.x - 0.5) * 2.8, hz - 0.08 - h.y * 0.35);
+    vec2 q = (p - c) * vec2(0.45, 1.6);
+    float ring = abs(length(q) - (0.02 + age * 0.08));
+    float on = water * exp(-age * 1.6) * uHits[i].y * uHits[i].z * smoothstep(2.5, 1.5, age);
+    addOpaque(P, goldCol(q, t), smoothstep(0.01, 0.0, ring) * on * 0.35 * dyed);
   }
-  // the bowl: fills (満ちて) and empties (空っぽで)
-  vec2 c = p - vec2(0.0, 0.0);
-  float R = 0.38;
-  float fill = smoothstep(k0.x, k1.x, t) * (1.0 - smoothstep(k0.y, k1.y, t));
-  float level = -R + 2.0 * R * fill + 0.015 * sin(c.x * 12.0 + t * 2.0);
-  float disc = length(c) - R;
-  float water = max(disc, c.y - level) + edgeWobble(c, 72.0, 0.01);
-  float wv = wash(water, c, 72.0, 0.02);
-  lift(P, wv * 0.55);
-  addPig(P, TURQUOISE, wv * 0.4);
-  addOpaque(P, goldCol(c, t), inkLine(abs(disc) - 0.0, c, 0.004, 73.0) * 0.85 * easeOut(t / 1.5));
-  addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.02), 45.0, 74.0, 0.05) * 0.8 * dyed);
+  addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.01), 45.0, 74.0, 0.03) * 0.6 * dyed * step(hz, p.y));
 }
 ` },
   8: { fn: 'sBloom', src: /* glsl */ `
 // ================================================================ 8 · 色即是空 chorus bloom
+// A folded blot that bursts open on 色即是空 and unfolds a second time on
+// 空即是色. It never holds still: the layers of pigment slide and breathe
+// against each other, their wet edges crawl, tide lines ripple outwards
+// from each wash, and the drums throw fresh drops that spread and fade.
 void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  // bursts open on the downbeat, then keeps creeping outwards, breathing
-  // slowly and swelling a little on each drum hit
   float g = 0.25 + 0.85 * easeOut(t / 1.4) + 0.012 * t + 0.035 * sin(t * 0.9) + 0.06 * uPulse;
+  float g2 = easeOut(span01(t, k0.y, k1.y));           // the second unfolding
+  g += 0.08 * g2 * (1.0 - 0.5 * span01(t, k1.y, k1.y + 3.0));
   float bright = v;  // 1 for the final chorus
-  float tw = t * 2.5;                   // the wet edges crawl
-  vec2 q = p * (0.95 + 0.1 * bright);
-  vec2 flow = vec2(0.0, -t * 0.015);    // pigment settling inside the washes
+  float tw = t * 4.0;                                   // the wet edges crawl
+  // the page drifts slowly towards us
+  vec2 q = p * (0.95 + 0.1 * bright) * (1.0 - 0.05 * easeOut(t / 9.0));
+  vec2 flow = vec2(0.02 * sin(t * 0.3 + p.y * 2.0), -t * 0.02);    // pigment settling and swirling
   // fold crease
   P.od += od(PAYNE) * exp(-abs(p.x) / 0.004) * 0.06;
-  // five pigments, each its own blot, glazed over each other
-  float d1 = blotSDF(q * 1.05, 1.0 + bright * 40.0, g, tw, 1.1);
-  P.od += od(ROSE) * wash(d1, q + flow, 1.0, 0.03) * gran(q, 0.3) * 0.8;
-  float d2 = blotSDF((q - vec2(0.0, -0.18)) * 1.25, 2.0 + bright * 40.0, g * 0.95, tw, 1.0);
+  // each layer breathes at its own pace, so they slide over one another
+  vec2 o1 = vec2(0.0, 0.03 * sin(t * 0.45)), o2 = vec2(0.0, 0.04 * sin(t * 0.37 + 1.3));
+  vec2 o3 = vec2(0.0, 0.035 * sin(t * 0.52 + 2.1)), o4 = vec2(0.0, 0.03 * sin(t * 0.33 + 3.3));
+  vec2 o5 = vec2(0.0, 0.04 * sin(t * 0.41 + 4.4));
+  float s1 = 1.0 + 0.05 * sin(t * 0.61), s2 = 1.0 + 0.06 * sin(t * 0.43 + 1.0), s3 = 1.0 + 0.05 * sin(t * 0.57 + 2.0);
+  float d1 = blotSDF((q - o1) * 1.05 * s1, 1.0 + bright * 40.0, g, tw, 1.1);
+  P.od += od(mix(ROSE, VERMILION, 0.25 + 0.25 * sin(t * 0.2))) * wash(d1, q + flow, 1.0, 0.03) * gran(q, 0.3) * 0.8;
+  float d2 = blotSDF((q - vec2(0.0, -0.18) - o2) * 1.25 * s2 / (1.0 + 0.3 * g2), 2.0 + bright * 40.0, g * 0.95, tw, 1.0);
   P.od += od(mix(ULTRA, COBALT, 0.4 + 0.3 * bright)) * wash(d2, q + flow, 2.0, 0.025) * gran(q, 0.9) * 0.75;
-  float d3 = blotSDF((q - vec2(0.0, 0.2)) * 1.7, 3.0 + bright * 40.0, g, tw, 0.9);
+  float d3 = blotSDF((q - vec2(0.0, 0.2) - o3) * 1.7 * s3, 3.0 + bright * 40.0, g, tw, 0.9);
   P.od += od(GAMBOGE) * wash(d3, q + flow, 3.0, 0.03) * 0.8;
-  float d4 = blotSDF((q - vec2(0.0, -0.5)) * 1.9, 4.0 + bright * 40.0, g * 0.9, tw, 1.0);
+  float d4 = blotSDF((q - vec2(0.0, -0.5) - o4) * 1.9 / (1.0 + 0.25 * g2), 4.0 + bright * 40.0, g * 0.9, tw, 1.0);
   P.od += od(mix(SAPGREEN, TURQUOISE, bright)) * wash(d4, q + flow, 4.0, 0.02) * gran(q, 0.5) * 0.65;
-  float d5 = blotSDF((q - vec2(0.0, 0.5)) * 2.1, 5.0 + bright * 40.0, g, tw, 1.1);
+  float d5 = blotSDF((q - vec2(0.0, 0.5) - o5) * 2.1, 5.0 + bright * 40.0, g, tw, 1.1);
   P.od += od(VIOLET) * wash(d5, q + flow, 5.0, 0.02) * gran(q, 0.7) * 0.7;
-  // backruns where the washes met while wet
+  // the second unfolding: a glaze of turquoise opens up and down the fold
+  // behind the rest, and everything swells once more
+  float d6 = blotSDF(q * vec2(1.45, 0.9), 6.0 + bright * 40.0, 0.15 + 1.0 * g2, tw, 1.0);
+  P.od += od(mix(TURQUOISE, CERULEAN, 0.4)) * wash(d6, q + flow, 6.0, 0.025) * gran(q, 0.6) * 0.45 * step(0.001, g2);
+  // tide lines: water still spreading out from each wash
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    float front = mod(t * 0.035 + fi * 0.04, 0.12);
+    float fade = (1.0 - front / 0.12) * smoothstep(0.0, 0.02, front);
+    float dd = i == 0 ? d1 : i == 1 ? d2 : d5;
+    vec3 col = i == 0 ? ROSE : i == 1 ? ULTRA : VIOLET;
+    P.od += od(col) * exp(-pow((dd - front) / 0.004, 2.0)) * fade * 0.3;
+  }
+  // backruns where the washes met while wet, spreading as they dry
   float anyW = smoothstep(0.02, -0.02, min(min(d1, d2), min(d3, d5)));
-  P.od += od(ROSE) * backrun(q, 7.0, 3.5) * anyW * 0.35;
+  P.od += od(ROSE) * backrun(q + flow, 7.0, 3.5 - 0.6 * easeOut(t / 8.0)) * anyW * 0.35;
   // a few drops thrown out by the fold
   vec2 sq = vec2(abs(q.x), q.y);
   float spread = smoothstep(1.05, 0.55, length(sq * vec2(0.9, 1.0))) * smoothstep(0.2, 0.9, g);
@@ -425,6 +556,20 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float sp2 = splatter(sq + 0.3, 19.0, 13.0, 0.016, 0.1) + edgeWobble(sq * 4.0, 19.0, 0.004);
   P.od += od(ROSE) * wash(sp1, sq, 9.0, 0.006) * spread * 0.8;
   P.od += od(ULTRA) * wash(sp2, sq, 19.0, 0.005) * spread * 0.8;
+  // and fresh ones on the drums, mirrored, spreading as they soak in
+  for (int i = 0; i < 6; i++) {
+    float age = uHits[i].x;
+    if (age > 4.0 || age > t) continue;
+    float ht = uTime - age;
+    vec2 h = hash22(vec2(floor(ht * 50.0), 8.0));
+    vec2 c = vec2(0.55 + h.x * 0.9, (h.y - 0.5) * 1.5);
+    vec2 dq = sq - c;
+    float rad = (0.012 + 0.03 * uHits[i].y) * (0.6 + 0.8 * easeOut(age / 1.2));
+    float d = length(dq) - rad + edgeWobble(dq * 6.0, ht, 0.006);
+    float fade = uHits[i].z * smoothstep(4.0, 1.5, age);
+    vec3 col = h.y > 0.5 ? ROSE : h.x > 0.5 ? ULTRA : GAMBOGE;
+    P.od += od(col) * wash(d, dq, ht, 0.006) * fade * 0.7;
+  }
   if (bright > 0.5) addOpaque(P, goldCol(p, t), goldFlakes(p + vec2(0.0, -t * 0.02), 40.0, 31.0, 0.06) * 0.8);
 }
 ` },
@@ -446,27 +591,43 @@ void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // what remains of the chorus bloom, faded
   float d0 = blotSDF(p * 0.9, 1.0, 1.1, t, 1.1);
   P.od += od(ROSE) * wash(d0, p, 1.0, 0.03) * 0.12;
-  float s = 0.95;
-  vec2 c = vec2(-0.3, -0.02 + 0.01 * sin(t * 0.5));
-  vec2 q = (p - c) / s;
+  // the hand drifts up a little and turns, as if held out to us
+  float s = 0.93 + 0.04 * easeOut(t / 6.0);
+  vec2 c = vec2(-0.3 + 0.03 * sin(t * 0.3), -0.06 + 0.05 * easeOut(t / 5.0) + 0.012 * sin(t * 0.7));
+  vec2 q = rot(-0.05 + 0.04 * sin(t * 0.35)) * (p - c) / s;
   float d = sdHand(q) * s;
   float inside = smoothstep(0.004, -0.004, d + edgeWobble(q, 81.0, 0.006));
-  // the galaxy seen through the hand
+  float well = ease(span01(t, k0.x, k1.x));    // 宇宙が透ける: the universe shows through, and spills out
+  // the galaxy seeps into the hand from the palm outwards
   vec2 g = q - vec2(-0.02, 0.0);
   float r = length(g), a = atan(g.y, g.x);
-  float arms = 0.5 + 0.5 * cos(2.0 * (a + log(r + 0.03) * 2.3 - t * 0.12) + fbm3(g * 4.0) * 1.8);
-  float core = smoothstep(0.55, 0.0, r);
-  P.od += (od(INDIGO) * 1.1 + od(VIOLET) * 0.4 * (1.0 - arms)) * inside * (0.8 + 0.3 * fbm3(g * 2.0));
-  lift(P, inside * (core * 0.8 * (0.4 + 0.6 * arms) + 0.15 * arms * smoothstep(1.0, 0.3, r)));
-  addPig(P, ROSE, inside * arms * smoothstep(0.7, 0.15, r) * 0.25);
-  addPig(P, GAMBOGE, inside * smoothstep(0.2, 0.0, r) * 0.35);
-  addPig(P, CERULEAN, inside * arms * smoothstep(0.9, 0.4, r) * 0.2);
-  addOpaque(P, vec3(0.98, 0.97, 0.94), goldFlakes(g + 5.0, 130.0, 82.0, 0.07) * inside * 0.9);
-  addOpaque(P, vec3(0.98, 0.97, 0.94), goldFlakes(g * 0.7, 45.0, 83.0, 0.04) * inside);
-  addOpaque(P, goldCol(g, t), goldFlakes(g * 1.3 + 2.0, 70.0, 84.0, 0.05) * inside * 0.8);
-  // the hand itself: a loose line of sumi, and a pale shadow wash beside it
-  P.od += od(SUMI) * inkLine(d, q, 0.007, 85.0) * 0.95;
-  P.od += od(PAYNE) * softWash(abs(d + 0.02) - 0.02, q, 86.0, 0.03) * 0.12;
+  float seep = smoothstep(0.0, 0.08, 0.15 + 1.4 * ease(span01(t, 0.3, 3.2)) - r - 0.1 * fbm3(g * 3.0 + t * 0.2));
+  float fill = inside * seep;
+  float spin = t * 0.28;
+  float arms = 0.5 + 0.5 * cos(2.0 * (a + log(r + 0.03) * 2.3 - spin) + fbm3(g * 4.0 + vec2(t * 0.05, 0.0)) * 1.8);
+  float core = smoothstep(0.55, 0.0, r) * (0.9 + 0.1 * sin(t * 1.3));
+  // beyond the edge of the hand once it spills: a faint nebula reaching out
+  float out_ = well * smoothstep(0.45, 0.0, d) * (1.0 - inside) * (0.5 + 0.5 * fbm3(g * 2.5 - t * 0.15));
+  float cosmos = fill + out_ * 0.6;
+  P.od += (od(INDIGO) * 1.1 + od(VIOLET) * 0.4 * (1.0 - arms)) * cosmos * (0.8 + 0.3 * fbm3(g * 2.0));
+  lift(P, cosmos * (core * 0.8 * (0.4 + 0.6 * arms) + 0.15 * arms * smoothstep(1.0, 0.3, r)));
+  addPig(P, ROSE, cosmos * arms * smoothstep(0.7, 0.15, r) * 0.25);
+  addPig(P, GAMBOGE, fill * smoothstep(0.2, 0.0, r) * 0.35);
+  addPig(P, CERULEAN, cosmos * arms * smoothstep(0.9, 0.4, r) * 0.2);
+  // stars turning with the galaxy, drifting outwards when it spills
+  vec2 gs = rot(spin * 0.15) * g / (1.0 + 0.25 * well);
+  addOpaque(P, vec3(0.98, 0.97, 0.94), goldFlakes(gs + 5.0, 130.0, 82.0, 0.07) * cosmos * 0.9);
+  addOpaque(P, vec3(0.98, 0.97, 0.94), goldFlakes(gs * 0.7, 45.0, 83.0, 0.04) * cosmos);
+  addOpaque(P, goldCol(g, t), goldFlakes(gs * 1.3 + 2.0, 70.0, 84.0, 0.05) * cosmos * 0.8);
+  // a comet crossing the palm
+  vec2 cp = g - vec2(-0.6 + 1.2 * fract(t * 0.12), 0.35 - 0.3 * fract(t * 0.12));
+  float comet = smoothstep(0.012, 0.0, length(cp * vec2(1.0, 3.0) + vec2(0.0, 0.0))) + exp(-abs(cp.y + 0.25 * cp.x) / 0.004) * smoothstep(0.0, 0.25, cp.x) * smoothstep(0.35, 0.1, cp.x);
+  addOpaque(P, vec3(0.98, 0.96, 0.9), comet * fill * 0.7);
+  // the hand itself: a loose line of sumi, brushed in first, growing fainter
+  // as the hand turns to sky; and a pale shadow wash beside it
+  float brushed = smoothstep(0.0, 0.06, easeOut(span01(t, -0.4, 1.6)) * 1.1 - fract((atan(q.x, -q.y) + PI) / TAU));
+  P.od += od(SUMI) * inkLine(d, q, 0.007, 85.0) * brushed * (0.95 - 0.45 * well);
+  P.od += od(PAYNE) * softWash(abs(d + 0.02) - 0.02, q, 86.0, 0.03) * 0.12 * (1.0 - well);
 }
 ` },
   10: { fn: 'sWheel', src: /* glsl */ `
@@ -498,49 +659,79 @@ void sWheel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   11: { fn: 'sTaiko', src: /* glsl */ `
 // ================================================================ 11 · 尺八と太鼓 shakuhachi and taiko
+// Call and response in a bamboo grove: the drums play a bar, then rest while
+// the shakuhachi answers. Each answer is a breath of ink drawn across the
+// grove (beats 0-2); each strong drum hit throws a splash. When the drums
+// play on without resting (beat 3) the grove shakes and leaves come down.
+
+// One breath: a long brushstroke drawn across the page from the left while
+// the flute plays (a..b), running dry towards its end, then soaking away.
+float breath(vec2 p, float t, float a, float b, float y0, float seed) {
+  float prog = span01(t, a - 0.1, b);
+  float fade = 1.0 - smoothstep(b + 0.8, b + 4.0, t);
+  if (prog <= 0.0 || fade <= 0.0) return 0.0;
+  float x0 = -2.0, x1 = 1.95;
+  float head = mix(x0, x1, easeOut(prog));
+  float along = clamp((p.x - x0) / (x1 - x0), 0.0, 1.0);
+  float y = y0 + 0.12 * sin(p.x * 1.2 + seed) + 0.05 * sin(p.x * 3.1 + seed * 2.0) + 0.012 * sin(p.x * 9.0 + t * 0.6);
+  float w = (0.006 + 0.022 * pow(sin(min(along * 1.15, 1.0) * PI), 0.7)) * (0.8 + 0.3 * gnoise(vec2(p.x * 2.5, seed)));
+  float d = abs(p.y - y) - w;
+  float drawn = smoothstep(head, head - 0.06, p.x);
+  float fly = dryBrush(vec2(p.x * 0.5 + seed, (p.y - y) / max(w, 0.004) * 0.12), seed, 0.25 - 0.45 * along);
+  return smoothstep(0.003, -0.003, d) * drawn * fade * mix(1.0, fly, smoothstep(0.35, 0.95, along));
+}
+
 void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  // mist and a pale vermilion sun behind the grove
+  // how much the flute is sounding right now (the drums are resting)
+  float rest = 0.0;
+  for (int i = 0; i < 3; i++) rest = max(rest, win(t, k0[i], k1[i], 0.3, 0.6));
+  float drums = smoothstep(k0.w, k0.w + 0.5, t);
+  // mist and a pale vermilion sun behind the grove; the mist rises in the rests
   float sd = length(p - vec2(0.75, 0.42)) - 0.3 + edgeWobble(p, 101.0, 0.02);
   P.od += od(VERMILION) * wash(sd, p, 101.0, 0.03) * 0.38;
-  P.od += od(PAYNE) * softWash(-0.6 - p.y + 0.15 * fbm3(vec2(p.x * 0.8 + t * 0.02, 1.0)), p, 102.0, 0.25) * 0.12;
+  P.od += od(PAYNE) * softWash(-0.6 - p.y + 0.15 * fbm3(vec2(p.x * 0.8 + t * 0.03, 1.0)), p, 102.0, 0.25) * 0.12;
   P.od += od(PAYNE) * softWash(p.y - 0.7 + 0.15 * fbm3(vec2(p.x * 0.7 - t * 0.02, 2.0)), p, 103.0, 0.3) * 0.06;
-  // bamboo, three depths, drifting past at different speeds
+  // bamboo, three depths, drifting past; the wind moves it in the rests and the drums shake it
+  float sway = 0.015 * sin(t * 1.1) * rest + 0.01 * sin(t * 7.0) * uPulse * drums;
   for (int i = 0; i < 6; i++) {
     float fi = float(i);
     float x0 = -1.9 + fi * 0.72 + 0.2 * hash11(fi) - t * 0.01;
-    bamboo(P, p, x0, 0.014, 0.03, 0.34, 0.22, fi + 110.0);
+    bamboo(P, p, x0, 0.014, 0.03 + sway * 0.5, 0.34, 0.22, fi + 110.0);
   }
   for (int i = 0; i < 4; i++) {
     float fi = float(i);
     float x0 = -1.5 + fi * 1.05 + 0.3 * hash11(fi + 20.0) - t * 0.02;
-    bamboo(P, p, x0, 0.024, -0.04, 0.42, 0.5, fi + 120.0);
+    bamboo(P, p, x0, 0.024, -0.04 + sway, 0.42, 0.5, fi + 120.0);
   }
+  // the mist lifts over the middle distance while the flute plays
+  addOpaque(P, vec3(0.95, 0.94, 0.9), softWash(abs(p.y + 0.35 + 0.1 * fbm3(vec2(p.x * 0.6 + t * 0.05, 7.0))) - 0.18, p, 105.0, 0.2) * rest * 0.35);
   for (int i = 0; i < 2; i++) {
     float fi = float(i);
     float x0 = (i == 0 ? -1.25 : 1.35) - t * 0.035;
-    bamboo(P, p, x0, 0.042, 0.05, 0.55, 1.0, fi + 130.0);
-    bambooLeaves(P, p, vec2(x0 + 0.05, 0.55 - fi * 0.9), 1.0 - fi * 2.0, 0.24, 0.95, fi + 131.0, t);
-    bambooLeaves(P, p, vec2(x0 - 0.04, 0.1 + fi * 0.3), -1.0 + fi * 2.0, 0.2, 0.9, fi + 133.0, t);
+    bamboo(P, p, x0, 0.042, 0.05 + sway * 1.5, 0.55, 1.0, fi + 130.0);
+    bambooLeaves(P, p, vec2(x0 + 0.05, 0.55 - fi * 0.9), 1.0 - fi * 2.0, 0.24, 0.95, fi + 131.0, t * (1.0 + 2.0 * rest));
+    bambooLeaves(P, p, vec2(x0 - 0.04, 0.1 + fi * 0.3), -1.0 + fi * 2.0, 0.2, 0.9, fi + 133.0, t * (1.0 + 2.0 * rest));
   }
-  // the shakuhachi: one breath of ink drifting across
-  float bx = -2.0 + t * 0.3;
-  float by = 0.2 + 0.1 * sin(p.x * 1.7 + t * 0.4) + 0.03 * sin(p.x * 5.0 - t);
-  float breath = inkLine(p.y - by, p, 0.004, 104.0) * smoothstep(bx, bx - 0.4, p.x) * smoothstep(bx - 2.4, bx - 1.4, p.x);
-  P.od += od(PAYNE) * breath * 0.7;
-  // taiko: each hit throws a splash of ink, the loudest ones in vermilion
+  // the shakuhachi's answers: a breath of ink for each rest
+  float br = breath(p, t, k0.x, k1.x, 0.3, 104.0) + breath(p, t, k0.y, k1.y, -0.05, 107.0) + breath(p, t, k0.z, k1.z, 0.5, 109.0);
+  br = min(br, 1.0);
+  P.od += od(SUMI) * br * 0.85;
+  // taiko: each strong hit throws a splash of ink, the loudest in vermilion
   for (int i = 0; i < 8; i++) {
     float age = uHits[i].x;
-    if (age > 5.0 || age > t) continue;
+    float str = uHits[i].y;
+    if (age > 2.6 || age > t || str < 0.5) continue;
+    float hs = t - age;    // when it was hit, in scene time: nothing splashes in the rests
+    if ((hs > k0.x && hs < k1.x) || (hs > k0.y && hs < k1.y) || (hs > k0.z && hs < k1.z)) continue;
     float ht = uTime - age;
     vec2 h = hash22(vec2(floor(ht * 60.0), 11.0));
-    vec2 c = vec2((h.x - 0.5) * 2.6, (h.y - 0.5) * 1.3);
-    float size = (0.06 + 0.12 * uHits[i].y) * easeOut(age * 8.0);
+    vec2 c = vec2((h.x - 0.5) * 2.8, (h.y - 0.5) * 1.3);
+    float size = (0.05 + 0.11 * str) * easeOut(age * 8.0);
     if (length((p - c) * vec2(1.0, 0.5)) > size * 2.4 + 0.02) continue;
     float d = sdSplash(p - c, h.x * 40.0, size);
-    float fade = exp(-age * 0.45);
-    vec3 col = uHits[i].y > 0.75 ? VERMILION : SUMI;
+    float fade = uHits[i].z * (1.0 - smoothstep(1.2, 2.6, age));
+    vec3 col = str > 0.8 ? VERMILION : SUMI;
     P.od += od(col) * wash(d, p, h.y * 30.0, 0.008) * fade * 0.95;
-    // drips
     for (int k = 0; k < 2; k++) {
       float fk = float(k);
       float dx = (hash11(ht + fk) - 0.5) * size * 1.2;
@@ -550,6 +741,117 @@ void sTaiko(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
       float dd = smin(sdTaper(dp, da, db, size * 0.07, size * 0.035), length(dp - db) - size * 0.06, 0.01);
       P.od += od(col) * wash(dd, p, fk, 0.004) * fade * 0.85;
     }
+  }
+  // leaves shaken down while the drums play on
+  if (drums > 0.0) {
+    vec2 lq = vec2(p.x + 0.1 * sin(p.y * 2.0 + t), p.y + (t - k0.w) * 0.22) * 3.5;
+    vec2 g = floor(lq), f = fract(lq) - 0.5;
+    vec2 h = hash22(g + 140.0);
+    float on = step(0.72, h.x) * drums * smoothstep(0.0, 1.5, (t - k0.w) - h.y * 1.5);
+    vec2 leafq = rot(h.y * TAU + t * (h.x - 0.8) * 3.0) * (f - (h - 0.5) * 0.4);
+    float leaf = sdVesica(leafq, 0.2, 0.045);
+    P.od += od(SUMI) * wash(leaf / 3.5, p, h.y * 9.0, 0.004) * on * 0.8;
+  }
+}
+` },
+  17: { fn: 'sCranes', src: /* glsl */ `
+// ================================================================ 17 · 鶴 cranes over the mountains
+// After the drums, one long held note: mountains in layers of mist, the
+// sun from the grove sinking behind them, and three red-crowned cranes
+// crossing slowly in a loose V.
+
+// A crane in flight facing left, about 0.8 wide; flap is the wing phase.
+// Returns distances to its white parts (x), its black parts (y) and its
+// red crown (z).
+vec3 sdCrane(vec2 q, float flap) {
+  float body = sdEllipse(q - vec2(0.02, 0.0), vec2(0.15, 0.045));
+  float neck = sdTaper(q, vec2(-0.1, 0.012), vec2(-0.29, 0.035), 0.016, 0.01);
+  float head = length(q - vec2(-0.3, 0.036)) - 0.019;
+  float beak = sdTaper(q, vec2(-0.31, 0.034), vec2(-0.39, 0.024), 0.007, 0.0015);
+  float legs = min(sdTaper(q, vec2(0.12, -0.012), vec2(0.36, -0.03), 0.005, 0.003),
+                   sdTaper(q, vec2(0.12, -0.02), vec2(0.35, -0.045), 0.005, 0.003));
+  float tail = sdTaper(q, vec2(0.13, 0.0), vec2(0.2, -0.004), 0.025, 0.012);
+  // the near wing, a broad sweep from the shoulder; its trailing feathers are black
+  float up = sin(flap);
+  vec2 sh = vec2(-0.02, 0.02);
+  vec2 tip = sh + vec2(0.16 - 0.06 * abs(up), 0.38 * up);
+  float wing = sdTaper(q, sh + vec2(0.03, 0.0), tip, 0.085, 0.035) + 0.008 * sin(dot(q, vec2(9.0, 40.0)));
+  vec2 ax = normalize(tip - sh);
+  float across = dot(q - sh, vec2(ax.y, -ax.x)) * sign(up + 1e-3);
+  float black = max(wing, 0.012 - across);    // the half towards the tail
+  float white = min(min(body, head), max(wing, -black));
+  float dark = min(min(min(neck, beak), min(legs, tail)), black);
+  float crown = length(q - vec2(-0.298, 0.05)) - 0.009;
+  return vec3(white, dark, crown);
+}
+
+// Height of mountain range i (0 far .. 3 near) at x: ridged peaks of
+// varying height over a gentle swell.
+float rangeH(float x, float fi) {
+  float base = 0.05 - fi * 0.22;
+  float r = 1.0 - abs(gnoise(vec2(x * (1.1 + fi * 0.3), fi * 5.0)));
+  r = r * r * (0.6 + 0.4 * (1.0 - abs(gnoise(vec2(x * 2.7 + 1.3, fi * 3.0)))));
+  float swell = 0.55 + 0.45 * sin(x * (0.6 + fi * 0.2) + fi * 1.7);
+  return base + (0.34 - fi * 0.05) * r * swell + 0.02 * gnoise(vec2(x * 11.0, fi * 2.0));
+}
+
+void sCranes(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
+  float pan = t * 0.02;
+  // morning sky, and the sun sinking behind the far range
+  P.od += od(GAMBOGE) * softWash(-p.y + 0.1 + 0.1 * fbm3(p * 1.1 + 3.0), p, 201.0, 0.3) * 0.18;
+  P.od += od(ROSE) * softWash(p.y - 0.75 + 0.1 * fbm3(p * 1.3), p, 202.0, 0.3) * 0.1;
+  float sd = length(p - vec2(0.8, 0.38 - 0.05 * t / 7.0)) - 0.26 + edgeWobble(p, 203.0, 0.02);
+  P.od += od(VERMILION) * wash(sd, p, 203.0, 0.03) * 0.3;
+  // mountain ranges, far to near, each paler at its foot where the mist lies
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i);
+    float x = p.x + pan * (0.4 + fi * 0.6) + fi * 3.7;
+    float base = 0.05 - fi * 0.22;
+    float h = rangeH(x, fi);
+    float d = p.y - h;
+    float body = wash(d + edgeWobble(p * vec2(1.0, 2.0), 204.0 + fi, 0.01), p, 204.0 + fi, 0.012);
+    float foot = smoothstep(base - 0.2, base + 0.12, p.y);    // fading into the mist below
+    float k = (0.2 + fi * 0.2) * foot;
+    P.od += od(mix(PAYNE, SUMI, fi / 3.0)) * body * k * gran(p, 0.4);
+    P.od += od(ULTRA) * body * foot * 0.06 * (3.0 - fi);
+    // dry-brush texture strokes on the slopes (皴)
+    P.od += od(SUMI) * dryBrush(rot(0.5) * p * vec2(2.5, 1.0) + fi, 205.0 + fi, -0.1) * smoothstep(0.0, -0.06, d) * smoothstep(-0.2, -0.02, d) * foot * 0.07 * (fi + 1.0) / 4.0;
+    // mist drifting between the ranges
+    addOpaque(P, vec3(0.955, 0.935, 0.885), softWash(abs(p.y - base + 0.1 + 0.05 * fbm3(vec2(p.x * 0.7 - t * 0.04, fi))) - 0.05, p, 206.0 + fi, 0.08) * 0.55);
+  }
+  // pines on the nearest ridge
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    float bx = -1.3 + fi * 0.16;
+    vec2 b = vec2(bx - pan * 2.2, rangeH(bx + 3.0 * 3.7, 3.0) - 0.02);   // standing on the near range as it drifts
+    vec2 q = p - b;
+    float trunk = sdSeg(q, vec2(0.0), vec2(0.03 * sin(fi * 2.0), 0.25 + 0.05 * fi)) - 0.006;
+    float crown = 1e3;
+    for (int j = 0; j < 3; j++) {
+      float fj = float(j);
+      crown = smin(crown, sdEllipse(q - vec2((hash11(fj + fi * 4.0) - 0.5) * 0.12, 0.12 + fj * 0.06), vec2(0.07 - fj * 0.012, 0.026)), 0.03);
+    }
+    crown += 0.015 * fbm3(q * 14.0 + fi);
+    P.od += od(SUMI) * wash(min(trunk, crown), q, fi + 207.0, 0.008) * 0.8;
+  }
+  // three cranes in a loose V, crossing right to left
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    vec2 off = vec2(fi * 0.36, -fi * 0.1 + (i == 2 ? 0.2 : 0.0));
+    float flap = t * TAU / 1.4 + fi * 1.1;
+    vec2 c = vec2(1.85 - (t - k0.x) * 0.5, 0.42 - 0.03 * t / 7.0) + off;
+    c.y -= 0.02 * sin(flap);                      // the body rises as the wings come down
+    float sc = 0.85 - fi * 0.1;
+    vec2 q = (p - c) / sc;
+    if (length(q) > 0.6) continue;
+    vec3 d = sdCrane(q, flap) * sc;
+    float white = smoothstep(0.003, -0.003, d.x + edgeWobble(q * 3.0, fi, 0.002));
+    float dark = smoothstep(0.003, -0.003, d.y + edgeWobble(q * 5.0, fi + 3.0, 0.002));
+    addOpaque(P, vec3(0.97, 0.965, 0.94), white * 0.95);
+    P.od += od(PAYNE) * softWash(d.x + 0.012, q, fi, 0.02) * white * smoothstep(0.02, -0.04, q.y) * 0.35 * (1.0 - P.ga);
+    addOpaque(P, vec3(0.2, 0.2, 0.22) * (0.4 + 0.2 * fbm3(q * 20.0)), dark * 0.95);
+    addOpaque(P, vec3(0.3, 0.3, 0.33), inkLine(d.x, q, 0.0022, fi * 5.0) * (1.0 - dark) * 0.7);
+    addOpaque(P, VERMILION, smoothstep(0.002, -0.002, d.z) * 0.95);
   }
 }
 ` },
@@ -594,11 +896,14 @@ void sChains(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     P.od += od(ULTRA) * smoothstep(hz, -1.0, p.y) * 0.3;
   }
   P.od += od(PAYNE) * inkLine(p.y - hz, p, 0.002, 147.0) * 0.5;
-  // chains across the foreground, dissolving from 溶けてゆく
-  vec2 dir = normalize(vec2(1.0, -0.55));
+  // a chain hanging steeply through the middle of the page, clear of the
+  // lyrics on either side; it dissolves link by link on 溶けてゆく, from the
+  // top down, and is gone by the end of the line
+  vec2 o = vec2(-0.95, 1.15), e = vec2(0.95, -1.15);
+  vec2 dir = normalize(e - o);
   vec2 nrm = vec2(-dir.y, dir.x);
-  vec2 o = vec2(-2.0, 0.85);
-  float along = dot(p - o, dir), across = dot(p - o, nrm);
+  float along = dot(p - o, dir), across = dot(p - o, nrm) - 0.05 * sin(along * 1.7 + 0.5);
+  float total = length(e - o);
   float link = 0.17;
   float idx = floor(along / link);
   for (int k = 0; k < 2; k++) {
@@ -609,7 +914,9 @@ void sChains(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float ring = faceOn > 0.5
       ? abs(sdEllipse(q, vec2(0.105, 0.06))) - 0.014
       : sdBox(q, vec2(0.1, 0.012)) - 0.006;
-    float dissolve = smoothstep(k0.x + ii * 0.12, k0.x + 2.5 + ii * 0.12, t);
+    float sAl = clamp(cen / total, 0.0, 1.0);
+    float dur = k1.x - k0.x;
+    float dissolve = smoothstep(k0.x + sAl * dur * 0.55, k0.x + sAl * dur * 0.55 + dur * 0.45, t);
     float soft = mix(0.004, 0.05, dissolve);
     float body = smoothstep(soft, -soft, ring + edgeWobble(q * 4.0, ii, 0.006 + 0.03 * dissolve));
     float keep = (1.0 - dissolve) * (1.0 - 0.6 * smoothstep(0.3, 0.7, fbm3(q * 8.0 + ii) * 0.5 + 0.5) * dissolve);
@@ -748,7 +1055,7 @@ void sClimax(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // light breaking outward on every accent
   for (int i = 0; i < 3; i++) {
     float age = uHits[i].x;
-    float ring = exp(-pow((r - 0.4 - age * 0.9) / (0.03 + age * 0.05), 2.0)) * exp(-age * 1.2) * uHits[i].y;
+    float ring = exp(-pow((r - 0.4 - age * 0.9) / (0.03 + age * 0.05), 2.0)) * exp(-age * 1.2) * uHits[i].y * uHits[i].z;
     addOpaque(P, goldCol(p * 2.0, t), goldFlakes(p, 110.0, float(i) + floor(uTime), 0.5) * ring);
   }
   // far shore mountains
@@ -824,15 +1131,16 @@ void sUnravel(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   20: { fn: 'sEnso', src: /* glsl */ `
 // ================================================================ 20 · 円相 outro ensō
 void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
-  vec2 c = p - vec2(0.0, 0.05);
+  // high on the page, with the last lines written beneath it
+  vec2 c = p - vec2(0.0, 0.2);
   float prog = easeOut(span01(t, k0.x, k1.x));
   float a0 = radians(235.0), span = radians(335.0);
   float ang = atan(c.y, c.x);
   float s = mod(a0 - ang, TAU) / span;         // 0 at the start of the stroke
   float r = length(c);
-  float r0 = 0.56 + 0.015 * sin(s * 5.0);
+  float r0 = 0.47 + 0.013 * sin(s * 5.0);
   float press = smoothstep(0.0, 0.04, s);      // the brush settling onto the paper
-  float w = mix(0.085, 0.028, pow(s, 0.8)) * (0.85 + 0.15 * press) * (1.0 + 0.15 * gnoise(vec2(s * 7.0, 1.0)));
+  float w = mix(0.075, 0.025, pow(s, 0.8)) * (0.85 + 0.15 * press) * (1.0 + 0.15 * gnoise(vec2(s * 7.0, 1.0)));
   float dr = r - r0 - 0.02 * s;
   float edge = abs(dr) - w + 0.006 * gnoise(c * 40.0) + 0.004 * gnoise(c * 110.0);
   float drawn = smoothstep(0.004, -0.004, (s - prog) * span * r0) * step(s, 1.0);
@@ -844,7 +1152,7 @@ void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float tone = 0.8 + 0.25 * fbm3(vec2(s * 8.0, dr * 30.0)) + 0.15 * bristle;
   // the wet head where the brush first touched: a rounded pool of ink
   vec2 head = (r0 + 0.004) * vec2(cos(a0), sin(a0));
-  float hd = length((c - head) * vec2(1.0, 1.08)) - 0.085 + 0.007 * gnoise(c * 45.0);
+  float hd = length((c - head) * vec2(1.0, 1.08)) - 0.075 + 0.007 * gnoise(c * 45.0);
   float pool = smoothstep(0.003, -0.003, hd) * step(0.0, prog) * step(s, 0.25);
   P.od += od(SUMI) * (max(ink * tone, pool * 0.95) + body * exp(-max(-edge, 0.0) / 0.006) * 0.25 * (1.0 - dry)) * 1.1;
   // faint bleed around the wet part
@@ -855,7 +1163,7 @@ void sEnso(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float R = 0.1 + age * 0.3;
     float wob = 0.01 * fbm3(c * 4.0 + float(i));
     float ring = exp(-pow((r - R + wob) / 0.004, 2.0)) + 0.2 * smoothstep(R, R - 0.03, r) * smoothstep(R - 0.15, R - 0.03, r);
-    P.od += od(PAYNE) * ring * exp(-age * 0.5) * uHits[i].y * 0.1;
+    P.od += od(PAYNE) * ring * exp(-age * 0.5) * uHits[i].y * uHits[i].z * 0.1;
   }
 }
 ` },

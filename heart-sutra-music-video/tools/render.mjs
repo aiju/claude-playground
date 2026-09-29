@@ -1,7 +1,7 @@
 // Renders the video (or a stretch of it) to mp4 with headless Chromium and ffmpeg.
 //
 //   node tools/render.mjs                              # the whole song
-//   node tools/render.mjs --from 209.5 --to 226 --out out/shot-18.mp4
+//   node tools/render.mjs --from 212 --to 230 --out out/enso.mp4
 //   options: --fps 30 --w 1920 --h 1080 --jobs 1 --gpu
 //
 // --jobs renders frames in several browsers at once (only worth it when the

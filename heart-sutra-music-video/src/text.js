@@ -69,6 +69,30 @@ export async function prepareWriting(onProgress = () => {}) {
   onProgress(1);
 }
 
+// How much of a Sanskrit line is written at time t. The line is one glyph,
+// so it's written syllable by syllable: each syllable's share of the line
+// (by the length of its transcription) is written while it's sung, and the
+// brush waits in the gaps between syllables.
+function lineProgress(cue, t) {
+  const sch = scheduleCue(cue);
+  const ys = sch.syllables;
+  if (!ys.length) return 0;
+  const words = (cue.roman || '').split(' ');
+  // shares: every syllable weighs 1 plus a little for each letter past two
+  const weight = [];
+  for (const w of words) w.split('-').filter(Boolean).forEach((s, i, a) => weight.push(1 + 0.2 * Math.max(0, s.length - 2) + (i === a.length - 1 ? 0.15 : 0)));
+  if (weight.length !== ys.length) return clamp01((t - sch.s0) / (sch.s1 - sch.s0));
+  const sum = weight.reduce((a, b) => a + b, 0);
+  let c = 0;
+  for (let k = 0; k < ys.length; k++) {
+    const c1 = c + weight[k] / sum;
+    if (t < ys[k].t0) return c;
+    if (t < ys[k].t1) return c + (c1 - c) * (t - ys[k].t0) / Math.max(1e-3, ys[k].t1 - ys[k].t0);
+    c = c1;
+  }
+  return 1;
+}
+
 export class TextLayer {
   constructor(width, height) {
     this.w = width; this.h = height;
@@ -171,7 +195,7 @@ export class TextLayer {
       const pa = flip < 0 ? 0.32 : 1;
       L.glyphs.forEach((g, i) => {
         if (t < g.w0) return;
-        const prog = clamp01((t - g.w0) / (g.w1 - g.w0));
+        const prog = g.whole ? lineProgress(cue, t) : clamp01((t - g.w0) / (g.w1 - g.w0));
         const dry = clamp01((t - g.w1) / 1.2);
         let x, y, rot = 0;
         if (L.ring) {
@@ -197,6 +221,15 @@ export class TextLayer {
     }
   }
 
+  controlImage(map, prog, presence, dry) {
+    const canvas = new OffscreenCanvas(map.w, map.h);
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(map.w, map.h);
+    writeControl(map, img, prog, presence, dry);
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  }
+
   glyph(cue, g, x, y, rot, size, prog, presence, dry, ink, alpha) {
     const { c, k } = this;
     c.save(); k.save();
@@ -216,6 +249,7 @@ export class TextLayer {
       c.fillStyle = '#000';
       c.fillText(g.ch, 0, size * 0.04);
       c.globalCompositeOperation = 'source-over';
+      k.globalCompositeOperation = 'lighten';
       k.fillStyle = rgb(prog * presence, 0.4 * (1 - dry), 0);
       k.fillRect(-1.2 * r, -1.2 * r, 2.4 * r, 2.4 * r);
       c.restore(); k.restore();
@@ -228,9 +262,13 @@ export class TextLayer {
     const map = g.whole ? lineMap(g.ch, paintLine(g.ch), widthEm(g.ch)) : charMap(g.ch, paintChar(g.ch));
     const sc = size / MAP_FONT;
     const dw = map.w * sc, dh = map.h * sc;
-    if (prog >= 1 && dry >= 1) {
-      k.fillStyle = rgb(presence, 0, 0);
-      k.fillRect(-dw / 2, -dh / 2, dw, dh);
+    // A glyph's control image is bigger than the glyph and overlaps its
+    // neighbours', so they're combined by taking the larger value: one
+    // glyph being written never hides another that's already there.
+    let img;
+    if (prog >= 1 && dry >= 1 && presence >= 1) {
+      // finished and dry: the same image every frame
+      img = map.finished || (map.finished = this.controlImage(map, 1, 1, 1));
     } else {
       const key = `${map.w}x${map.h}`;
       let s = this.scratch.get(key);
@@ -242,8 +280,10 @@ export class TextLayer {
       }
       writeControl(map, s.img, prog, presence, dry);
       s.ctx.putImageData(s.img, 0, 0);
-      k.drawImage(s.canvas, -dw / 2, -dh / 2, dw, dh);
+      img = s.canvas;
     }
+    k.globalCompositeOperation = 'lighten';
+    k.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     c.restore(); k.restore();
   }
 }
