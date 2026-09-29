@@ -16,7 +16,7 @@ export const SCENES = [
   // one continuous shot from the stupa into the sea
   { name: 'Prajñā and the descent', t0: 13.7, scene: 2, tr: 1.5, style: 0,
     beats: [{ t: 14.34, t1: 20.79, label: 'a stupa rises out of the fold on प्रज्ञापारमिता ×2' },
-      { t: 19.3, t1: 22.4, label: 'the water comes down over it and it melts; the jellyfish rises from below' },
+      { t: 19.3, t1: 22.4, label: 'the water comes down from above, fading in to full strength by 0:20; the stupa melts; the jellyfish rises from below' },
       { t: 22.4, t1: 27.3, label: 'sinking fast past the surface light' }, { t: 27.3, t1: 34.8, label: 'the choir chant: a shoal gathers into a folded ring' }] },
   { name: 'Sea floor', t0: 34.8, scene: 3, tr: 2.0, style: 2 },
   { name: 'The eye opens', t0: 42.4, scene: 4, tr: 1.2, style: 3,

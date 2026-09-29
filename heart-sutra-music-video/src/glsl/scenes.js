@@ -180,10 +180,12 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   // the water comes in from above: a wet front sweeps down the page, and
   // behind it we're under the surface, with its web of light overhead
   float fy = mix(1.25, -1.35, easeOut(flood)) + 0.1 * fbm3(vec2(p.x * 1.3, t * 0.15));
-  float uw = smoothstep(fy - 0.1, fy + 0.1, p.y);                          // the water has reached here
-  float edge = exp(-pow((p.y - fy) / 0.05, 2.0)) * step(0.001, flood) * (1.0 - flood);
+  // it fades in as it comes, at full strength 0.7 s after it starts (0:20)
+  float wa = ease(span01(t, k0.y, k0.y + 0.7));
+  float uw = smoothstep(fy - 0.1, fy + 0.1, p.y) * wa;                     // the water has reached here
+  float edge = exp(-pow((p.y - fy) / 0.05, 2.0)) * wa * (1.0 - flood);
   lift(P, edge * 0.35);
-  P.od += od(PRUSSIAN) * exp(-pow((p.y - fy + 0.06) / 0.012, 2.0)) * step(0.001, flood) * (1.0 - flood) * 0.5;   // its tide line
+  P.od += od(PRUSSIAN) * exp(-pow((p.y - fy + 0.06) / 0.012, 2.0)) * wa * (1.0 - flood) * 0.5;   // its tide line
   float sy = 0.5 + 1.1 * sink;                                             // the surface, falling away as we sink
   vec2 wq = vec2(p.x * 2.2, (p.y - sy) * 5.0);
   float web = abs(fbm3(wq + vec2(t * 0.35, t * 0.2)) + 0.4 * fbm3(wq * 1.9 - t * 0.3));
@@ -211,7 +213,7 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     float n = fbm(vec2(abs(q.x), q.y) * 2.6 + 21.0 + vec2(0.0, t * 0.03)) * 0.45 + gnoise(vec2(abs(q.x), q.y) * 11.0 + 21.0) * 0.1;
     float d = -(env + n - 0.1) * 0.06;
     // where the water has reached it, it melts: the edge softens and spreads, and fades
-    float dis = ease(span01(t, k0.y + 0.6, k1.y + 2.2)) * uw;
+    float dis = ease(span01(t, k0.y + 0.2, k1.y - 0.4)) * uw;
     float crisp = wash(d, q, 21.0, 0.025);
     float melt = softWash(d - 0.07 * dis, q + vec2(0.0, 0.05 * dis), 21.0, 0.02 + 0.09 * dis);
     float body = mix(crisp, melt, dis) * (1.0 - 0.85 * dis);
