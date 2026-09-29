@@ -219,7 +219,9 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     vec2 base = vec2(0.0, -0.42 + 1.1 * sink);
     float sc = 0.9 * (1.0 + 0.012 * sin(t * 1.3) + 0.02 * uPulse);
     vec2 q = (p - base) / sc;
-    q += 0.03 * warp2(q * 1.7 + 21.0 + t * 0.02);
+    // hand-drawn wobble, fading out above the dome: the spire is thinner
+    // than the wobble, which bent it crooked and tilted its parasols
+    q += 0.03 * warp2(q * 1.7 + 21.0 + t * 0.02) * smoothstep(0.6, 0.45, q.y);
     q.x /= 0.3 + 0.7 * ease(build * 1.6);                 // unfolding from the crease
     float rings, tiers;
     float ds = sdStupa(q, rings, tiers);
