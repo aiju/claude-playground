@@ -162,10 +162,11 @@ export class TextLayer {
       const adv = size * 1.06, space = size * 0.42;
       const maxY = (cue.mirror ? cue.mirror - 0.04 : 0.92) * h;
       const phrases = text.split(' ');
+      const breaks = new Set(cue.breaks || []);   // phrases that start a new column
       let x = cue.x * w, y = cue.y * h;
       for (let i = 0; i < phrases.length; i++) {
         const len = [...phrases[i]].length * adv;
-        if (i > 0 && y + space + len > maxY) { x -= size * 1.35; y = cue.y * h; }
+        if (i > 0 && (breaks.has(i) || y + space + len > maxY)) { x -= size * 1.35; y = cue.y * h; }
         else if (i > 0) y += space;
         for (const ch of phrases[i]) {
           let gx = x, gy = y + adv / 2;

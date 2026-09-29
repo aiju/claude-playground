@@ -11,6 +11,9 @@
 // text:   Japanese carries the sung reading in brackets after each kanji,
 //         '深[ふか]き'; only the characters appear on screen.
 // roman:  for Sanskrit, the sung syllables, hyphenated as on the lyric sheet.
+// breaks: optional, for vertical text: the phrases (counting from 0, split
+//         at spaces) that start a new column, e.g. [2] for 何も 失くさず / 何も 得ず.
+//         Otherwise a column breaks only when it's full.
 // write:  optional, { character: 'even' or seconds } to write a character
 //         quicker than it's sung (see schedule.js).
 // t0..t1 is when a line is on screen; when each syllable is sung comes from
@@ -47,8 +50,8 @@ export const CUES = [
   { t0: 57.9, t1: 64.0, text: '識[しき]', script: 'ja', dir: 'h', x: 0.6125, y: 0.425, size: 0.05, ink: 'gold', deco: true },
 
   // Pre-chorus
-  { t0: 64.45, t1: 69.6, text: '何[なに]も 失[な]くさず 何[なに]も 得[え]ず', script: 'ja', dir: 'v', x: 0.80, y: 0.12, size: 0.074, ink: 'gold' },
-  { t0: 67.6, t1: 75.9, text: 'ただ 満[み]ちて ただ 空[から]っぽで', script: 'ja', dir: 'v', x: 0.20, y: 0.12, size: 0.074, ink: 'gold' },
+  { t0: 64.45, t1: 69.6, text: '何[なに]も 失[な]くさず 何[なに]も 得[え]ず', script: 'ja', dir: 'v', x: 0.80, y: 0.12, size: 0.074, ink: 'gold', breaks: [2] },
+  { t0: 67.6, t1: 75.9, text: 'ただ 満[み]ちて ただ 空[から]っぽで', script: 'ja', dir: 'v', x: 0.20, y: 0.12, size: 0.074, ink: 'gold', breaks: [2] },
   { t0: 75.1, t1: 79.2, text: 'रूपं शून्यता', roman: 'ru-pam shun-ya-ta', script: 'sa', x: 0.5, y: 0.8, size: 0.09, ink: 'gold' },
 
   // Chorus
