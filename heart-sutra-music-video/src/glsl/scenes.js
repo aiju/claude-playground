@@ -294,32 +294,29 @@ void sDescent(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
     addOpaque(P, goldCol(q, t), line * 0.3);
   }
 
-  // the shoal: streaming up past us, then gathering into a ring on the chant,
-  // mirrored about the middle like a folded blot
-  float gather = ease(span01(t, k0.w, k0.w + 3.5));
+  // the shoal: a school of gold fish swimming up past us in a loose S, with
+  // its mirror image like a folded blot. Each fish wanders about its place,
+  // the school breathes and shears as it goes, and on the chant it picks up
+  // speed and leaves through the top of the frame before the sea floor.
   vec2 sp = vec2(abs(p.x), p.y);
-  float R = 0.44 + 0.04 * sin(t * 0.8) + 0.05 * uLevel;
+  float kw = k0.w - (k1.y - 1.0);    // the chant, on the school's clock
   for (int i = 0; i < 16; i++) {
     float fi = float(i);
     vec2 h = hash22(vec2(fi, 7.0));
-    // before: a school swimming up past us in an S (and its mirror image)
-    float st = tj + fi * 0.04;
-    vec2 school = vec2(0.85 + 0.35 * sin(st * 0.6), -1.25 + 0.2 * st);
-    vec2 pa = school + (h - 0.5) * vec2(0.55, 0.4) + 0.04 * vec2(sin(st * 2.0 + fi), cos(st * 1.7 + fi));
-    vec2 da = normalize(vec2(0.35 * 0.6 * cos(st * 0.6), 0.2));
-    // circling: round the right half of the ring, meeting their mirror images
-    float u = fract(fi / 16.0 + t * 0.035);
-    float ang = -PI * 0.5 + u * PI;
-    // the ring has three lobes a side, like a folded paper flower
-    float rr = R * (1.0 + 0.2 * sin(ang * 3.0 + t * 0.3) + 0.1 * (h.x - 0.5)) + 0.02 * sin(t * 1.3 + fi);
-    vec2 pb = vec2(0.0, 0.02) + rr * vec2(cos(ang), sin(ang));
-    vec2 db = vec2(-sin(ang), cos(ang));
-    vec2 c = mix(pa, pb, gather);
-    vec2 dir = normalize(mix(da, db, gather));
-    float fade = mix(1.0, smoothstep(0.0, 0.12, u) * smoothstep(1.0, 0.88, u), gather);
+    float st = tj + fi * 0.04 + (h.x - 0.5) * 0.6;          // some lead, some straggle
+    float late = max(0.0, st - kw);
+    vec2 school = vec2(0.85 + 0.35 * sin(st * 0.6) - 0.12 * smoothstep(0.0, 9.0, st), -1.25 + 0.17 * st + 0.004 * late * late);
+    vec2 vel = vec2(0.21 * cos(st * 0.6), 0.17 + 0.008 * late);
+    vec2 off = rot(0.3 * sin(st * 0.25 + fi)) * (h - 0.5) * vec2(0.55, 0.4) * (1.0 + 0.2 * sin(st * 0.5 + fi * 1.3));
+    float f1 = 1.4 + h.x, f2 = 1.1 + h.y;
+    vec2 wander = 0.05 * vec2(sin(st * f1 + fi * 2.1), cos(st * f2 + fi * 1.3));
+    vel += 0.04 * vec2(f1 * cos(st * f1 + fi * 2.1), -f2 * sin(st * f2 + fi * 1.3));
+    vec2 c = school + off + wander;
+    vec2 dir = normalize(vel);
+    float fade = 1.0;
     float size = 0.075 * (0.8 + 0.4 * h.y);
     if (length(sp - c) > size * 1.2) continue;
-    float fd = sdFish(sp, c, dir, size, t * 9.0 + fi * 2.0);
+    float fd = sdFish(sp, c, dir, size, t * (8.0 + 3.0 * h.x) + fi * 2.0);
     float body = smoothstep(0.003, -0.003, fd) * fade;
     addPig(P, TURQUOISE, softWash(fd - 0.006, sp, fi, 0.01) * fade * 0.3);
     addOpaque(P, goldCol(sp * 3.0 + fi, t), body * 0.85);

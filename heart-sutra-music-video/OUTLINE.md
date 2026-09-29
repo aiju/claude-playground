@@ -77,9 +77,9 @@ stupa it melts like wet ink and its gold drifts up off it, while a jellyfish
 rises from below. Then we sink: the surface falls away above us, light
 shafts dim, bubbles rise in loose columns and strata of pigment stream
 upwards past us. The jellyfish rises past on the left, and a school of gold
-fish (with its mirror image) swims up in an S. When the choir chant starts
-(0:27) the two schools gather into one ring, folded like a paper flower,
-circling until the sea floor.
+fish (with its mirror image) swims up in a loose S, each fish wandering about
+its place. When the choir chant starts (0:27) the schools pick up speed and
+swim off the top of the frame before the sea floor.
 
 ### Verse 1: the depths
 
