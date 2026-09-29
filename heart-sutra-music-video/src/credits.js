@@ -7,10 +7,8 @@
 import { SONG_END } from './timeline.js';
 
 export const CREDITS = [
-  { text: 'Emily @the_aiju', y: 0.4, size: 0.044, ink: 'sumi', at: 0.0 },
-  { text: 'song & direction', y: 0.458, size: 0.022, ink: 'grey', at: 0.1, spacing: 0.08 },
-  { text: 'Claude', y: 0.56, size: 0.044, ink: 'sumi', at: 0.15 },
-  { text: 'visuals & code', y: 0.618, size: 0.022, ink: 'grey', at: 0.25, spacing: 0.08 },
-  { text: 'stroke order from KanjiVG (Ulrich Apel, CC BY-SA 3.0) · lyrics aligned with Whisper and MMS', y: 0.875, size: 0.017, ink: 'grey', at: 0.35, spacing: 0.04 },
-  { text: 'fonts: Yuji Syuku by Kinuta Font Factory and Yatra One, under the SIL Open Font License', y: 0.905, size: 0.017, ink: 'grey', at: 0.35, spacing: 0.04 },
+  { text: 'Emily @the_aiju', y: 0.45, size: 0.044, ink: 'sumi', at: 0.0 },
+  { text: 'Claude', y: 0.535, size: 0.044, ink: 'sumi', at: 0.15 },
+  { text: 'stroke order from KanjiVG (Ulrich Apel, CC BY-SA 3.0) · lyrics aligned with Whisper and MMS', y: 0.875, size: 0.017, ink: 'grey', at: 0.3, spacing: 0.04 },
+  { text: 'fonts: Yuji Syuku by Kinuta Font Factory and Yatra One, under the SIL Open Font License', y: 0.905, size: 0.017, ink: 'grey', at: 0.3, spacing: 0.04 },
 ].map(l => ({ ...l, t0: SONG_END + l.at }));
