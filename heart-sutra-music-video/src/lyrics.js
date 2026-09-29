@@ -16,6 +16,10 @@
 //         Otherwise a column breaks only when it's full.
 // write:  optional, { character: 'even' or seconds } to write a character
 //         quicker than it's sung (see schedule.js).
+// mirror: optional, for vertical text over water: the height of the water
+//         line (0..1 from the top). The line is reflected in the water, and
+//         its columns end above it. mirrorEnd: when the reflection starts to
+//         fade (over 1.2 s), for a line that stays on after its scene.
 // t0..t1 is when a line is on screen; when each syllable is sung comes from
 // alignment.js (measured), attached below as `sylls`. Each cue also gets a
 // `key` that names it in the timing editor: the alignment key for a sung
@@ -63,7 +67,7 @@ export const CUES = [
 
   // Verse 2
   { t0: 135.9, t1: 141.6, text: '恐[おそ]れの 鎖[くさり]も 逆[さか]さまの 夢[ゆめ]も', script: 'ja', dir: 'v', x: 0.12, y: 0.06, size: 0.062, ink: 'sumi', mirror: 0.62 },
-  { t0: 139.5, t1: 145.2, text: '挂[けい]礙[げ]なき 心[こころ]に 溶[と]けてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.066, ink: 'sumi' },
+  { t0: 139.5, t1: 145.2, text: '挂[けい]礙[げ]なき 心[こころ]に 溶[と]けてゆく', script: 'ja', dir: 'v', x: 0.88, y: 0.08, size: 0.066, ink: 'sumi', mirror: 0.62, mirrorEnd: 143.1 },
   { t0: 143.05, t1: 149.0, text: '向[む]こう岸[ぎし]で 誰[だれ]かが 呼[よ]んでいる', script: 'ja', dir: 'h', x: 0.5, y: 0.2, size: 0.066, ink: 'sumi' },
   { t0: 147.15, t1: 151.0, text: '名[な]前[まえ]の ない 声[こえ]で', script: 'ja', dir: 'h', x: 0.5, y: 0.8, size: 0.07, ink: 'indigo' },
 

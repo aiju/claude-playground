@@ -166,8 +166,9 @@ middle ranges, slower, and the two flocks pass each other late in the note.
 ### Verse 2: the river
 
 **13 · Chains, upside down** 2:09–2:23 📷
-*恐れの 鎖も 逆さまの 夢も* (left, with its reflection in the water),
-*挂礙なき 心に 溶けてゆく* (right).
+*恐れの 鎖も 逆さまの 夢も* (left), *挂礙なき 心に 溶けてゆく* (right),
+each in two columns with its reflection in the water; the second line's
+reflection fades as the far shore comes in.
 The fold turns horizontal: a lake mirrors mountains and pines upside down, and
 the reflection holds a moon that isn't in the sky. An iron-and-rust chain
 hangs steeply through the middle of the frame, between the two lines. On

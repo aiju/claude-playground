@@ -208,7 +208,8 @@ export class TextLayer {
         c.translate(0, 2 * my); c.scale(1, -1);
         k.translate(0, 2 * my); k.scale(1, -1);
       }
-      const pa = flip < 0 ? 0.32 : 1;
+      const pa = flip > 0 ? 1 : 0.32 * (cue.mirrorEnd ? clamp01((cue.mirrorEnd + 1.2 - t) / 1.2) : 1);
+      if (pa <= 0) { c.restore(); k.restore(); continue; }
       L.glyphs.forEach((g, i) => {
         if (t < g.w0) return;
         const prog = g.whole ? lineProgress(cue, t) : clamp01((t - g.w0) / (g.w1 - g.w0));
