@@ -704,16 +704,39 @@ void sBloom(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
 ` },
   9: { fn: 'sPalm', src: /* glsl */ `
 // ================================================================ 9 · 掌の宇宙 universe in a palm
-float sdHand(vec2 q) {
-  float palm = sdBox(q - vec2(0.0, -0.12), vec2(0.24, 0.26)) - 0.08;
-  float d = palm;
-  d = smin(d, sdTaper(q, vec2(-0.21, 0.12), vec2(-0.29, 0.64), 0.068, 0.056), 0.04);
-  d = smin(d, sdTaper(q, vec2(-0.07, 0.16), vec2(-0.08, 0.76), 0.07, 0.058), 0.04);
-  d = smin(d, sdTaper(q, vec2(0.08, 0.14), vec2(0.13, 0.69), 0.068, 0.056), 0.04);
-  d = smin(d, sdTaper(q, vec2(0.21, 0.08), vec2(0.32, 0.5), 0.062, 0.05), 0.04);
-  d = smin(d, sdTaper(q, vec2(-0.24, -0.24), vec2(-0.52, 0.1), 0.085, 0.064), 0.06);
-  d = smin(d, sdTaper(q, vec2(0.0, -0.45), vec2(0.0, -1.4), 0.24, 0.27), 0.08);
-  return d;
+// A hand, palm towards us, closed at first, with light leaking between its
+// fingers. On 掌に (beat 0) it opens, the fingers unfurling one after
+// another, and there's a small galaxy in the palm; on 宇宙が透ける (beat 1)
+// the universe shows through the whole hand and spills out of it.
+//
+// The fingers curl towards us, out of the page: each is three segments that
+// tilt at its joints, so a segment at angle a from the page shows cos(a) of
+// its length, and a curled finger folds back down over the palm.
+
+// A finger from its knuckle k along u: joint angles th (radians, towards
+// us), segment lengths L, radius r at the base tapering towards the tip.
+float sdFinger(vec2 q, vec2 k, vec2 u, vec3 th, vec3 L, float r) {
+  float a1 = th.x, a2 = a1 + th.y, a3 = a2 + th.z;
+  vec2 p1 = k + u * L.x * cos(a1);
+  vec2 p2 = p1 + u * L.y * cos(a2);
+  vec2 p3 = p2 + u * L.z * cos(a3);
+  float d = sdTaper(q, k, p1, r, r * 0.95);
+  d = min(d, sdTaper(q, p1, p2, r * 0.95, r * 0.88));
+  return min(d, sdTaper(q, p2, p3, r * 0.88, r * 0.8));
+}
+
+// The thumb moves in the page, from the base b: angle a0 of its first bone
+// (0 = straight up, positive to the left) and the bends b1, b2 at its
+// joints. tip is the distance to its last two bones, the part that folds
+// across the fingers.
+float sdThumb(vec2 q, vec2 b, float a0, float b1, float b2, out float tip) {
+  vec2 p1 = b + vec2(-sin(a0), cos(a0)) * 0.17;
+  float a1 = a0 + b1;
+  vec2 p2 = p1 + vec2(-sin(a1), cos(a1)) * 0.14;
+  float a2 = a1 + b2;
+  vec2 p3 = p2 + vec2(-sin(a2), cos(a2)) * 0.11;
+  tip = min(sdTaper(q, p1, p2, 0.062, 0.056), sdTaper(q, p2, p3, 0.056, 0.047));
+  return min(sdTaper(q, b, p1, 0.085, 0.066), tip);
 }
 
 void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
@@ -724,19 +747,62 @@ void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   float s = 0.93 + 0.04 * easeOut(t / 6.0);
   vec2 c = vec2(-0.3 + 0.03 * sin(t * 0.3), -0.06 + 0.05 * easeOut(t / 5.0) + 0.012 * sin(t * 0.7));
   vec2 q = rot(-0.05 + 0.04 * sin(t * 0.35)) * (p - c) / s;
-  float d = sdHand(q) * s;
-  float inside = smoothstep(0.004, -0.004, d + edgeWobble(q, 81.0, 0.006));
-  float well = ease(span01(t, k0.x, k1.x));    // 宇宙が透ける: the universe shows through, and spills out
-  // the galaxy seeps into the hand from the palm outwards
-  vec2 g = q - vec2(-0.02, 0.0);
-  float r = length(g), a = atan(g.y, g.x);
-  float seep = smoothstep(0.0, 0.08, 0.15 + 1.4 * ease(span01(t, 0.3, 3.2)) - r - 0.1 * fbm3(g * 3.0 + t * 0.2));
-  float fill = inside * seep;
+  float opening = span01(t, k0.x, k1.x);        // 掌に: the hand opens
+  float well = ease(span01(t, k0.y, k1.y));     // 宇宙が透ける: the universe shows through, and spills out
+
+  // the palm and wrist
+  float palm = sdBox(q - vec2(-0.005, -0.07), vec2(0.165, 0.22)) - 0.075;
+  float hand = smin(palm, sdTaper(q, vec2(0.0, -0.42), vec2(0.0, -1.5), 0.18, 0.23), 0.12);
+  // the fingers (index to little), each opening a little after the last,
+  // their tips trailing
+  const vec2 KN[4] = vec2[4](vec2(-0.172, 0.17), vec2(-0.057, 0.195), vec2(0.06, 0.18), vec2(0.168, 0.125));
+  const vec2 SPREAD[4] = vec2[4](vec2(0.04, 0.12), vec2(0.0, 0.02), vec2(-0.03, -0.09), vec2(-0.08, -0.24));   // closed, open
+  const vec3 LEN[4] = vec3[4](vec3(0.2, 0.13, 0.1), vec3(0.23, 0.15, 0.11), vec3(0.21, 0.14, 0.1), vec3(0.16, 0.1, 0.085));
+  const float RAD[4] = float[4](0.053, 0.056, 0.053, 0.048);
+  float fingers = 1e3, inner = 0.0, curlAll = 0.0, coverF = 0.0;
+  float thumbTip;
+  float o_t = ease(span01(opening, 0.0, 0.7));
+  float thumb = sdThumb(q, vec2(-0.19, -0.2), mix(-0.35, 0.62, o_t), mix(-0.75, 0.12, o_t), mix(-0.35, 0.1, o_t), thumbTip);
+  float underThumb = smoothstep(0.004, -0.004, thumbTip) * (1.0 - o_t);
+  float inPalm = smoothstep(0.004, -0.004, palm);
+  float overPalm = smoothstep(0.06, -0.03, palm);   // softly, so the lines drawn over it don't stop at a hard edge
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i);
+    float o = ease(span01(opening, 0.08 * fi, 0.76 + 0.08 * fi));
+    float a = mix(SPREAD[i].x, SPREAD[i].y, o);
+    vec3 th = vec3(mix(1.48, 0.06, o), mix(1.83, 0.1, ease(span01(o, 0.1, 1.0))), mix(1.22, 0.06, ease(span01(o, 0.2, 1.0))));
+    float d = sdFinger(q, KN[i], vec2(-sin(a), cos(a)), th, LEN[i], RAD[i]);
+    fingers = min(fingers, d);
+    float curled = smoothstep(0.1, 0.5, 1.0 - o);
+    coverF = max(coverF, smoothstep(0.004, -0.004, d) * curled);
+    // while it's curled over the palm, its own outline shows there
+    inner = max(inner, inkLine(d, q, 0.006, 90.0 + fi) * overPalm * curled * (1.0 - underThumb));
+    curlAll += (1.0 - o) * 0.25;
+  }
+  hand = smin(hand, fingers, 0.035);
+  hand = smin(hand, thumb, 0.05);
+  float inside = smoothstep(0.004, -0.004, hand + edgeWobble(q, 81.0, 0.006));
+  float cover = max(coverF, underThumb);
+
+  // skin: the paper cleared under the hand (nothing behind shows through),
+  // a pale wash, and shade around the curled fingers
+  lift(P, inside * 0.9);
+  P.od += od(OCHRE) * inside * 0.05 * (1.0 - well);
+  P.od += od(PAYNE) * softWash(fingers - 0.03, q, 87.0, 0.025) * inside * (1.0 - cover) * curlAll * 0.14;
+
+  // the universe: hidden in the closed hand, peeking out only where the
+  // fingers leave gaps; a small galaxy in the palm as it opens, and on
+  // 宇宙が透ける through the whole hand and beyond
+  float openAmt = ease(opening);
+  vec2 g = q - mix(vec2(-0.02, 0.11), vec2(-0.01, -0.04), openAmt);
+  float r = length(g), ang = atan(g.y, g.x);
+  float R = mix(0.14 + 0.01 * sin(t * 2.1), 0.4, openAmt) + 1.5 * well;
+  float reveal = smoothstep(0.0, 0.12, R - r - 0.08 * fbm3(g * 3.0 + t * 0.2));
+  float fill = inside * reveal * (1.0 - cover * (1.0 - well));
   float spin = t * 0.28;
-  float arms = 0.5 + 0.5 * cos(2.0 * (a + log(r + 0.03) * 2.3 - spin) + fbm3(g * 4.0 + vec2(t * 0.05, 0.0)) * 1.8);
+  float arms = 0.5 + 0.5 * cos(2.0 * (ang + log(r + 0.03) * 2.3 - spin) + fbm3(g * 4.0 + vec2(t * 0.05, 0.0)) * 1.8);
   float core = smoothstep(0.55, 0.0, r) * (0.9 + 0.1 * sin(t * 1.3));
-  // beyond the edge of the hand once it spills: a faint nebula reaching out
-  float out_ = well * smoothstep(0.45, 0.0, d) * (1.0 - inside) * (0.5 + 0.5 * fbm3(g * 2.5 - t * 0.15));
+  float out_ = well * smoothstep(0.45, 0.0, hand) * (1.0 - inside) * (0.5 + 0.5 * fbm3(g * 2.5 - t * 0.15));
   float cosmos = fill + out_ * 0.6;
   P.od += (od(INDIGO) * 1.1 + od(VIOLET) * 0.4 * (1.0 - arms)) * cosmos * (0.8 + 0.3 * fbm3(g * 2.0));
   lift(P, cosmos * (core * 0.8 * (0.4 + 0.6 * arms) + 0.15 * arms * smoothstep(1.0, 0.3, r)));
@@ -750,13 +816,17 @@ void sPalm(vec2 p, float t, float v, vec4 k0, vec4 k1, inout Paint P) {
   addOpaque(P, goldCol(g, t), goldFlakes(gs * 1.3 + 2.0, 70.0, 84.0, 0.05) * cosmos * 0.8);
   // a comet crossing the palm
   vec2 cp = g - vec2(-0.6 + 1.2 * fract(t * 0.12), 0.35 - 0.3 * fract(t * 0.12));
-  float comet = smoothstep(0.012, 0.0, length(cp * vec2(1.0, 3.0) + vec2(0.0, 0.0))) + exp(-abs(cp.y + 0.25 * cp.x) / 0.004) * smoothstep(0.0, 0.25, cp.x) * smoothstep(0.35, 0.1, cp.x);
+  float comet = smoothstep(0.012, 0.0, length(cp * vec2(1.0, 3.0))) + exp(-abs(cp.y + 0.25 * cp.x) / 0.004) * smoothstep(0.0, 0.25, cp.x) * smoothstep(0.35, 0.1, cp.x);
   addOpaque(P, vec3(0.98, 0.96, 0.9), comet * fill * 0.7);
-  // the hand itself: a loose line of sumi, brushed in first, growing fainter
-  // as the hand turns to sky; and a pale shadow wash beside it
-  float brushed = smoothstep(0.0, 0.06, easeOut(span01(t, -0.4, 1.6)) * 1.1 - fract((atan(q.x, -q.y) + PI) / TAU));
-  P.od += od(SUMI) * inkLine(d, q, 0.007, 85.0) * brushed * (0.95 - 0.45 * well);
-  P.od += od(PAYNE) * softWash(abs(d + 0.02) - 0.02, q, 86.0, 0.03) * 0.12 * (1.0 - well);
+
+  // the hand itself in a loose line of sumi, fainter as it turns to sky:
+  // its outline, the curled fingers where they lie over the palm, and the
+  // thumb folded across them
+  float ink = 0.95 - 0.45 * well;
+  P.od += od(SUMI) * inkLine(hand, q, 0.007, 85.0) * ink;
+  P.od += od(SUMI) * inner * ink * 0.8;
+  P.od += od(SUMI) * inkLine(thumbTip, q, 0.0065, 89.0) * max(overPalm, smoothstep(0.004, -0.004, fingers)) * smoothstep(0.1, 0.5, 1.0 - o_t) * ink * 0.85;
+  P.od += od(PAYNE) * softWash(abs(hand + 0.02) - 0.02, q, 86.0, 0.03) * 0.09 * (1.0 - well);
 }
 ` },
   10: { fn: 'sWheel', src: /* glsl */ `

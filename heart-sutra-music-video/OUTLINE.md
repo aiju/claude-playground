@@ -140,11 +140,14 @@ second time, a turquoise glaze opening up and down the fold behind the rest.
 
 **9 · Universe in a palm** 1:29–1:35 📷
 *この 掌に 宇宙が 透ける*, vertical, right.
-A loose sumi outline of an open hand is brushed in, and the hand drifts up and
-turns a little as if held out to us. A spiral galaxy in indigo, violet and rose
-seeps into it from the palm, turning, with white-gouache stars and a comet
-crossing. On 宇宙が透ける (1:32) the outline fades and the galaxy spills past
-the edges of the hand, its stars drifting outwards. The chorus blot fades behind.
+A hand in a loose sumi outline, palm towards us, held closed as if keeping
+something; the dark of the universe peeks out between its fingers. On 掌に
+(1:30) it opens: the thumb swings out and the fingers unfurl one after another,
+their tips trailing, and in the palm is a spiral galaxy in indigo, violet and
+rose, turning, with white-gouache stars and a comet crossing. The hand drifts
+up and turns a little as if held out to us. On 宇宙が透ける (1:32) the galaxy
+fills the whole hand, the outline fades, and it spills past the edges, its stars
+drifting outwards. The chorus blot fades behind.
 
 **10 · Wheel of light** 1:35–1:48 📷
 *生まれず 滅びず 光は 巡る*, set around a circle that slowly turns.

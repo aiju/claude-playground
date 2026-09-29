@@ -30,7 +30,7 @@ export const SCENES = [
   { name: 'Form is emptiness', t0: 78.9, scene: 8, tr: 0.6, style: 3,
     beats: [{ t: 78.97, t1: 80.4, label: 'blot bursts open' }, { t: 82.7, t1: 84.2, label: 'unfolds again on 空即是色' }] },
   { name: 'Universe in a palm', t0: 89.1, scene: 9, tr: 1.5, style: 0,
-    beats: [{ t: 92.5, t1: 95.2, label: 'the galaxy wells up on 宇宙が透ける' }] },
+    beats: [{ t: 90.3, t1: 92.5, label: 'the hand opens on 掌に' }, { t: 92.5, t1: 95.2, label: 'the galaxy wells up on 宇宙が透ける' }] },
   { name: 'Wheel of light', t0: 94.8, scene: 10, tr: 1.5, style: 3,
     beats: [{ t: 95.21, t1: 97.9, label: 'wheel petals open' }] },
   { name: 'Shakuhachi & taiko', t0: 108.2, scene: 11, tr: 1.2, style: 1,
