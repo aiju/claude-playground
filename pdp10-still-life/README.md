@@ -2,7 +2,7 @@
 
 ![A little glazed ceramic Clawd next to a glass of water on a red gingham tablecloth, in front of oak panelling](still-life.png)
 
-A recursive ray tracer written in MACRO-10 assembly for the DEC PDP-10's KA10 processor. It draws a still life: a little glazed ceramic Clawd, the Claude Code mascot, on a gingham tablecloth next to a glass of water, in front of oak panelling, lit by a window. There are no flat colours. The cloth is woven and wrinkled, the oak has grain, the glaze is speckled, and the water bends the checks of the tablecloth.
+A recursive ray tracer written in MACRO-10 assembly for the DEC PDP-10's KA10 processor. It draws a still life: a little glazed ceramic Clawd, the Claude Code mascot, on a gingham tablecloth next to a glass of water, in front of oak panelling, lit by a window. There are no flat colours. The cloth is woven and wrinkled, the oak has grain, the glaze is a little uneven, and the water bends the checks of the tablecloth.
 
 Like [pdp10-death-star](../pdp10-death-star), it runs under TOPS-10 6.03 on simh's KA10 simulator. The source goes in on (simulated) paper tape, MACRO-10 and LINK-10 assemble and load it on the PDP-10, and the picture comes out on the paper tape punch as a 640×480 colour PPM file. The picture above is that tape, converted to PNG.
 
@@ -41,10 +41,10 @@ Refracted rays    1511962
 Shadow rays       7035415
 Deepest level          10
 
-Done in 275 seconds of CPU time.
+Done in 254 seconds of CPU time.
 ```
 
-The 275 seconds are how long simh took on a modern computer. A real KA10 would have needed all night (see below).
+The 254 seconds are how long simh took on a modern computer. A real KA10 would have needed all night (see below).
 
 ## How it works
 
@@ -68,7 +68,7 @@ Each character is 2×2 pixels. A character cell is twice as tall as it is wide, 
 - **The gingham:** red stripes cross over white and are deeper red where two meet. Its threads go over and under each other, so each one is shaded across its width and varies a little from its neighbours.
 - **The wrinkles:** the slope of two octaves of noise tips the cloth's normal (bump mapping).
 - **The oak** is flat-sawn boards. The growth rings are arcs round a line just under the surface, wobbled by noise, with a dark groove between boards and a rail above them. Wallpaper goes above that, out of the picture.
-- **Clawd's glaze** varies a little, has dark speckles, and reflects 5% of the light head on and more at glancing angles.
+- **Clawd's glaze** varies a little in tone, and reflects 5% of the light head on and more at glancing angles.
 
 **Recursion.** The PDP-10's `PUSHJ` saves only the return address, so every level of `SHADE` has its own frame of 37 words for its ray, hit, normals, directions, media and colour. Accumulator F points to the current one. `RECUR` fills in the next frame, adds its length to F, calls `SHADE` and subtracts it again.
 

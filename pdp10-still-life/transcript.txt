@@ -57,10 +57,10 @@ Refracted rays    1511962
 Shadow rays       7035415
 Deepest level          10
 
-Done in 275 seconds of CPU time.
+Done in 254 seconds of CPU time.
 
 .kjob/f
 Job 1, User [1,2]  Logged off CTY      1204  25-May-78
-Runtime 4 Min, 35.75 Sec
+Runtime 4 Min, 14.85 Sec
 
 .Goodbye
