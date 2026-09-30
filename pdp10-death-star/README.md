@@ -72,7 +72,7 @@ Punching a 640x480 PPM image, one dot every 16 rows:
 Done in 57 seconds of CPU time.
 ```
 
-The 57 seconds are how long simh took on a modern computer. A real KA10 ran a few hundred thousand instructions a second, with floating point slower still, so the same picture would have kept it busy for hours.
+The 57 seconds are how long simh took on a modern computer. A real KA10 would have needed about 2½ hours of CPU time, and a little over 5 hours in all because of the slow paper tape punch; see [On a real KA10](#on-a-real-ka10).
 
 ## How it works
 
@@ -99,6 +99,18 @@ The KA10 has single precision floating point with a 27-bit fraction, and the pro
 Floats on the PDP-10 compare like integers, so `CAMG` and `JUMPL` work on them directly, and `MOVN` negates them.
 
 MACRO-10's numbers are octal unless they are written `^D640`, and only the first six characters of a symbol count.
+
+## On a real KA10
+
+This estimate comes from running DSTAR on a copy of simh patched to count every instruction the program executes. The patch also counted the things that change an instruction's time: indexing, operands in fast registers, and the exponent difference, normalising shifts and rounding of floating adds. The counts were then priced with the instruction times in DEC's May 1968 *PDP-10 System Reference Manual*, for user mode with 1.0 µs MA10 core memory.
+
+- **The count.** DSTAR executes 1.79 billion instructions. MOVE is the commonest (22%), then FMPR (17%) and FADR (13%).
+- **Computing.** At the manual's times that is about 2.4 hours of CPU time, 4.8 µs per instruction on average. Floating point is a third of the instructions but two thirds of the time. FMPR alone, at over 10 µs each, takes 55 minutes.
+- **Punching.** The paper tape punch does 50 characters a second, so the 921,871 bytes on the tape take 5.1 hours, and about 2.3 km of tape. The program computes a byte in 9 ms on average but the punch needs 20 ms, so it would spend most of its time waiting for the punch: a little over five hours in all.
+- **Magtape instead.** On a magtape drive such as the TU20, at roughly 6,000 words a second, the image takes only a few minutes of tape time. The job would then be done in about 2½ hours.
+- **The rest of the session.** Reading the source from paper tape at 300 characters a second takes about 2 minutes. MACRO-10 executes 149 million instructions to assemble it, roughly 6 to 9 minutes. The preview's 2,423 characters take 4 minutes on a Model 35 Teletype at 10 characters a second.
+
+These are estimates. The manual's times are ±5%, the multiply times are averages, and the monitor's own work, like the punch's 900,000 interrupts, is left out. Slower 1.65 µs MB10 core memory, or other users on the time-sharing system, would stretch it further.
 
 ## Checking it
 
