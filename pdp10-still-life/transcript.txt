@@ -28,14 +28,14 @@ Password:
 
 .set spool none
 
-.copy glass.mac=ptr:
+.copy still.mac=ptr:
 
-.execute glass.mac
-MACRO:  GLASS
+.execute still.mac
+MACRO:  STILL
 LINK:   Loading
-[LNKXCT GLASS Execution]
+[LNKXCT STILL Execution]
 
-GLASS - Clawd among glass and mirrors, ray traced on a KA10
+STILL - Clawd and a glass of water, ray traced on a KA10
 
       ########################
       ########################
@@ -52,15 +52,15 @@ Punching a 640x480 PPM image, one dot every 16 rows:
 ..............................
 
 Camera rays       1228800
-Reflected rays    1612765
-Refracted rays     642507
-Shadow rays        923779
-Deepest level           6
+Reflected rays    1695408
+Refracted rays    1511962
+Shadow rays       7035415
+Deepest level          10
 
-Done in 91 seconds of CPU time.
+Done in 275 seconds of CPU time.
 
 .kjob/f
-Job 1, User [1,2]  Logged off CTY      1201  25-May-78
-Runtime 1 Min, 31.44 Sec
+Job 1, User [1,2]  Logged off CTY      1204  25-May-78
+Runtime 4 Min, 35.75 Sec
 
 .Goodbye

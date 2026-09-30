@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Ray trace Clawd among glass and mirrors on a simulated KA10.
+# Ray trace a still life, Clawd and a glass of water, on a simulated KA10.
 #
-# Builds simh's KA10 simulator, boots TOPS-10 6.03 on it, reads glass.mac
+# Builds simh's KA10 simulator, boots TOPS-10 6.03 on it, reads still.mac
 # in from the paper tape reader, assembles and runs it with MACRO-10 and
 # LINK-10, and turns what it punched on the paper tape punch into a PNG.
 #
@@ -58,13 +58,13 @@ RUN=$BUILD/run
 rm -rf "$RUN"
 mkdir -p "$RUN"
 cp "$BUILD"/dsk/ka_dskb?.rp3 "$RUN/"
-awk '{ printf "%s\r\n", $0 }' glass.mac > "$RUN/glass.ptr"
-: > "$RUN/glass.ptp"
+awk '{ printf "%s\r\n", $0 }' still.mac > "$RUN/still.ptr"
+: > "$RUN/still.ptp"
 
 # The simh script.  The expect rules type the answers to TOPS-10's
 # questions in turn.  We log in as the operator, [1,2], because only a
 # privileged job may turn off spooling and use the real punch.
-cat > "$RUN/glass.ini" << 'EOF'
+cat > "$RUN/still.ini" << 'EOF'
 set cpu 256k idle
 set dpb disable
 set mta disable
@@ -73,8 +73,8 @@ attach dpa0 ka_dskb0.rp3
 attach dpa1 ka_dskb1.rp3
 attach dpa2 ka_dskb2.rp3
 attach dpa3 ka_dskb3.rp3
-attach ptr glass.ptr
-attach ptp glass.ptp
+attach ptr still.ptr
+attach ptp still.ptp
 deposit ptp time 200
 expect "RELOAD:" send "hard\r"; continue
 expect "DATE:" send "05-25-78\r"; continue
@@ -85,8 +85,8 @@ expect "\r\n." send "set tty width 132\r"; continue
 expect "\r\n." send "login 1,2\r"; continue
 expect "Password:" send "FAILSA\r"; continue
 expect "\r\n." send "set spool none\r"; continue
-expect "\r\n." send "copy glass.mac=ptr:\r"; continue
-expect "\r\n." send "execute glass.mac\r"; continue
+expect "\r\n." send "copy still.mac=ptr:\r"; continue
+expect "\r\n." send "execute still.mac\r"; continue
 expect "CPU time.\r\n" send "kjob/f\r"; continue
 expect "\r\n?" send "kjob/f\r"; continue
 expect "\n\n." exit
@@ -94,15 +94,15 @@ send after=2000000 "\r"
 boot dpa0
 EOF
 
-echo "Booting TOPS-10 and running GLASS (about three minutes)..."
+echo "Booting TOPS-10 and running STILL (about ten minutes)..."
 limit=()
-if command -v timeout > /dev/null; then limit=(timeout 1800); fi
-(cd "$RUN" && "${limit[@]}" "$SIM" glass.ini < /dev/null 2>&1 | tee console.log) || true
+if command -v timeout > /dev/null; then limit=(timeout 3600); fi
+(cd "$RUN" && "${limit[@]}" "$SIM" still.ini < /dev/null 2>&1 | tee console.log) || true
 tr -d '\r' < "$RUN/console.log" | cat -s > "$BUILD/transcript.txt"
 if ! grep -q "CPU time" "$BUILD/transcript.txt"; then
     tail -30 "$BUILD/transcript.txt"
-    echo "GLASS didn't finish; the whole console log is in build/transcript.txt" >&2
+    echo "STILL didn't finish; the whole console log is in build/transcript.txt" >&2
     exit 1
 fi
-python3 untape.py "$RUN/glass.ptp" "$BUILD/glass-and-mirrors.png"
-echo "Done: build/glass-and-mirrors.png, and the console session in build/transcript.txt"
+python3 untape.py "$RUN/still.ptp" "$BUILD/still-life.png"
+echo "Done: build/still-life.png, and the console session in build/transcript.txt"
