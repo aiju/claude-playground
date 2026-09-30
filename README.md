@@ -9,6 +9,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 | [glass-tower-hymn](glass-tower-hymn) | An orchestral instrumental in the style of the Ar tonelico II and Umineko openings, synthesized from scratch in JavaScript |
 | [heart-sutra-music-video](heart-sutra-music-video) | A watercolour inkblot music video for a Heart Sutra song, painted live by WebGL shaders, with the lyrics brushed on in Japanese and Devanagari calligraphy |
 | [sunken-bell-song](sunken-bell-song) | A layered orchestral, ethnic and electronic instrumental with choir, duduk and erhu, synthesized from scratch in JavaScript |
+| [tube-train](tube-train) | A 3D model of a Victoria line tube train, built from TfL's drawings and rendered in WebGL, in its depot and running through a tunnel |
 
 ## House rules
 
