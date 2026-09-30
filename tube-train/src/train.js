@@ -9,6 +9,7 @@ import { buildCarType } from './car.js';
 import { buildInterior } from './interior.js';
 import { buildUnderframe } from './bogie.js';
 import { labelTexture } from './textures.js';
+import { addLightTerms, stationTerm } from './materials.js';
 import { profileAt, vAtY } from './profile.js';
 
 export const CAR_GAP = 0.24;       // between the bodies of coupled cars
@@ -16,7 +17,7 @@ export const CAR_GAP = 0.24;       // between the bodies of coupled cars
 // The car's number on each side, low down under a window near one end.
 function addNumbers(car, type, number, t) {
   const tex = labelTexture(number, { w: 256, h: 64, font: '600 44px "Helvetica Neue", Arial, sans-serif', colour: '#1c2a5a' });
-  const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 });
+  const mat = addLightTerms(new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 }), [stationTerm()]);
   const L = type.length, spec = type.spec;
   const w = spec.windows[t === 'A' ? 2 : 0];
   const x = L / 2 - (w[0] + w[1]) / 2;

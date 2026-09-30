@@ -91,7 +91,8 @@ export function floorTexture() {
 }
 
 // Dot-matrix text, drawn the way an LED display shows it: the text is
-// rendered small, then each pixel becomes a round dot.
+// rendered small, then each pixel becomes a round dot. `text` can be several
+// lines, and a tab in a line pushes what follows it to the right.
 export function ledTexture(text, { cols = 128, rows = 16, colour = [255, 150, 30], font = 'bold 13px sans-serif', align = 'center', dot = 6 } = {}) {
   const [small, sg] = canvas(cols, rows);
   sg.fillStyle = '#000';
@@ -99,9 +100,14 @@ export function ledTexture(text, { cols = 128, rows = 16, colour = [255, 150, 30
   sg.fillStyle = '#fff';
   sg.font = font;
   sg.textBaseline = 'middle';
-  sg.textAlign = align;
-  const x = align === 'center' ? cols / 2 : align === 'right' ? cols - 1 : 1;
-  sg.fillText(text, x, rows / 2 + 1);
+  const lines = [].concat(text);
+  lines.forEach((line, i) => {
+    const y = rows * (i + 0.5) / lines.length + 1;
+    const [left, right] = line.split('\t');
+    sg.textAlign = right === undefined ? align : 'left';
+    sg.fillText(left, sg.textAlign === 'center' ? cols / 2 : sg.textAlign === 'right' ? cols - 1 : 1, y);
+    if (right !== undefined) { sg.textAlign = 'right'; sg.fillText(right, cols - 1, y); }
+  });
   const px = sg.getImageData(0, 0, cols, rows).data;
   const [c, g] = canvas(cols * dot, rows * dot);
   g.fillStyle = '#050403';

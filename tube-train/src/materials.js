@@ -18,12 +18,20 @@ export const lighting = {
 
 // Adds extra light to a MeshStandardMaterial or MeshPhysicalMaterial. Each
 // term has GLSL declarations and a body that adds irradiance to `extraIrr`
-// from the world position `wp` and normal `wn`.
+// from the world position `wp` and normal `wn` (or discards the fragment).
+// Terms accumulate: a material can be given more of them later.
 export function addLightTerms(material, terms) {
+  const all = material.userData.lightTerms;
+  if (all) {
+    for (const t of terms) if (!all.some(a => a.key === t.key)) all.push(t);
+    return material;
+  }
+  material.userData.lightTerms = [...terms];
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     prev?.call(material, shader, renderer);
-    for (const t of terms) Object.assign(shader.uniforms, t.uniforms);
+    const list = material.userData.lightTerms;
+    for (const t of list) Object.assign(shader.uniforms, t.uniforms);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vXtPos;\nvarying vec3 vXtNormal;')
       .replace('#include <fog_vertex>', `#include <fog_vertex>
@@ -39,19 +47,67 @@ export function addLightTerms(material, terms) {
       .replace('#include <common>', `#include <common>
         varying vec3 vXtPos;
         varying vec3 vXtNormal;
-        ${terms.map(t => t.decl).join('\n')}`)
+        ${[...new Set(list.flatMap(t => [].concat(t.decl)))].join('\n')}`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         {
           vec3 wp = vXtPos;
           vec3 wn = normalize(vXtNormal) * (gl_FrontFacing ? 1.0 : -1.0);
           vec3 extraIrr = vec3(0.0);
-          ${terms.map(t => `{ ${t.body} }`).join('\n')}
+          ${list.map(t => `{ ${t.body} }`).join('\n')}
           reflectedLight.indirectDiffuse += extraIrr * BRDF_Lambert(diffuseColor.rgb);
         }`);
   };
-  const key = terms.map(t => t.key).join('+');
-  material.customProgramCacheKey = () => key;
+  material.customProgramCacheKey = () => material.userData.lightTerms.map(t => t.key).join('+');
   return material;
+}
+
+// The station: where along the line it is just now, in world x, and whether
+// its lights are on (they are off in the depot). Station materials, the
+// tunnel near it and the train's outside all take its light.
+export const station = {
+  uStX0: { value: 1e6 },
+  uStX1: { value: 1e6 },
+  uStOn: { value: 0 },
+};
+
+const STATION_UNIFORMS = 'uniform float uStX0, uStX1, uStOn;';
+
+// Light in the station: two long light troughs, one over the platform (on
+// the +z side) and one over the track, plus the light bouncing off the tiles.
+export function stationTerm() {
+  return {
+    key: 'station-light',
+    uniforms: station,
+    decl: [STATION_UNIFORMS, `
+      float stationLine(vec3 p, vec3 n, vec2 at) {
+        vec2 d = at - p.yz;
+        float dist = max(length(d), 0.15);
+        vec2 l = d / dist;
+        float facing = max(dot(n.yz, l), 0.0) * 0.8 + 0.2;
+        float lobe = 0.35 + 0.65 * max(-l.x, 0.0);
+        return facing * lobe / (dist + 0.6);
+      }
+      float stationInside(float x) {
+        return smoothstep(uStX0 - 10.0, uStX0 + 3.0, x) * (1.0 - smoothstep(uStX1 - 3.0, uStX1 + 10.0, x));
+      }`],
+    body: `
+      float inside = stationInside(wp.x) * uStOn;
+      if (inside > 0.001) {
+        float e = 2.6 * stationLine(wp, wn, vec2(3.95, 3.0)) + 1.6 * stationLine(wp, wn, vec2(4.45, 0.3));
+        float bounce = 0.35 + 0.15 * max(wn.y, 0.0);
+        extraIrr += (e + bounce) * inside * vec3(1.0, 0.96, 0.9);
+      }`,
+  };
+}
+
+// Cuts the running tunnel away where the station is.
+export function clipTerm() {
+  return {
+    key: 'station-clip',
+    uniforms: station,
+    decl: STATION_UNIFORMS,
+    body: 'if (uStOn > 0.5 && wp.x > uStX0 + 0.01 && wp.x < uStX1 - 0.01) discard;',
+  };
 }
 
 // The saloon lights: two line lights along x, shining down and inwards.
@@ -154,12 +210,18 @@ export function createMaterials() {
   m.noseGlass = glass({ opacity: 0.32 });
   m.noseGlass.alphaMap = front.glass;
   m.noseGlass.alphaTest = 0.1;
+  // everything on the outside of the train is lit by a station it stands in
+  for (const k of ['white', 'red', 'blue', 'roof', 'mask', 'rubber', 'frame', 'underframe', 'bogie', 'steel', 'wheel', 'yellow', 'shoeBeam', 'nose', 'lampOff']) {
+    addLightTerms(m[k], [stationTerm()]);
+  }
   // each driving car has its own number on the front
   const noses = new Map([['11047', m.nose]]);
   m.noseFor = (number) => {
     if (!noses.has(number)) {
       const n = m.nose.clone();
+      n.userData = {};
       n.map = frontTextures({ number }).paint;
+      addLightTerms(n, [stationTerm()]);
       noses.set(number, n);
     }
     return noses.get(number);

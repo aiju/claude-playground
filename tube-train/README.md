@@ -5,7 +5,9 @@ A 3D model of a London Underground train, rendered in the browser with WebGL
 Walthamstow Central to Brixton, as a full eight-car train, inside and out.
 You can look round it in the depot, open its doors and sit in the saloon, then
 send it off through a tube tunnel: ride in the cab, watch it from alongside,
-or stand at the trackside as it comes out of the dark.
+or stand at the trackside as it comes out of the dark. Underground it runs in
+service, calling at a station every half kilometre, where you can wait on the
+platform, watch it pull in and see the doors open.
 
 Everything is built in code when the page loads. There are no model files.
 
@@ -19,29 +21,32 @@ Any static file server will do. It needs a browser with WebGL and an internet
 connection, because three.js comes from a CDN.
 
 Drag to look around, scroll or pinch to zoom. The panel switches between the
-depot and the tunnel and picks a view. It also opens and closes the doors,
-sets the speed and the destination on the front, and turns the saloon lights
-and the sound on and off. Keys:
+depot, the tunnel and the station and picks a view. It also opens and closes
+the doors in the depot, sets the speed, turns the stops at stations on and
+off, sets the destination on the front, and turns the saloon lights and the
+sound on and off. Keys:
 
 | Key | |
 | --- | --- |
-| 1–0 | views (Front, Side, Along, Bogie, Inside, Chase, Cab, Alongside, Window, Trackside) |
+| 1–5 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside; at the station Platform, Arriving, Doors) |
 | D | open or close the doors (in the depot) |
-| ↑ ↓ | speed up or slow down (in the tunnel) |
+| ↑ ↓ | speed up or slow down (underground) |
 | L | saloon lights |
 | S | sound |
 | H | hide the panel |
 | F | fullscreen |
 
 The page takes URL options too: `?view=cab`, `?doors=open`,
-`?dest=Brixton`, and `?cam=x,y,z&at=x,y,z` to put the camera anywhere.
+`?dest=Brixton`, `?s=900` to start the train that many metres along the line,
+`?stopped` to start it standing at the first station, and
+`?cam=x,y,z&at=x,y,z` to put the camera anywhere.
 
 ## Stills
 
 ```sh
 npm install
 node tools/stills.mjs                       # a handful of views
-node tools/stills.mjs cab trackside:t=4     # particular ones
+node tools/stills.mjs cab platform:s=960    # particular ones
 ```
 
 This renders views in headless Chromium and saves them to `out/stills/`. It
@@ -88,9 +93,23 @@ photographs. `src/dims.js` has all the numbers.
   back. The windows throw light on the walls: the tunnel's shaders read a
   strip of texture that marks where along the train the windows are, and
   blur it more the further the wall is from the glass.
+- **The station** (`station.js`) is a deep-level platform tunnel, 140 m
+  long and 6.8 m across, set off to one side of the track so there's room for
+  the platform. It has glazed tiles with a band in the line's light blue, a
+  dark ceiling with two long light troughs, a pit between the rails, posters
+  on the wall across the track, benches, the station's name along both walls,
+  way-out signs and a dot-matrix train indicator. Its light is two more line
+  sources, which the station, the tunnel near it and the outside of the train
+  all add in their shaders. Only one station exists at a time: when the train
+  has left, it moves on half a kilometre and takes the next name on the line.
+  The running tunnel is cut away in the shader where the station is.
+- **The service** (`service.js`) drives the train underground. It pulls
+  away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
+  its front 3 m short of the end of the platform. It opens the doors on the
+  platform side, closes them after 15 s with the warning beeps, and leaves.
 - **The sound** (`sound.js`) is synthesized: a rumble and a rush of air that
   grow with speed, motors that whine when the train pulls away or brakes, a
   click from each wheel as it crosses a rail joint, and the door beeps.
 
-The model leaves out the logos, and the seat moquette is an original pattern,
-not TfL's.
+The model leaves out the logos. The seat moquette, the station's tile motif
+and the posters are original designs, not TfL's.

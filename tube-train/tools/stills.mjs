@@ -5,10 +5,11 @@
 //   node tools/stills.mjs [view ...] [--size=1600x900] [--gpu]
 //
 // Views are the camera presets in src/views.js (front, side, cab, saloon,
-// tunnel, trackside, …); by default it renders a handful of them. Each still
+// tunnel, trackside, platform, …); by default it renders a handful of them. Each still
 // can also carry URL options after a colon, e.g. `front:doors=open`,
-// `tunnel:t=12&dest=Brixton` or `front:cam=2,1.5,4&at=0,1.4,0` (a camera
-// position and what it looks at). Stills go to out/stills/.
+// `platform:stopped`, `cab:s=880&dest=Brixton` (s is how far along the line
+// the train is) or `front:cam=2,1.5,4&at=0,1.4,0` (a camera position and what
+// it looks at). Stills go to out/stills/.
 
 import { chromium } from 'playwright-core';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -26,7 +27,7 @@ const gpu = args.includes('--gpu');
 const sizeArg = args.find(a => a.startsWith('--size='));
 const [width, height] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1600, 900];
 const views = args.filter(a => !a.startsWith('--'));
-if (!views.length) views.push('front', 'side', 'along', 'bogie', 'saloon', 'cab', 'tunnel', 'trackside');
+if (!views.length) views.push('front', 'side', 'along', 'bogie', 'saloon', 'cab', 'tunnel', 'trackside', 'platform:stopped', 'doorway:stopped');
 
 await mkdir(OUT, { recursive: true });
 const port = 8000 + Math.floor(Math.random() * 1000);

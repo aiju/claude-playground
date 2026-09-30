@@ -65,17 +65,18 @@
 <div id="panel" hidden>
   <div class="head"><strong>Tube train</strong><span class="sub">Victoria line · 2009 Stock</span><button id="hide" type="button" aria-label="Hide the controls" title="Hide (H)">×</button></div>
   <div class="row"><span class="label">Where</span>
-    <div class="seg"><button type="button" data-scene="depot">Depot</button><button type="button" data-scene="tunnel">Tunnel</button></div>
+    <div class="seg"><button type="button" data-scene="depot">Depot</button><button type="button" data-scene="tunnel">Tunnel</button><button type="button" data-scene="station">Station</button></div>
   </div>
   <div class="row"><span class="label">View</span><div class="seg" id="views"></div></div>
   <div class="row depot-only"><span class="label">Doors</span><button id="doors" type="button" title="D">Open doors</button></div>
   <div class="row tunnel-only"><span class="label">Speed</span>
     <input id="speed" type="range" min="0" max="80" step="1" value="54" aria-label="Speed in km/h" title="↑ ↓"><output id="speedOut">0 km/h</output>
+    <button id="stops" type="button">Stop at stations</button>
   </div>
   <div class="row"><span class="label">To</span><select id="dest" aria-label="Destination on the front"></select>
     <button id="lights" type="button" title="L">Saloon lights</button><button id="sound" type="button" title="S">Sound</button>
   </div>
-  <p class="hint">Drag to look around, scroll or pinch to zoom. Keys 1–0 pick a view.</p>
+  <p class="hint">Drag to look around, scroll or pinch to zoom. Keys 1–5 pick a view.</p>
 </div>
 <button id="show" type="button">Controls</button>
 <script type="module" src="src/main.js"></script>

@@ -16,7 +16,7 @@ export function buildUI(app) {
     b.type = 'button';
     b.textContent = v.label;
     b.dataset.view = name;
-    b.dataset.forScene = v.scene;
+    b.dataset.group = v.group;
     b.addEventListener('click', () => app.setView(name));
     viewRow.append(b);
     return b;
@@ -27,6 +27,7 @@ export function buildUI(app) {
   const dest = $('dest');
   for (const d of DESTINATIONS) dest.append(new Option(d, d));
   dest.addEventListener('change', () => app.setDestination(dest.value));
+  $('stops').addEventListener('click', () => app.setStops(!app.state.stops));
   $('lights').addEventListener('click', () => app.setLights(!app.state.lights));
   $('sound').addEventListener('click', () => app.setSound(!app.soundOn));
   $('hide').addEventListener('click', () => document.body.classList.add('bare'));
@@ -37,12 +38,14 @@ export function buildUI(app) {
   return {
     refresh() {
       const s = app.state;
+      const here = app.views[s.view].group;
       document.body.dataset.scene = s.scene;
-      for (const b of panel.querySelectorAll('[data-scene]')) b.setAttribute('aria-pressed', String(b.dataset.scene === s.scene));
+      for (const b of panel.querySelectorAll('[data-scene]')) b.setAttribute('aria-pressed', String(b.dataset.scene === here));
       for (const b of viewButtons) {
-        b.hidden = b.dataset.forScene !== s.scene;
+        b.hidden = b.dataset.group !== here;
         b.setAttribute('aria-pressed', String(b.dataset.view === s.view));
       }
+      $('stops').setAttribute('aria-pressed', String(s.stops));
       $('doors').textContent = s.doorTarget ? 'Close doors' : 'Open doors';
       speed.value = Math.round(s.targetSpeed * 3.6);
       dest.value = s.destination;

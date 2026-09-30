@@ -12,7 +12,7 @@
 
 import * as THREE from 'three';
 import { buildTrack, trackMaterials } from './track.js';
-import { addLightTerms } from './materials.js';
+import { addLightTerms, stationTerm, clipTerm, station } from './materials.js';
 import { MeshBuilder, matrixFrom } from './geom.js';
 import { noiseTexture, rng } from './textures.js';
 import { BODY } from './dims.js';
@@ -177,7 +177,9 @@ export function buildTunnel(train) {
   const winUniforms = {
     uWinTex: { value: pattern.tex }, uWinX0: { value: pattern.x0 }, uWinX1: { value: pattern.x1 }, uWinGain: { value: 5.0 },
   };
-  const lit = (m) => addLightTerms(m, [windowTerm(winUniforms)]);
+  // the tunnel is cut away where a station is, and near one the station's
+  // lights spill into it
+  const lit = (m) => addLightTerms(m, [windowTerm(winUniforms), stationTerm(), clipTerm()]);
 
   const grime = noiseTexture(256, 17, 5, [0.55, 1.0]);
   grime.repeat.set(1, 3);
@@ -185,7 +187,8 @@ export function buildTunnel(train) {
   const bedMat = lit(new THREE.MeshStandardMaterial({ color: 0x4a4744, roughness: 0.95 }));
   const cableMat = lit(new THREE.MeshStandardMaterial({ color: 0x1c1c1d, roughness: 0.6 }));
   const tm = trackMaterials();
-  for (const m of Object.values(tm)) lit(m);
+  // the track runs on through the stations
+  for (const m of Object.values(tm)) addLightTerms(m, [windowTerm(winUniforms), stationTerm()]);
   tm.timber.color.set(0x2c241f);
 
   // rings, instanced along the tunnel
@@ -242,7 +245,7 @@ export function buildTunnel(train) {
   const nLamps = Math.ceil((EXTENT[1] - EXTENT[0] + PERIOD) / PERIOD);
   const lampBody = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.12, 0.12), cableMat, nLamps);
   const lampGlow = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, 0.06, 0.02),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffd9a0, emissiveIntensity: 4 }), nLamps);
+    addLightTerms(new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffd9a0, emissiveIntensity: 4 }), [clipTerm()]), nLamps);
   for (let i = 0; i < nLamps; i++) {
     const x = EXTENT[0] + i * PERIOD + LAMP_PHASE;
     m.makeTranslation(x, LAMP_Y, lampZ);
@@ -251,11 +254,13 @@ export function buildTunnel(train) {
     lampGlow.setMatrixAt(i, m);
   }
   scroller.add(lampBody, lampGlow);
+  const glows = [];
   for (let i = 0; i < nLamps; i++) {
     const glow = new THREE.Sprite(train.materials.lampGlow);
     glow.scale.setScalar(0.9);
     glow.position.set(EXTENT[0] + i * PERIOD + LAMP_PHASE, LAMP_Y - 0.02, lampZ + 0.1);
     scroller.add(glow);
+    glows.push(glow);
   }
   const lampLights = [];
   for (let i = 0; i < 4; i++) {
@@ -284,14 +289,19 @@ export function buildTunnel(train) {
     exposure: 1.25,
     winUniforms,
     update(distance, camera) {
+      // the tunnel repeats every period, so it can be kept centred on the
+      // camera by whole periods, wherever along the line that is
       const shift = ((distance % PERIOD) + PERIOD) % PERIOD;
-      scroller.position.x = -shift;
+      scroller.position.x = -shift + Math.round(camera.position.x / PERIOD) * PERIOD;
+      const inStation = (x) => station.uStOn.value > 0.5 && x > station.uStX0.value && x < station.uStX1.value;
+      for (const g of glows) g.visible = !inStation(g.position.x + scroller.position.x);
       // the lamps nearest the camera get real lights
       const cx = camera.position.x;
       const base = Math.floor((cx + shift - LAMP_PHASE) / PERIOD);
       lampLights.forEach((l, i) => {
         const k = base + [0, 1, -1, 2][i];
         l.position.set(k * PERIOD + LAMP_PHASE - shift, LAMP_Y - 0.12, lampZ + 0.2);
+        l.visible = !inStation(l.position.x);
       });
     },
     follow() {},
