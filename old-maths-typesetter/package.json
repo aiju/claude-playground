@@ -1,0 +1,12 @@
+{
+  "name": "old-maths-typesetter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A JavaScript typesetter that sets mathematics the way Oxford books of the 1940s did",
+  "type": "module",
+  "scripts": {
+    "render": "node tools/render.mjs samples/hardy-divergent-series.tex out",
+    "serve": "npx --yes serve -l 8000 ."
+  },
+  "license": "MIT"
+}

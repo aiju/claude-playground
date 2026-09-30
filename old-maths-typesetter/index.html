@@ -1,0 +1,363 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hot Metal Maths</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+  /* Layout: a proof-reading desk. The copy (source) sits on the left, the
+     typeset proofs lie open as book spreads on the right. Pages are paper
+     in either theme; only the desk changes. */
+  :root {
+    --desk: #e3e6e1;
+    --panel: #f4f5f2;
+    --ink: #1c2220;
+    --muted: #5a6460;
+    --rule: #c5cbc5;
+    --pencil: #2b5b8a; /* proof-reader's blue pencil */
+    --warn: #8a5a00;
+    --error: #a3261b;
+    --shadow: rgba(24, 34, 30, 0.2);
+    --display: "Old Standard TT", "Latin Modern Roman", "Computer Modern", Georgia, serif;
+    --ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --page-w: 460px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --desk: #171b1a;
+      --panel: #1f2423;
+      --ink: #e4e8e5;
+      --muted: #97a19c;
+      --rule: #343b39;
+      --pencil: #8db4dc;
+      --warn: #e0b060;
+      --error: #f08a7e;
+      --shadow: rgba(0, 0, 0, 0.55);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --desk: #171b1a;
+    --panel: #1f2423;
+    --ink: #e4e8e5;
+    --muted: #97a19c;
+    --rule: #343b39;
+    --pencil: #8db4dc;
+    --warn: #e0b060;
+    --error: #f08a7e;
+    --shadow: rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--desk);
+    color: var(--ink);
+    font: 14px/1.45 var(--ui);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 0;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 24px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--panel);
+  }
+  .name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .name h1 {
+    margin: 0;
+    font: 400 1.55rem/1 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .name p { margin: 0; color: var(--muted); font-size: 0.8rem; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-left: auto; }
+  .control { display: flex; align-items: center; gap: 8px; }
+  label, .label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  select, button {
+    font: 500 0.85rem var(--ui);
+    color: var(--ink);
+    background: var(--desk);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 5px 9px;
+  }
+  button { cursor: pointer; }
+  button:hover, select:hover { border-color: var(--pencil); }
+  input[type="range"] { accent-color: var(--pencil); width: 110px; }
+  input[type="checkbox"] { accent-color: var(--pencil); }
+  :focus-visible { outline: 2px solid var(--pencil); outline-offset: 2px; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(300px, 36%) 1fr;
+    min-height: 0;
+  }
+
+  .copy {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 0;
+    min-width: 0;
+    border-right: 1px solid var(--rule);
+    background: var(--panel);
+  }
+  .copy-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+  textarea {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 240px;
+    resize: none;
+    border: 0;
+    padding: 14px 16px;
+    background: var(--panel);
+    color: var(--ink);
+    font: 12.5px/1.6 var(--mono);
+    tab-size: 2;
+  }
+  textarea:focus-visible { outline: none; box-shadow: inset 3px 0 0 var(--pencil); }
+
+  .status {
+    padding: 8px 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    max-height: 30vh;
+    overflow: auto;
+  }
+  .status .error { color: var(--error); font-family: var(--mono); font-size: 0.75rem; white-space: pre-wrap; }
+  .status details { margin-top: 4px; }
+  .status summary { color: var(--warn); cursor: pointer; }
+  .status ul { margin: 4px 0 0; padding-left: 18px; font-family: var(--mono); font-size: 0.72rem; }
+
+  details.help { font-size: 0.8rem; }
+  details.help summary { cursor: pointer; color: var(--pencil); font-weight: 500; }
+  details.help dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 3px 12px;
+    margin: 8px 0 2px;
+  }
+  details.help dt { font-family: var(--mono); font-size: 0.74rem; white-space: nowrap; }
+  details.help dd { margin: 0; color: var(--muted); }
+
+  .proofs {
+    overflow: auto;
+    min-width: 0;
+    min-height: 0;
+    padding-block: 28px 48px;
+    padding-inline: 16px;
+  }
+  .spreads { display: flex; flex-direction: column; align-items: center; gap: 36px; }
+  .spread { display: flex; justify-content: center; width: 100%; }
+  /* pages shrink to fit the desk, never past it */
+  .sheet, .blank { flex: 0 1 var(--page-w); min-width: 0; }
+  .sheet {
+    box-shadow: 0 1px 2px var(--shadow), 0 10px 28px -12px var(--shadow);
+    position: relative;
+  }
+  .sheet svg { display: block; width: 100%; height: auto; }
+  /* the gutter: a little shade where the pages meet the spine */
+  .spread .sheet.verso::after,
+  .spread .sheet.recto::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 22px;
+    pointer-events: none;
+  }
+  .spread .sheet.verso::after { right: 0; background: linear-gradient(to left, rgba(40, 30, 10, 0.1), transparent); }
+  .spread .sheet.recto::after { left: 0; background: linear-gradient(to right, rgba(40, 30, 10, 0.1), transparent); }
+  body.single .spread { flex-direction: column; align-items: center; gap: 36px; }
+  body.single .sheet { flex: none; width: min(var(--page-w), 100%); }
+  body.single .blank { display: none; }
+  body.single .sheet::after { display: none; }
+
+  .placeholder { color: var(--muted); text-align: center; padding: 60px 0; font-family: var(--display); font-size: 1.1rem; }
+
+  @media (max-width: 860px) {
+    body { display: block; height: auto; }
+    main { grid-template-columns: 1fr; }
+    .copy { border-right: 0; border-bottom: 1px solid var(--rule); }
+    textarea { height: 42vh; }
+    .proofs { overflow: visible; }
+    .spread { flex-direction: column; align-items: center; gap: 24px; }
+    .sheet { flex: none; width: min(var(--page-w), 100%); }
+    .blank { display: none; }
+    .sheet::after { display: none; }
+    .controls { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sheet { transition: box-shadow 0.2s; }
+  }
+</style>
+
+<header>
+  <div class="name">
+    <h1>Hot Metal Maths</h1>
+    <p>Mathematics set in JavaScript the way Oxford books of the 1940s were</p>
+  </div>
+  <div class="controls">
+    <div class="control">
+      <label for="sample">Copy</label>
+      <select id="sample">
+        <option value="hardy-divergent-series">Hardy, Divergent Series, ch. I</option>
+        <option value="hardy-general-theorems">Hardy, Divergent Series, ch. III</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="ink">Impression</label>
+      <input id="ink" type="range" min="0" max="0.5" step="0.02" value="0.24">
+    </div>
+    <div class="control">
+      <label for="zoom">Size</label>
+      <input id="zoom" type="range" min="300" max="820" step="10" value="460">
+    </div>
+    <div class="control">
+      <input id="spreads" type="checkbox" checked>
+      <label for="spreads">Spreads</label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="copy" aria-label="Source">
+    <div class="copy-bar">
+      <details class="help">
+        <summary>Markup</summary>
+        <dl>
+          <dt>\chapter{Title}</dt><dd>new chapter, on a new page</dd>
+          <dt>\section{Title.}</dt><dd>numbered run-in heading</dd>
+          <dt>$ … $</dt><dd>maths in the text</dd>
+          <dt>$$ … $$</dt><dd>displayed maths</dd>
+          <dt>\no \label{k}</dt><dd>number an equation (1.2.3), on the left</dd>
+          <dt>\\ and &amp;</dt><dd>new display line; alignment point</dd>
+          <dt>\eqref{k}</dt><dd>refer to it: (1.2.3)</dd>
+          <dt>\frac12</dt><dd>case fraction ½; \tfrac for a small built-up one</dd>
+          <dt>\sum \Sum \int</dt><dd>small and large sums, upright integral</dd>
+          <dt>\footnote{…}</dt><dd>marked †, ‡, § page by page</dd>
+          <dt>\begin{theorem}</dt><dd>THEOREM n., in italic</dd>
+          <dt>\emph \S `…'</dt><dd>italic, §, single quotes</dd>
+        </dl>
+      </details>
+      <button id="reset" type="button">Restore sample</button>
+    </div>
+    <textarea id="source" spellcheck="false" aria-label="Source text"></textarea>
+    <div class="status" id="status" aria-live="polite">Loading fonts…</div>
+  </section>
+
+  <section class="proofs" aria-label="Typeset pages">
+    <div class="spreads" id="pages"><p class="placeholder">Setting type…</p></div>
+  </section>
+</main>
+
+<script type="module">
+  import { createTypesetter } from "./src/index.js";
+
+  const $ = (id) => document.getElementById(id);
+  const source = $("source");
+  const status = $("status");
+  const pagesEl = $("pages");
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  const ts = await createTypesetter((name) => fetch(`fonts/${name}.json`).then((r) => r.json()));
+  let pages = [];
+  let lastTime = 0;
+  let lastWarnings = [];
+
+  async function loadSample(name, { fresh = false } = {}) {
+    const saved = fresh ? null : store.get(`draft:${name}`);
+    source.value = saved ?? (await fetch(`samples/${name}.tex`).then((r) => r.text()));
+    store.set("sample", name);
+    typeset();
+  }
+
+  function typeset() {
+    const t0 = performance.now();
+    try {
+      const result = ts.typeset(source.value);
+      pages = result.pages;
+      lastWarnings = result.warnings;
+      lastTime = performance.now() - t0;
+      render();
+      showStatus();
+    } catch (err) {
+      showStatus(err);
+    }
+  }
+
+  function showStatus(err) {
+    const n = pages.length;
+    let html = `<div>${n} page${n === 1 ? "" : "s"}, set in ${Math.round(lastTime)} ms</div>`;
+    if (err) html += `<div class="error">${escape(err.message)} — showing the last good proof.</div>`;
+    if (lastWarnings.length) {
+      html += `<details><summary>${lastWarnings.length} line${lastWarnings.length === 1 ? "" : "s"} too wide</summary><ul>${lastWarnings.map((w) => `<li>${escape(w)}</li>`).join("")}</ul></details>`;
+    }
+    status.innerHTML = html;
+  }
+
+  function escape(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  }
+
+  function render() {
+    const ink = Number($("ink").value);
+    const sheet = (p) => `<div class="sheet ${p.number % 2 ? "recto" : "verso"}" aria-label="Page ${p.number}">${ts.render(p, { inkSpread: ink })}</div>`;
+    // pair versos (even) with the rectos (odd) that face them
+    const spreads = [];
+    for (const p of pages) {
+      const last = spreads[spreads.length - 1];
+      if (p.number % 2 === 1 && last && !last.right && last.left && last.left.number === p.number - 1) last.right = p;
+      else if (p.number % 2 === 0) spreads.push({ left: p });
+      else spreads.push({ right: p });
+    }
+    pagesEl.innerHTML = spreads
+      .map((s) => `<div class="spread">${s.left ? sheet(s.left) : '<div class="blank"></div>'}${s.right ? sheet(s.right) : '<div class="blank"></div>'}</div>`)
+      .join("");
+  }
+
+  let timer = 0;
+  source.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      store.set(`draft:${$("sample").value}`, source.value);
+      typeset();
+    }, 250);
+  });
+  $("sample").addEventListener("change", (e) => loadSample(e.target.value));
+  $("reset").addEventListener("click", () => loadSample($("sample").value, { fresh: true }));
+  $("ink").addEventListener("input", render);
+  $("zoom").addEventListener("input", (e) => document.documentElement.style.setProperty("--page-w", `${e.target.value}px`));
+  $("spreads").addEventListener("change", (e) => document.body.classList.toggle("single", !e.target.checked));
+
+  const first = store.get("sample");
+  if (first && [...$("sample").options].some((o) => o.value === first)) $("sample").value = first;
+  await loadSample($("sample").value);
+</script>
