@@ -1,0 +1,1582 @@
+	TITLE	DSTAR - Ray trace the Death Star on a KA10
+	SUBTTL	Introduction
+
+;DSTAR ray traces the Death Star firing its superlaser.  It prints a
+;preview on the terminal and punches the full picture, a 640x480
+;colour PPM file, onto paper tape.
+;
+;Everything is done in single precision floating point with the
+;instructions the KA10 has: FADR, FSBR, FMPR, FDVR and FSC.  There is
+;no FIX or FLTR, so integers are floated with FSC and floats are
+;floored with the old MULI/TSC/ASH trick.  Square roots come from
+;Newton's method and sines from a Taylor series.
+;
+;The scene, in Death Star coordinates (radius 1, north pole on +Y):
+;
+;  - the hull, a unit sphere,
+;  - the superlaser dish, a spherical bite out of the northern
+;    hemisphere, with a small emitter in the middle and eight
+;    tributary lenses round it,
+;  - the equatorial trench, a band cut down to a smaller sphere,
+;  - the beams, drawn as glowing line segments.
+;
+;The solid is (hull - dish) - (trench band - floor sphere).  To find
+;where a ray first hits it, TRACE collects every place the ray crosses
+;one of the surfaces and keeps the nearest one that is really on the
+;solid.  Shadows are a second ray towards the sun.
+
+	SEARCH	UUOSYM
+
+	SUBTTL	Accumulators and assembly parameters
+
+T1=1		;Scratch.  T1/T2 are also used as a double word.
+T2=2
+T3=3
+T4=4
+V1=5		;Vector pointers for the vector routines
+V2=6
+V3=7
+I=10		;Pixel column
+J=11		;Pixel row
+SI=12		;Sub-sample column
+SJ=13		;Sub-sample row
+K=14		;Table pointer
+N=15		;Table counter
+P=17		;Push down list pointer
+
+PCH=1		;I/O channel for the paper tape punch
+
+IMGW==^D640	;Width of the punched image
+IMGH==^D480	;Height of the punched image
+SS==2		;SSxSS samples per pixel
+TXTW==^D79	;Columns of the terminal preview
+TXTH==^D36	;Rows of the terminal preview
+NLENS==^D8	;Tributary lenses round the dish
+NSMALL==NLENS+1	;Small spheres: the emitter and the lenses
+NSEG==NLENS+2	;Beam segments: core, halo and one per lens
+PDLEN==^D100	;Length of the push down list
+
+;Surface numbers, as left in BESTS by TRACE
+
+S.HULL==0	;The hull
+S.DISH==1	;The superlaser dish
+S.FLR==2	;The floor of the trench
+S.WAL1==3	;The trench wall at y=+TW
+S.EMIT==4	;The central emitter
+S.LENS==5	;A tributary lens
+S.WAL2==6	;The trench wall at y=-TW
+
+;Layout of an entry in SMTAB, the small sphere table
+
+SM.X==0		;Centre (three words)
+SM.R2==3	;Radius squared
+SM.RI==4	;One over the radius
+SM.ID==5	;Surface number
+SMLEN==6
+
+;Layout of an entry in SEGTAB, the beam segment table
+
+SG.V==0		;P1-P0 (three words)
+SG.C==3		;V.V
+SG.W==4		;Camera-P0 (three words)
+SG.E==7		;V.W
+SG.IS==^D8	;One over sigma squared
+SG.WT==^D9	;Brightness
+SGLEN==^D10
+
+	SUBTTL	The scene
+
+;Angles are in degrees, lengths in Death Star radii.
+
+DSHLAT:	28.0		;Latitude of the superlaser dish
+DSHLON:	0.0		;Longitude of the dish
+DSHANG:	15.0		;Angular radius of the dish rim
+DISHR:	0.42		;Radius of the sphere scooped out for the dish
+TW:	0.011		;Half width of the equatorial trench
+TD:	0.028		;Depth of the trench
+CAMAZ:	36.0		;Camera azimuth
+CAMEL:	10.0		;Camera elevation
+CAMRO:	-14.0		;Camera roll
+CAMD:	4.4		;Camera distance
+FOV:	40.0		;Vertical field of view
+SHIFTX:	-0.30		;Lens shift, to put the Death Star right of centre
+SHIFTY:	0.02
+LCAM:	-0.62		;Direction of the sun in camera coordinates:
+	0.50		; right, up and forward
+	-0.50
+EMR:	0.03		;Radius of the central emitter
+EMSINK:	0.012		;How far the emitter is sunk into the dish
+LENSR:	0.018		;Radius of the tributary lenses
+LENSF:	0.80		;Their distance from the axis, as part of the rim's
+LENSK:	0.006		;How far they are sunk into the dish
+FOCD:	0.30		;Height of the focal point above the rim plane
+BEAML:	30.0		;Length of the main beam
+SIGMA:	0.035		;Width of the beam core
+SIGHAL:	0.11		;Width of the beam halo
+SIGTRB:	0.007		;Width of the tributary beams
+EPS:	1.0E-5		;Tolerance for INSIDE
+
+ORIGIN:	EXP	0,0,0
+YAXIS:	EXP	0,1.0,0
+
+	SUBTTL	Main program
+
+START:	RESET
+	MOVE	P,[IOWD PDLEN,PDL]
+	OUTSTR	[ASCIZ /
+DSTAR - the Death Star, ray traced on a KA10
+
+/]
+	SETZ	T1,
+	RUNTIM	T1,
+	MOVEM	T1,TSTART
+	PUSHJ	P,INIT
+	PUSHJ	P,PREVW
+	PUSHJ	P,IMAGE
+	OUTSTR	[ASCIZ /
+Done in /]
+	SETZ	T1,
+	RUNTIM	T1,
+	SUB	T1,TSTART
+	IDIVI	T1,^D1000
+	PUSHJ	P,DECOUT
+	OUTSTR	[ASCIZ / seconds of CPU time.
+/]
+	MONRT.
+	JRST	START
+
+	SUBTTL	INIT - Work out the scene
+
+INIT:
+
+;Axis of the dish:  UD = (cos lat sin lon, sin lat, -cos lat cos lon)
+
+	MOVE	T1,DSHLAT
+	PUSHJ	P,DSIN
+	MOVEM	T1,UD+1
+	MOVE	T1,DSHLAT
+	PUSHJ	P,DCOS
+	MOVEM	T1,TMP1
+	MOVE	T1,DSHLON
+	PUSHJ	P,DSIN
+	FMPR	T1,TMP1
+	MOVEM	T1,UD
+	MOVE	T1,DSHLON
+	PUSHJ	P,DCOS
+	FMPR	T1,TMP1
+	MOVNM	T1,UD+2
+
+;Two unit vectors across the dish:  E1 = norm(UD x Y), E2 = UD x E1
+
+	MOVEI	V1,UD
+	MOVEI	V2,YAXIS
+	MOVEI	V3,E1
+	PUSHJ	P,VCRS
+	MOVEI	V1,E1
+	PUSHJ	P,VNRM
+	MOVEI	V1,UD
+	MOVEI	V2,E1
+	MOVEI	V3,E2
+	PUSHJ	P,VCRS
+
+;The dish sphere passes through the rim, where the angle from the axis
+;is DSHANG.  Its centre is DC = UD*DK, DK = cos(rim) + sqrt(DISHR^2 -
+;sin(rim)^2).
+
+	MOVE	T1,DSHANG
+	PUSHJ	P,DSIN
+	MOVEM	T1,SA
+	MOVE	T1,DSHANG
+	PUSHJ	P,DCOS
+	MOVEM	T1,CA
+	MOVE	T1,DISHR
+	FMPR	T1,T1
+	MOVEM	T1,DR2
+	MOVE	T2,SA
+	FMPR	T2,T2
+	FSBR	T1,T2
+	PUSHJ	P,SQRT
+	FADR	T1,CA
+	MOVEM	T1,DK
+	MOVEI	V1,UD
+	MOVEI	V3,DC
+	PUSHJ	P,VSCL
+	MOVE	T1,[1.0]
+	FDVR	T1,DISHR
+	MOVEM	T1,IDISHR
+
+;The trench floor is a sphere of radius IR = 1-TD
+
+	MOVE	T1,[1.0]
+	FSBR	T1,TD
+	MOVEM	T1,IR
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,IIR
+	FMPR	T1,T1
+	MOVEM	T1,IR2
+
+;Limits for INSIDE, with a little slack for rounding
+
+	MOVE	T1,[1.0]
+	FADR	T1,EPS
+	MOVEM	T1,ONEPE
+	MOVE	T1,DR2
+	FSBR	T1,EPS
+	MOVEM	T1,DR2ME
+	MOVE	T1,TW
+	FSBR	T1,EPS
+	MOVEM	T1,TWME
+	MOVE	T1,IR2
+	FADR	T1,EPS
+	MOVEM	T1,IR2PE
+
+;The emitter sits at the bottom of the dish.  It is the first entry
+;in the small sphere table.
+
+	MOVE	T1,DK
+	FSBR	T1,DISHR
+	FSBR	T1,EMSINK
+	MOVEI	V1,UD
+	MOVEI	V3,SMTAB+SM.X
+	PUSHJ	P,VSCL
+	MOVEI	K,SMTAB
+	MOVE	T1,EMR
+	MOVEI	T2,S.EMIT
+	PUSHJ	P,SMRAD
+
+;The lenses are spaced round the dish at LNSRHO from its axis, at
+;height LNSH along the axis, where they touch the dish surface.
+
+	MOVE	T1,SA
+	FMPR	T1,LENSF
+	MOVEM	T1,LNSRHO
+	FMPR	T1,T1
+	MOVNS	T1
+	FADR	T1,DR2
+	PUSHJ	P,SQRT
+	MOVNS	T1
+	FADR	T1,DK
+	FSBR	T1,LENSK
+	MOVEM	T1,LNSH
+	MOVEI	K,SMTAB+SMLEN
+	SETZ	N,
+INIT1:	MOVE	T1,N		;Angle of this lens
+	IMULI	T1,^D45
+	FSC	T1,233
+	MOVEM	T1,TMP1
+	PUSHJ	P,DCOS
+	FMPR	T1,LNSRHO
+	MOVEM	T1,TMP2
+	MOVE	T1,TMP1
+	PUSHJ	P,DSIN
+	FMPR	T1,LNSRHO
+	MOVEM	T1,TMP3
+	MOVE	T1,LNSH		;Centre = UD*LNSH + E1*TMP2 + E2*TMP3
+	MOVEI	V1,UD
+	MOVE	V3,K
+	PUSHJ	P,VSCL
+	MOVE	T1,TMP2
+	MOVE	V1,K
+	MOVEI	V2,E1
+	PUSHJ	P,VRAY
+	MOVE	T1,TMP3
+	MOVEI	V2,E2
+	PUSHJ	P,VRAY
+	MOVE	T1,LENSR
+	MOVEI	T2,S.LENS
+	PUSHJ	P,SMRAD
+	ADDI	K,SMLEN
+	CAIGE	N,NLENS-1
+	AOJA	N,INIT1
+
+;The beams meet at FOCUS, in front of the dish, and the main beam
+;runs from there to BEAMND.
+
+	MOVE	T1,CA
+	FADR	T1,FOCD
+	MOVEI	V1,UD
+	MOVEI	V3,FOCUS
+	PUSHJ	P,VSCL
+	MOVE	T1,BEAML
+	MOVEI	V3,BEAMND
+	PUSHJ	P,VSCL
+
+;The camera: CAMP is where it is, CAMF, CAMR and CAMU are unit vectors
+;forward, right and up.
+
+	MOVE	T1,CAMEL
+	PUSHJ	P,DCOS
+	FMPR	T1,CAMD
+	MOVEM	T1,TMP1
+	MOVE	T1,CAMEL
+	PUSHJ	P,DSIN
+	FMPR	T1,CAMD
+	MOVEM	T1,CAMP+1
+	MOVE	T1,CAMAZ
+	PUSHJ	P,DSIN
+	FMPR	T1,TMP1
+	MOVEM	T1,CAMP
+	MOVE	T1,CAMAZ
+	PUSHJ	P,DCOS
+	FMPR	T1,TMP1
+	MOVNM	T1,CAMP+2
+	MOVN	T1,CAMP		;Look at the middle of the Death Star
+	MOVEM	T1,CAMF
+	MOVN	T1,CAMP+1
+	MOVEM	T1,CAMF+1
+	MOVN	T1,CAMP+2
+	MOVEM	T1,CAMF+2
+	MOVEI	V1,CAMF
+	PUSHJ	P,VNRM
+	MOVEI	V1,YAXIS	;Level right and up vectors
+	MOVEI	V2,CAMF
+	MOVEI	V3,R0
+	PUSHJ	P,VCRS
+	MOVEI	V1,R0
+	PUSHJ	P,VNRM
+	MOVEI	V1,CAMF
+	MOVEI	V2,R0
+	MOVEI	V3,U0
+	PUSHJ	P,VCRS
+	MOVE	T1,CAMRO	;Roll them
+	PUSHJ	P,DCOS
+	MOVEM	T1,TMP1
+	MOVE	T1,CAMRO
+	PUSHJ	P,DSIN
+	MOVEM	T1,TMP2
+	MOVE	T1,TMP1		;CAMR = R0 cos roll + U0 sin roll
+	MOVEI	V1,R0
+	MOVEI	V3,CAMR
+	PUSHJ	P,VSCL
+	MOVE	T1,TMP2
+	MOVEI	V1,CAMR
+	MOVEI	V2,U0
+	PUSHJ	P,VRAY
+	MOVE	T1,TMP1		;CAMU = U0 cos roll - R0 sin roll
+	MOVEI	V1,U0
+	MOVEI	V3,CAMU
+	PUSHJ	P,VSCL
+	MOVN	T1,TMP2
+	MOVEI	V1,CAMU
+	MOVEI	V2,R0
+	PUSHJ	P,VRAY
+
+;The sun
+
+	MOVE	T1,LCAM
+	MOVEI	V1,CAMR
+	MOVEI	V3,LIGHT
+	PUSHJ	P,VSCL
+	MOVE	T1,LCAM+1
+	MOVEI	V1,LIGHT
+	MOVEI	V2,CAMU
+	PUSHJ	P,VRAY
+	MOVE	T1,LCAM+2
+	MOVEI	V2,CAMF
+	PUSHJ	P,VRAY
+	MOVEI	V1,LIGHT
+	PUSHJ	P,VNRM
+
+;The image plane is one unit in front of the camera.  TANF is half its
+;height, OFFX and OFFY move it sideways.
+
+	MOVE	T1,FOV
+	FSC	T1,-1
+	PUSHJ	P,DSIN
+	MOVEM	T1,TMP1
+	MOVE	T1,FOV
+	FSC	T1,-1
+	PUSHJ	P,DCOS
+	MOVE	T2,TMP1
+	FDVR	T2,T1
+	MOVEM	T2,TANF
+	MOVE	T1,SHIFTX
+	FMPR	T1,T2
+	MOVEM	T1,OFFX
+	MOVE	T1,SHIFTY
+	FMPR	T1,T2
+	MOVEM	T1,OFFY
+
+;The beam segments: the core and the halo of the main beam, then one
+;from each lens to the focus.
+
+	MOVEI	K,SEGTAB
+	MOVEI	V1,FOCUS
+	MOVEI	V2,BEAMND
+	MOVE	T1,SIGMA
+	MOVE	T2,[1.0]
+	PUSHJ	P,MKSEG
+	MOVEI	V1,FOCUS
+	MOVEI	V2,BEAMND
+	MOVE	T1,SIGHAL
+	MOVE	T2,[0.25]
+	PUSHJ	P,MKSEG
+	MOVEI	N,SMTAB+SMLEN
+INIT2:	MOVE	V1,N
+	MOVEI	V2,FOCUS
+	MOVE	T1,SIGTRB
+	MOVE	T2,[0.6]
+	PUSHJ	P,MKSEG
+	ADDI	N,SMLEN
+	CAIGE	N,SMTAB+NSMALL*SMLEN
+	JRST	INIT2
+	POPJ	P,
+
+;SMRAD - Fill in the small sphere table entry at K.
+;T1 has the radius and T2 the surface number.
+
+SMRAD:	MOVEM	T2,SM.ID(K)
+	MOVE	T2,T1
+	FMPR	T2,T1
+	MOVEM	T2,SM.R2(K)
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,SM.RI(K)
+	POPJ	P,
+
+;MKSEG - Make a beam segment table entry at K, and advance K.
+;V1 and V2 point to the ends, T1 has the width and T2 the brightness.
+
+MKSEG:	MOVEM	T2,SG.WT(K)
+	FMPR	T1,T1
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,SG.IS(K)
+	MOVEM	V1,TMP1
+	EXCH	V1,V2
+	MOVEI	V3,SG.V(K)
+	PUSHJ	P,VSUB		;V = P1-P0
+	MOVEI	V1,CAMP
+	MOVE	V2,TMP1
+	MOVEI	V3,SG.W(K)
+	PUSHJ	P,VSUB		;W = CAMP-P0
+	MOVEI	V1,SG.V(K)
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	MOVEM	T1,SG.C(K)
+	MOVEI	V2,SG.W(K)
+	PUSHJ	P,VDOT
+	MOVEM	T1,SG.E(K)
+	ADDI	K,SGLEN
+	POPJ	P,
+
+	SUBTTL	PREVW - Draw the preview on the terminal
+
+PREVW:	MOVEI	T2,TXTH		;One row of characters is SCALE high
+	FSC	T2,232
+	MOVE	T1,TANF
+	FDVR	T1,T2
+	MOVEM	T1,SCALE
+	SETZ	J,
+PREV1:	MOVE	T1,[POINT 7,LINBUF]
+	MOVEM	T1,LINPTR
+	MOVEM	T1,LINEND
+	SETZ	I,
+PREV2:	MOVE	T1,I		;SX = (I+0.5-TXTW/2)*SCALE/2 + OFFX
+	FSC	T1,233
+	FADR	T1,[0.5]
+	MOVEI	T2,TXTW
+	FSC	T2,232
+	FSBR	T1,T2
+	FMPR	T1,SCALE
+	FSC	T1,-1		;Characters are twice as tall as wide
+	FADR	T1,OFFX
+	MOVEM	T1,SX
+	MOVEI	T1,TXTH		;SY = (TXTH/2-J-0.5)*SCALE + OFFY
+	FSC	T1,232
+	MOVE	T2,J
+	FSC	T2,233
+	FSBR	T1,T2
+	FSBR	T1,[0.5]
+	FMPR	T1,SCALE
+	FADR	T1,OFFY
+	MOVEM	T1,SY
+	PUSHJ	P,SAMPLE
+	MOVE	T1,COLR		;Brightness picks the character
+	FMPR	T1,[0.3]
+	MOVE	T2,COLG
+	FMPR	T2,[0.59]
+	FADR	T1,T2
+	MOVE	T2,COLB
+	FMPR	T2,[0.11]
+	FADR	T1,T2
+	SETZ	T3,
+	JUMPLE	T1,PREV3
+	PUSHJ	P,SQRT
+	FMPR	T1,[10.0]
+	PUSHJ	P,FLOOR
+	CAILE	T1,^D9
+	MOVEI	T1,^D9
+	MOVE	T3,T1
+PREV3:	MOVE	T4,RAMP(T3)
+	JUMPN	T3,PREV4	;A few stars in the black
+	SKIPN	MISSF
+	JRST	PREV4
+	MOVE	T1,I
+	MOVE	T2,J
+	MOVEI	T3,5
+	PUSHJ	P,HASH
+	MOVE	T4,RAMP
+	CAMGE	T1,[0.02]
+	MOVEI	T4,"."
+PREV4:	IDPB	T4,LINPTR
+	CAIN	T4," "
+	JRST	PREV5
+	MOVE	T1,LINPTR	;Remember the last non-blank
+	MOVEM	T1,LINEND
+PREV5:	CAIGE	I,TXTW-1
+	AOJA	I,PREV2
+	MOVEI	T4,15
+	IDPB	T4,LINEND
+	MOVEI	T4,12
+	IDPB	T4,LINEND
+	SETZ	T4,
+	IDPB	T4,LINEND
+	OUTSTR	LINBUF
+	CAIGE	J,TXTH-1
+	AOJA	J,PREV1
+	POPJ	P,
+
+RAMP:	EXP	" ",".",":","-","=","+","*","#","%","@"
+
+	SUBTTL	IMAGE - Punch the picture
+
+IMAGE:	OPEN	PCH,PTPBLK
+	  JRST	NOPTP
+	OUTBUF	PCH,4
+	OUTSTR	[ASCIZ /
+Punching a /]
+	MOVEI	T1,IMGW
+	PUSHJ	P,DECOUT
+	OUTCHR	["x"]
+	MOVEI	T1,IMGH
+	PUSHJ	P,DECOUT
+	OUTSTR	[ASCIZ / PPM image, one dot every 16 rows:
+/]
+
+;The header: P6, width, height and largest value
+
+	MOVEI	T1,"P"
+	PUSHJ	P,PUTB
+	MOVEI	T1,"6"
+	PUSHJ	P,PUTB
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+	MOVEI	T1,IMGW
+	PUSHJ	P,PUTDEC
+	MOVEI	T1," "
+	PUSHJ	P,PUTB
+	MOVEI	T1,IMGH
+	PUSHJ	P,PUTDEC
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+	MOVEI	T1,^D255
+	PUSHJ	P,PUTDEC
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+
+;One pixel is SCALE wide.  Each is the average of SS*SS samples.
+
+	MOVEI	T2,IMGH
+	FSC	T2,232
+	MOVE	T1,TANF
+	FDVR	T1,T2
+	MOVEM	T1,SCALE
+	MOVEI	T1,SS
+	FSC	T1,233
+	MOVEM	T1,FSS
+	FMPR	T1,T1
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,INVSS2
+	SETZ	J,
+IMG1:	SETZ	I,
+IMG2:	SETZM	ACCR
+	SETZM	ACCG
+	SETZM	ACCB
+	SETZM	NMISS
+	SETZ	SJ,
+IMG3:	SETZ	SI,
+IMG4:	MOVE	T1,SI		;SX = (I-IMGW/2+(SI+0.5)/SS)*SCALE + OFFX
+	FSC	T1,233
+	FADR	T1,[0.5]
+	FDVR	T1,FSS
+	MOVE	T2,I
+	SUBI	T2,IMGW/2
+	FSC	T2,233
+	FADR	T1,T2
+	FMPR	T1,SCALE
+	FADR	T1,OFFX
+	MOVEM	T1,SX
+	MOVE	T1,SJ		;SY = (IMGH/2-J-(SJ+0.5)/SS)*SCALE + OFFY
+	FSC	T1,233
+	FADR	T1,[0.5]
+	FDVR	T1,FSS
+	MOVEI	T2,IMGH/2
+	SUB	T2,J
+	FSC	T2,233
+	FSBR	T2,T1
+	FMPR	T2,SCALE
+	FADR	T2,OFFY
+	MOVEM	T2,SY
+	PUSHJ	P,SAMPLE
+	MOVE	T1,COLR
+	FADRM	T1,ACCR
+	MOVE	T1,COLG
+	FADRM	T1,ACCG
+	MOVE	T1,COLB
+	FADRM	T1,ACCB
+	SKIPE	MISSF
+	AOS	NMISS
+	CAIGE	SI,SS-1
+	AOJA	SI,IMG4
+	CAIGE	SJ,SS-1
+	AOJA	SJ,IMG3
+	SKIPN	NMISS		;Stars show through where we missed
+	JRST	IMG5
+	PUSHJ	P,STAR
+	MOVE	T1,NMISS
+	FSC	T1,233
+	MOVE	T2,STR
+	FMPR	T2,T1
+	FADRM	T2,ACCR
+	MOVE	T2,STG
+	FMPR	T2,T1
+	FADRM	T2,ACCG
+	MOVE	T2,STB
+	FMPR	T2,T1
+	FADRM	T2,ACCB
+IMG5:	MOVE	T1,ACCR
+	PUSHJ	P,PUTPIX
+	MOVE	T1,ACCG
+	PUSHJ	P,PUTPIX
+	MOVE	T1,ACCB
+	PUSHJ	P,PUTPIX
+	CAIGE	I,IMGW-1
+	AOJA	I,IMG2
+	MOVE	T1,J		;Show that we are still alive
+	ANDI	T1,17
+	CAIN	T1,17
+	OUTCHR	["."]
+	CAIGE	J,IMGH-1
+	AOJA	J,IMG1
+	RELEAS	PCH,
+	OUTSTR	[ASCIZ /
+/]
+	POPJ	P,
+
+NOPTP:	OUTSTR	[ASCIZ /?Can't get the paper tape punch
+/]
+	POPJ	P,
+
+;PUTPIX - Punch one colour component.  T1 has the sum of the samples.
+;The average is gamma corrected with a square root.
+
+PUTPIX:	FMPR	T1,INVSS2
+	PUSHJ	P,SQRT
+	FMPR	T1,[255.0]
+	FADR	T1,[0.5]
+	PUSHJ	P,FLOOR
+	CAILE	T1,^D255
+	MOVEI	T1,^D255
+	JUMPGE	T1,PUTB
+	SETZ	T1,
+				;Fall into PUTB
+
+;PUTB - Punch the byte in T1
+
+PUTB:	SOSGE	PBUF+2
+	JRST	PUTB1
+	IDPB	T1,PBUF+1
+	POPJ	P,
+PUTB1:	OUT	PCH,
+	  JRST	PUTB
+	OUTSTR	[ASCIZ /?Paper tape punch error
+/]
+	MONRT.
+
+;PUTDEC - Punch the number in T1 in decimal
+
+PUTDEC:	IDIVI	T1,^D10
+	PUSH	P,T2
+	SKIPE	T1
+	PUSHJ	P,PUTDEC
+	POP	P,T1
+	ADDI	T1,"0"
+	JRST	PUTB
+
+PTPBLK:	EXP	10		;Image mode: punch the low 8 bits of each word
+	SIXBIT	/PTP/
+	XWD	PBUF,0
+PBUF:	BLOCK	3
+
+	SUBTTL	SAMPLE - Colour of one camera ray
+
+;SX and SY say where the ray goes through the image plane.  SAMPLE
+;leaves the linear colour in COLR, COLG and COLB, and sets MISSF if
+;the ray missed the Death Star.
+
+SAMPLE:	MOVE	T1,SX		;PRIMD = norm(CAMF + CAMR*SX + CAMU*SY)
+	MOVEI	V1,CAMF
+	MOVEI	V2,CAMR
+	MOVEI	V3,PRIMD
+	PUSHJ	P,VRAY
+	MOVE	T1,SY
+	MOVEI	V1,PRIMD
+	MOVEI	V2,CAMU
+	PUSHJ	P,VRAY
+	MOVEI	V1,PRIMD
+	PUSHJ	P,VNRM
+	MOVE	T1,[PRIMD,,RD]
+	BLT	T1,RD+2
+	MOVE	T1,[CAMP,,RO]
+	BLT	T1,RO+2
+	PUSHJ	P,SHADE
+	PUSHJ	P,GLOW		;Add the beams
+	JUMPE	T1,CPOPJ
+	MOVE	T2,T1		;Green, going white where it is bright
+	FMPR	T2,T1
+	FMPR	T2,[0.6]
+	MOVE	T3,T1
+	FMPR	T3,[0.45]
+	FADR	T3,T2
+	FADRM	T3,COLR
+	MOVE	T3,T1
+	FADR	T3,T2
+	FADRM	T3,COLG
+	MOVE	T3,T1
+	FMPR	T3,[0.40]
+	FADR	T3,T2
+	FADRM	T3,COLB
+	POPJ	P,
+
+	SUBTTL	SHADE - Light the surface
+
+;SHADE follows the ray in RO and RD.  It leaves the colour of the
+;surface in COLR, COLG and COLB, and the distance to it in PRIMT.
+
+SHADE:	SETZM	TMIN
+	PUSHJ	P,TRACE
+	  JRST	SHMISS
+	MOVE	T1,BESTT
+	MOVEM	T1,PRIMT
+	SETZM	MISSF
+	MOVE	T1,BESTS
+	MOVEM	T1,SID
+	MOVE	T1,[HITP,,SP]
+	BLT	T1,SP+2
+	MOVEI	V1,HITN		;Turn the normal towards us
+	MOVEI	V2,RD
+	PUSHJ	P,VDOT
+	JUMPLE	T1,SHADE1
+	MOVNS	HITN
+	MOVNS	HITN+1
+	MOVNS	HITN+2
+SHADE1:	PUSHJ	P,ALBEDO
+	SETZM	LTAMT
+	MOVEI	V1,HITN		;Facing the sun?
+	MOVEI	V2,LIGHT
+	PUSHJ	P,VDOT
+	JUMPLE	T1,SHADE2
+	MOVEM	T1,DIFF
+	MOVE	T1,[1.0E-3]	;Yes, is anything in the way?
+	MOVEI	V1,SP
+	MOVEI	V2,HITN
+	MOVEI	V3,RO
+	PUSHJ	P,VRAY
+	MOVE	T1,[LIGHT,,RD]
+	BLT	T1,RD+2
+	MOVE	T1,[1.0E-4]
+	MOVEM	T1,TMIN
+	PUSHJ	P,TRACE
+	  SKIPA	T1,DIFF
+	SETZ	T1,
+	MOVEM	T1,LTAMT
+SHADE2:	SETZM	EMITR
+	SETZM	EMITG
+	SETZM	EMITB
+	SKIPE	SID		;Lights on the night side of the hull
+	JRST	SHADE3
+	MOVE	T1,LTAMT
+	CAML	T1,[0.05]
+	JRST	SHADE3
+	MOVEI	T4,[EXP 160.0,160.0,160.0]
+	PUSHJ	P,CELL
+	CAML	T1,[0.012]
+	JRST	SHADE3
+	MOVE	T1,LTAMT
+	FMPR	T1,[-9.0]
+	FADR	T1,[0.45]
+	MOVEM	T1,EMITR
+	MOVE	T2,T1
+	FMPR	T2,[0.8]
+	MOVEM	T2,EMITG
+	FMPR	T1,[0.5]
+	MOVEM	T1,EMITB
+SHADE3:	MOVE	T1,SID		;Green light from the beams in the dish
+	CAIL	T1,S.DISH
+	CAILE	T1,S.LENS
+	JRST	SHADE4
+	MOVEI	V1,SP
+	MOVEI	V2,FOCUS
+	MOVEI	V3,TMPV
+	PUSHJ	P,VSUB
+	MOVEI	V1,TMPV
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	FADR	T1,[0.004]
+	MOVE	T2,[0.012]
+	FDVR	T2,T1
+	MOVE	T1,T2
+	FMPR	T1,[0.10]
+	FADRM	T1,EMITR
+	MOVE	T1,T2
+	FMPR	T1,[0.45]
+	FADRM	T1,EMITG
+	FMPR	T2,[0.12]
+	FADRM	T2,EMITB
+SHADE4:	MOVE	T1,LTAMT	;Colour = albedo*(ambient+sun) + glow
+	FADR	T1,[0.024]
+	FMPR	T1,ALB
+	FADR	T1,EMITR
+	MOVEM	T1,COLR
+	MOVE	T1,LTAMT
+	FMPR	T1,[0.97]
+	FADR	T1,[0.027]
+	FMPR	T1,ALB
+	FADR	T1,EMITG
+	MOVEM	T1,COLG
+	MOVE	T1,LTAMT
+	FMPR	T1,[0.92]
+	FADR	T1,[0.036]
+	FMPR	T1,ALB
+	FADR	T1,EMITB
+	MOVEM	T1,COLB
+	POPJ	P,
+
+SHMISS:	SETOM	MISSF
+	SETZM	COLR
+	SETZM	COLG
+	SETZM	COLB
+	MOVE	T1,[1.0E30]
+	MOVEM	T1,PRIMT
+	POPJ	P,
+
+;ALBEDO - How light the surface is at SP.  The hull is covered in
+;panels of three sizes, the dish in rings.
+
+ALBEDO:	MOVE	T1,SID
+	CAIE	T1,S.DISH
+	JRST	ALBED1
+	MOVEI	V1,SP		;Distance from the dish axis
+	MOVEI	V2,UD
+	PUSHJ	P,VDOT
+	FMPR	T1,T1
+	MOVEM	T1,TMP1
+	MOVEI	V2,SP
+	PUSHJ	P,VDOT
+	FSBR	T1,TMP1
+	PUSHJ	P,SQRT
+	FDVR	T1,SA
+	FMPR	T1,[6.0]
+	PUSHJ	P,FLOOR
+	MOVE	T2,[0.42]
+	TRNE	T1,1
+	MOVE	T2,[0.47]
+	MOVEM	T2,ALB
+	POPJ	P,
+
+ALBED1:	CAIE	T1,S.EMIT
+	CAIN	T1,S.LENS
+	JRST	[MOVE	T1,[0.6]
+		 MOVEM	T1,ALB
+		 POPJ	P,]
+	MOVEI	T4,[EXP 7.0,22.0,7.0]
+	PUSHJ	P,CELL
+	MOVEM	T1,HA
+	MOVEI	T4,[EXP 30.0,44.0,30.0]
+	PUSHJ	P,CELL
+	FMPR	T1,[0.10]
+	MOVEM	T1,TMP1
+	MOVEI	T4,[EXP 90.0,90.0,90.0]
+	PUSHJ	P,CELL
+	FMPR	T1,[0.06]
+	FADR	T1,TMP1
+	MOVE	T2,HA
+	FMPR	T2,[0.12]
+	FADR	T1,T2
+	FADR	T1,[0.40]
+	MOVE	T2,HA
+	CAMLE	T2,[0.85]
+	FMPR	T1,[0.8]
+	SKIPE	SID		;The trench is darker
+	FMPR	T1,[0.6]
+	MOVEM	T1,ALB
+	POPJ	P,
+
+;CELL - Random number for the cell of a grid that SP is in.  T4 points
+;to the size of the grid along X, Y and Z.
+
+CELL:	MOVE	T1,SP
+	FMPR	T1,0(T4)
+	PUSHJ	P,FLOOR
+	MOVEM	T1,HI
+	MOVE	T1,SP+1
+	FMPR	T1,1(T4)
+	PUSHJ	P,FLOOR
+	MOVEM	T1,HJ
+	MOVE	T1,SP+2
+	FMPR	T1,2(T4)
+	PUSHJ	P,FLOOR
+	MOVE	T3,T1
+	MOVE	T1,HI
+	MOVE	T2,HJ
+	JRST	HASH
+
+	SUBTTL	TRACE - Find where a ray hits the Death Star
+
+;TRACE follows the ray RO+T*RD for T>TMIN.  If it hits, it skip
+;returns with the distance in BESTT, the surface number in BESTS, the
+;point in HITP and the outward normal in HITN.
+
+TRACE:	PUSH	P,K
+	PUSH	P,N
+	MOVE	T1,[1.0E30]
+	MOVEM	T1,BESTT
+	SETOM	BESTS
+	MOVEI	V1,ORIGIN	;Everything is inside the hull sphere
+	MOVE	T1,[1.0]
+	PUSHJ	P,SPHERE
+	  JRST	TRACEX		;Missed it altogether
+	MOVEI	T3,S.HULL
+	PUSHJ	P,CONS2
+	SETZM	DSHHIT
+	MOVEI	V1,DC		;The dish
+	MOVE	T1,DR2
+	PUSHJ	P,SPHERE
+	  JRST	TRACE1
+	SETOM	DSHHIT
+	MOVEI	T3,S.DISH
+	PUSHJ	P,CONS2
+TRACE1:	MOVEI	V1,ORIGIN	;The trench floor
+	MOVE	T1,IR2
+	PUSHJ	P,SPHERE
+	  JRST	TRACE2
+	MOVEI	T3,S.FLR
+	PUSHJ	P,CONS2
+TRACE2:	SKIPN	RD+1		;The trench walls
+	JRST	TRACE3
+	MOVE	T1,TW
+	FSBR	T1,RO+1
+	FDVR	T1,RD+1
+	MOVEI	T3,S.WAL1
+	PUSHJ	P,CONSID
+	MOVN	T1,TW
+	FSBR	T1,RO+1
+	FDVR	T1,RD+1
+	MOVEI	T3,S.WAL2
+	PUSHJ	P,CONSID
+TRACE3:	SKIPN	DSHHIT		;The emitter and the lenses stand in
+	JRST	TRACE5		; the dish, so only look if we hit it
+	MOVEI	K,SMTAB
+	MOVEI	N,NSMALL
+TRACE4:	MOVE	V1,K
+	MOVE	T1,SM.R2(K)
+	PUSHJ	P,SPHERE
+	  JRST	TRACE6
+	CAMG	T1,TMIN
+	JRST	TRACE6
+	CAML	T1,BESTT
+	JRST	TRACE6
+	MOVEM	T1,BESTT
+	MOVE	T1,SM.ID(K)
+	MOVEM	T1,BESTS
+	MOVEM	K,BESTC
+TRACE6:	ADDI	K,SMLEN
+	SOJG	N,TRACE4
+TRACE5:	SKIPGE	BESTS
+	JRST	TRACEX		;Nothing
+	MOVE	T1,BESTT
+	MOVEI	V1,RO
+	MOVEI	V2,RD
+	MOVEI	V3,HITP
+	PUSHJ	P,VRAY
+	MOVE	T1,BESTS
+	PUSHJ	P,@NRMTAB(T1)	;Work out the normal
+	AOS	-2(P)
+TRACEX:	POP	P,N
+	POP	P,K
+	POPJ	P,
+
+NRMTAB:	NRMHUL
+	NRMDSH
+	NRMFLR
+	NRMW1
+	NRMSML
+	NRMSML
+	NRMW2
+
+NRMHUL:	MOVE	T1,[HITP,,HITN]
+	BLT	T1,HITN+2
+	POPJ	P,
+
+NRMDSH:	MOVEI	V1,DC
+	MOVEI	V2,HITP
+	MOVEI	V3,HITN
+	PUSHJ	P,VSUB
+	MOVE	T1,IDISHR
+	MOVEI	V1,HITN
+	JRST	VSCL
+
+NRMFLR:	MOVE	T1,IIR
+	MOVEI	V1,HITP
+	MOVEI	V3,HITN
+	JRST	VSCL
+
+NRMW1:	MOVE	T1,[-1.0]
+	JRST	NRMW
+NRMW2:	MOVE	T1,[1.0]
+NRMW:	SETZM	HITN
+	MOVEM	T1,HITN+1
+	SETZM	HITN+2
+	POPJ	P,
+
+NRMSML:	MOVE	K,BESTC
+	MOVEI	V1,HITP
+	MOVE	V2,K
+	MOVEI	V3,HITN
+	PUSHJ	P,VSUB
+	MOVE	T1,SM.RI(K)
+	MOVEI	V1,HITN
+	JRST	VSCL
+
+;CONS2 - Consider the crossings at T1 and T2 for surface T3
+;CONSID - Consider the crossing at T1 for surface T3.  If it is nearer
+;than the best so far, and really on the Death Star, it is the new best.
+
+CONS2:	PUSH	P,T2
+	PUSH	P,T3
+	PUSHJ	P,CONSID
+	POP	P,T3
+	POP	P,T1
+CONSID:	CAMG	T1,TMIN
+	POPJ	P,
+	CAML	T1,BESTT
+	POPJ	P,
+	MOVEM	T1,CANDT
+	MOVEM	T3,CANDS
+	MOVEI	V1,RO
+	MOVEI	V2,RD
+	MOVEI	V3,CANDP
+	PUSHJ	P,VRAY
+	PUSHJ	P,INSIDE
+	  POPJ	P,
+	MOVE	T1,CANDT
+	MOVEM	T1,BESTT
+	MOVE	T1,CANDS
+	MOVEM	T1,BESTS
+	POPJ	P,
+
+;INSIDE - Skip return if CANDP is in the Death Star (or on its surface)
+
+INSIDE:	MOVEI	V1,CANDP
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	CAMLE	T1,ONEPE
+	POPJ	P,		;Outside the hull
+	MOVEM	T1,CANDR2
+	MOVEI	V2,DC
+	MOVEI	V3,CANDQ
+	PUSHJ	P,VSUB
+	MOVEI	V1,CANDQ
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	CAMGE	T1,DR2ME
+	POPJ	P,		;In the dish
+	MOVM	T1,CANDP+1
+	CAML	T1,TWME
+	JRST	CPOPJ1		;Clear of the trench
+	MOVE	T1,CANDR2
+	CAMLE	T1,IR2PE
+	POPJ	P,		;In the trench
+	JRST	CPOPJ1
+
+;SPHERE - Intersect the ray RO+T*RD with the sphere centred at (V1)
+;with radius squared in T1.  Skip return with the crossings in T1
+;and T2 (T1<=T2) if the ray's line hits it.
+
+SPHERE:	MOVEM	T1,SPHR2
+	MOVE	T1,RO		;OC = RO-centre
+	FSBR	T1,0(V1)
+	MOVEM	T1,OC
+	MOVE	T1,RO+1
+	FSBR	T1,1(V1)
+	MOVEM	T1,OC+1
+	MOVE	T1,RO+2
+	FSBR	T1,2(V1)
+	MOVEM	T1,OC+2
+	MOVE	T1,OC		;B = OC.RD
+	FMPR	T1,RD
+	MOVE	T2,OC+1
+	FMPR	T2,RD+1
+	FADR	T1,T2
+	MOVE	T2,OC+2
+	FMPR	T2,RD+2
+	FADR	T1,T2
+	MOVEM	T1,SPHB
+	MOVE	T3,OC		;C = OC.OC-R^2
+	FMPR	T3,T3
+	MOVE	T2,OC+1
+	FMPR	T2,T2
+	FADR	T3,T2
+	MOVE	T2,OC+2
+	FMPR	T2,T2
+	FADR	T3,T2
+	FSBR	T3,SPHR2
+	FMPR	T1,T1		;B^2-C
+	FSBR	T1,T3
+	JUMPL	T1,CPOPJ	;Missed
+	PUSHJ	P,SQRT
+	MOVN	T2,SPHB
+	FADR	T2,T1		;-B+SQRT
+	MOVNS	T1
+	FSBR	T1,SPHB		;-B-SQRT
+	JRST	CPOPJ1
+
+	SUBTTL	GLOW - The superlaser beams
+
+;GLOW finds how close the camera ray PRIMD passes to each beam segment
+;and returns the sum of their glows in T1.  A segment at distance D
+;glows WT/(1+D^2/SIGMA^2)^2, unless it is behind the surface at PRIMT.
+
+GLOW:	PUSH	P,K
+	PUSH	P,N
+	SETZM	GSUM
+	MOVEI	K,SEGTAB
+	MOVEI	N,NSEG
+GLOW1:	MOVEI	V1,PRIMD	;B = D.V
+	MOVEI	V2,SG.V(K)
+	PUSHJ	P,VDOT
+	MOVEM	T1,GB
+	MOVEI	V2,SG.W(K)	;DD = D.W
+	PUSHJ	P,VDOT
+	MOVEM	T1,GDD
+	MOVE	T2,GB		;DEN = V.V - B^2
+	FMPR	T2,T2
+	MOVE	T1,SG.C(K)
+	FSBR	T1,T2
+	CAMG	T1,[1.0E-12]
+	JRST	GLOW9		;Parallel
+	MOVEM	T1,GDEN
+	MOVE	T1,GB		;S = (E-B*DD)/DEN, the nearest point
+	FMPR	T1,GDD		; on the segment, 0 to 1
+	MOVNS	T1
+	FADR	T1,SG.E(K)
+	FDVR	T1,GDEN
+	JUMPGE	T1,.+2
+	SETZ	T1,
+	CAMLE	T1,[1.0]
+	MOVE	T1,[1.0]
+	MOVEM	T1,GS
+	FMPR	T1,GB		;T = B*S-DD, the nearest point on the ray
+	FSBR	T1,GDD
+	JUMPGE	T1,.+2
+	SETZ	T1,
+	CAMLE	T1,PRIMT
+	JRST	GLOW9		;Hidden by the Death Star
+	MOVEI	V1,SG.W(K)	;Q = W + D*T - V*S
+	MOVEI	V2,PRIMD
+	MOVEI	V3,GQ
+	PUSHJ	P,VRAY
+	MOVN	T1,GS
+	MOVEI	V1,GQ
+	MOVEI	V2,SG.V(K)
+	PUSHJ	P,VRAY
+	MOVEI	V1,GQ
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	FMPR	T1,SG.IS(K)
+	FADR	T1,[1.0]
+	FMPR	T1,T1
+	MOVE	T2,SG.WT(K)
+	FDVR	T2,T1
+	FADRM	T2,GSUM
+GLOW9:	ADDI	K,SGLEN
+	SOJG	N,GLOW1
+	MOVE	T1,GSUM
+	POP	P,N
+	POP	P,K
+	POPJ	P,
+
+	SUBTTL	STAR - The background
+
+;STAR sets STR, STG and STB to the colour of the star at pixel I,J
+
+STAR:	SETZM	STR
+	SETZM	STG
+	SETZM	STB
+	MOVE	T1,I
+	MOVE	T2,J
+	MOVEI	T3,7
+	PUSHJ	P,HASH
+	CAML	T1,[0.0035]
+	POPJ	P,		;No star here
+	MOVE	T1,I		;Brightness 0.2 + 0.8*R^3
+	MOVE	T2,J
+	MOVEI	T3,^D11
+	PUSHJ	P,HASH
+	MOVE	T2,T1
+	FMPR	T2,T1
+	FMPR	T2,T1
+	FMPR	T2,[0.8]
+	FADR	T2,[0.2]
+	MOVEM	T2,STV
+	MOVEM	T2,STR
+	MOVEM	T2,STG
+	MOVEM	T2,STB
+	MOVE	T1,I		;Colour
+	MOVE	T2,J
+	MOVEI	T3,^D13
+	PUSHJ	P,HASH
+	CAMGE	T1,[0.3]
+	JRST	[MOVE	T2,STV		;Bluish
+		 FMPR	T2,[0.75]
+		 MOVEM	T2,STR
+		 MOVE	T2,STV
+		 FMPR	T2,[0.82]
+		 MOVEM	T2,STG
+		 POPJ	P,]
+	CAMG	T1,[0.8]
+	POPJ	P,		;White
+	MOVE	T2,STV		;Yellowish
+	FMPR	T2,[0.88]
+	MOVEM	T2,STG
+	MOVE	T2,STV
+	FMPR	T2,[0.7]
+	MOVEM	T2,STB
+	POPJ	P,
+
+	SUBTTL	Vector routines
+
+;The vector routines take pointers to three word vectors in V1, V2
+;and V3.  They may change T1 to T3, but not V1 to V3 unless they say so.
+
+;VDOT - T1 = (V1).(V2)
+
+VDOT:	MOVE	T1,0(V1)
+	FMPR	T1,0(V2)
+	MOVE	T2,1(V1)
+	FMPR	T2,1(V2)
+	FADR	T1,T2
+	MOVE	T2,2(V1)
+	FMPR	T2,2(V2)
+	FADR	T1,T2
+	POPJ	P,
+
+;VSUB - (V3) = (V1)-(V2)
+
+VSUB:	MOVE	T1,0(V1)
+	FSBR	T1,0(V2)
+	MOVEM	T1,0(V3)
+	MOVE	T1,1(V1)
+	FSBR	T1,1(V2)
+	MOVEM	T1,1(V3)
+	MOVE	T1,2(V1)
+	FSBR	T1,2(V2)
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VSCL - (V3) = (V1)*T1
+
+VSCL:	MOVE	T2,0(V1)
+	FMPR	T2,T1
+	MOVEM	T2,0(V3)
+	MOVE	T2,1(V1)
+	FMPR	T2,T1
+	MOVEM	T2,1(V3)
+	MOVE	T2,2(V1)
+	FMPR	T2,T1
+	MOVEM	T2,2(V3)
+	POPJ	P,
+
+;VRAY - (V3) = (V1)+(V2)*T1
+
+VRAY:	MOVE	T2,0(V2)
+	FMPR	T2,T1
+	FADR	T2,0(V1)
+	MOVEM	T2,0(V3)
+	MOVE	T2,1(V2)
+	FMPR	T2,T1
+	FADR	T2,1(V1)
+	MOVEM	T2,1(V3)
+	MOVE	T2,2(V2)
+	FMPR	T2,T1
+	FADR	T2,2(V1)
+	MOVEM	T2,2(V3)
+	POPJ	P,
+
+;VCRS - (V3) = (V1) x (V2).  V3 must not be V1 or V2.
+
+VCRS:	MOVE	T1,1(V1)
+	FMPR	T1,2(V2)
+	MOVE	T2,2(V1)
+	FMPR	T2,1(V2)
+	FSBR	T1,T2
+	MOVEM	T1,0(V3)
+	MOVE	T1,2(V1)
+	FMPR	T1,0(V2)
+	MOVE	T2,0(V1)
+	FMPR	T2,2(V2)
+	FSBR	T1,T2
+	MOVEM	T1,1(V3)
+	MOVE	T1,0(V1)
+	FMPR	T1,1(V2)
+	MOVE	T2,1(V1)
+	FMPR	T2,0(V2)
+	FSBR	T1,T2
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VNRM - Make (V1) a unit vector.  Changes V2 and V3.
+
+VNRM:	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	PUSHJ	P,SQRT
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVE	T1,T2
+	MOVE	V3,V1
+	JRST	VSCL
+
+	SUBTTL	Arithmetic
+
+;SQRT - T1 = SQRT(T1), or 0 if T1 is not positive.  Changes T2 and T3.
+;The first guess halves the exponent and keeps the fraction, which is
+;never out by more than a factor of two, so five rounds of Newton's
+;method are plenty for 27 bits.
+
+SQRT:	JUMPLE	T1,[SETZ T1,
+		    POPJ P,]
+	MOVE	T2,T1
+	LSH	T2,-33		;Exponent, excess 200
+	SUBI	T2,200
+	ASH	T2,-1
+	ADDI	T2,200
+	LSH	T2,33
+	MOVE	T3,T1
+	TLZ	T3,777000	;Fraction
+	IOR	T3,T2		;First guess in T3
+	MOVE	T2,T1		;X in T2
+	REPEAT	5,<
+	MOVE	T1,T2		;Y = (Y + X/Y)/2
+	FDVR	T1,T3
+	FADR	T1,T3
+	FSC	T1,-1
+	MOVE	T3,T1>
+	POPJ	P,
+
+;FLOOR - T1 = the largest integer not above the float in T1.  Changes T2.
+;MULI splits off the exponent, TSC gets it right for negative numbers,
+;and ASH shifts the fraction into place.
+
+FLOOR:	MULI	T1,400
+	TSC	T1,T1
+	ASH	T2,-243(T1)
+	MOVE	T1,T2
+	POPJ	P,
+
+;DSIN, DCOS - T1 = the sine or cosine of T1 degrees
+;SIN - T1 = the sine of T1 radians.  Changes T2 and T3.
+
+DCOS:	FADR	T1,[90.0]
+DSIN:	FMPR	T1,[0.017453293]
+SIN:	MOVEM	T1,SINX		;Bring X into -PI to PI
+	FMPR	T1,[0.15915494]
+	FADR	T1,[0.5]
+	PUSHJ	P,FLOOR
+	FSC	T1,233
+	FMPR	T1,[6.2831853]
+	MOVNS	T1
+	FADR	T1,SINX
+	CAMG	T1,[1.5707963]	;Then into -PI/2 to PI/2
+	JRST	SIN1
+	MOVNS	T1
+	FADR	T1,[3.1415927]
+	JRST	SIN2
+SIN1:	CAML	T1,[-1.5707963]
+	JRST	SIN2
+	MOVNS	T1
+	FSBR	T1,[3.1415927]
+SIN2:	MOVEM	T1,SINX		;X*(1-X^2/6*(1-X^2/20*(1-X^2/42*(...
+	FMPR	T1,T1
+	MOVEM	T1,SINX2
+	MOVE	T2,[1.0]
+	MOVSI	T3,-6
+SIN3:	FMPR	T2,SINX2
+	FDVR	T2,SINDIV(T3)
+	MOVNS	T2
+	FADR	T2,[1.0]
+	AOBJN	T3,SIN3
+	MOVE	T1,T2
+	FMPR	T1,SINX
+	POPJ	P,
+
+SINDIV:	156.0
+	110.0
+	72.0
+	42.0
+	20.0
+	6.0
+
+;HASH - Mix the integers in T1, T2 and T3 into a random number from
+;0 to 1 in T1.  Changes T2 to T4.  They must be above -32768.
+
+HASH:	ADDI	T1,100000
+	IMULI	T1,123457
+	ADDI	T2,100000
+	IMULI	T2,156201
+	ADD	T1,T2
+	ADDI	T3,100000
+	IMULI	T3,104763
+	ADD	T1,T3
+	MOVE	T2,T1
+	LSH	T2,-^D11
+	XOR	T1,T2
+	IMUL	T1,[3261354525]	;IMUL keeps the low 35 bits
+	MOVE	T2,T1
+	LSH	T2,-^D15
+	XOR	T1,T2
+	IMUL	T1,[1215371625]
+	MOVE	T2,T1
+	LSH	T2,-^D13
+	XOR	T1,T2
+	LSH	T1,-^D8
+	ANDI	T1,177777
+	FSC	T1,233-^D16	;Float it and divide by 2^16
+	POPJ	P,
+
+;DECOUT - Type the number in T1 in decimal
+
+DECOUT:	JUMPGE	T1,DECOU1
+	OUTCHR	["-"]
+	MOVMS	T1
+DECOU1:	IDIVI	T1,^D10
+	PUSH	P,T2
+	SKIPE	T1
+	PUSHJ	P,DECOU1
+	POP	P,T1
+	ADDI	T1,"0"
+	OUTCHR	T1
+	POPJ	P,
+
+CPOPJ1:	AOS	(P)
+CPOPJ:	POPJ	P,
+
+	SUBTTL	Storage
+
+;Worked out by INIT
+
+UD:	BLOCK	3		;Axis of the dish
+E1:	BLOCK	3		;Unit vectors across the dish
+E2:	BLOCK	3
+SA:	BLOCK	1		;Sine and cosine of the rim angle
+CA:	BLOCK	1
+DR2:	BLOCK	1		;DISHR^2
+IDISHR:	BLOCK	1		;1/DISHR
+DK:	BLOCK	1		;Distance to the centre of the dish sphere
+DC:	BLOCK	3		;The centre of the dish sphere
+IR:	BLOCK	1		;Radius of the trench floor
+IIR:	BLOCK	1		;1/IR
+IR2:	BLOCK	1		;IR^2
+ONEPE:	BLOCK	1		;1+EPS
+DR2ME:	BLOCK	1		;DR2-EPS
+TWME:	BLOCK	1		;TW-EPS
+IR2PE:	BLOCK	1		;IR2+EPS
+LNSRHO:	BLOCK	1		;Distance of the lenses from the axis
+LNSH:	BLOCK	1		;Height of the lenses along the axis
+FOCUS:	BLOCK	3		;Where the beams meet
+BEAMND:	BLOCK	3		;Where the main beam ends
+CAMP:	BLOCK	3		;Camera position
+CAMF:	BLOCK	3		;Camera forward
+CAMR:	BLOCK	3		;Camera right
+CAMU:	BLOCK	3		;Camera up
+R0:	BLOCK	3		;Camera right and up before the roll
+U0:	BLOCK	3
+LIGHT:	BLOCK	3		;Towards the sun
+TANF:	BLOCK	1		;Half the height of the image plane
+OFFX:	BLOCK	1		;Lens shift
+OFFY:	BLOCK	1
+SMTAB:	BLOCK	NSMALL*SMLEN	;Small spheres
+SEGTAB:	BLOCK	NSEG*SGLEN	;Beam segments
+
+;Per ray
+
+RO:	BLOCK	3		;Ray origin
+RD:	BLOCK	3		;Ray direction
+TMIN:	BLOCK	1		;Nearest distance to look at
+PRIMD:	BLOCK	3		;Direction of the camera ray
+PRIMT:	BLOCK	1		;Distance to the surface it hit
+BESTT:	BLOCK	1		;Nearest hit so far
+BESTS:	BLOCK	1		;Its surface number
+BESTC:	BLOCK	1		;Its small sphere table entry
+HITP:	BLOCK	3		;Where the ray hit
+HITN:	BLOCK	3		;Normal there
+DSHHIT:	BLOCK	1		;-1 if the ray went through the dish sphere
+CANDT:	BLOCK	1		;Crossing being considered
+CANDS:	BLOCK	1		;Its surface number
+CANDP:	BLOCK	3		;Its position
+CANDQ:	BLOCK	3		;Position relative to the dish centre
+CANDR2:	BLOCK	1		;Its distance from the centre, squared
+SPHR2:	BLOCK	1		;Temporaries for SPHERE
+SPHB:	BLOCK	1
+OC:	BLOCK	3
+SP:	BLOCK	3		;Surface point being shaded
+SID:	BLOCK	1		;Its surface number
+ALB:	BLOCK	1		;Its albedo
+DIFF:	BLOCK	1		;Cosine of the sun's angle
+LTAMT:	BLOCK	1		;Sunlight falling on it
+EMITR:	BLOCK	1		;Light it gives out
+EMITG:	BLOCK	1
+EMITB:	BLOCK	1
+HA:	BLOCK	1		;Temporaries for ALBEDO and CELL
+HI:	BLOCK	1
+HJ:	BLOCK	1
+GSUM:	BLOCK	1		;Temporaries for GLOW
+GB:	BLOCK	1
+GDD:	BLOCK	1
+GDEN:	BLOCK	1
+GS:	BLOCK	1
+GQ:	BLOCK	3
+COLR:	BLOCK	1		;Colour of the sample
+COLG:	BLOCK	1
+COLB:	BLOCK	1
+MISSF:	BLOCK	1		;-1 if the sample missed
+SX:	BLOCK	1		;Where the sample goes through the image plane
+SY:	BLOCK	1
+SCALE:	BLOCK	1		;Size of a pixel or a character
+FSS:	BLOCK	1		;SS as a float
+INVSS2:	BLOCK	1		;1/SS^2
+ACCR:	BLOCK	1		;Sums for one pixel
+ACCG:	BLOCK	1
+ACCB:	BLOCK	1
+NMISS:	BLOCK	1		;Samples in the pixel that missed
+STR:	BLOCK	1		;Star colour
+STG:	BLOCK	1
+STB:	BLOCK	1
+STV:	BLOCK	1
+SINX:	BLOCK	1		;Temporaries for SIN
+SINX2:	BLOCK	1
+TMP1:	BLOCK	1
+TMP2:	BLOCK	1
+TMP3:	BLOCK	1
+TMPV:	BLOCK	3
+TSTART:	BLOCK	1		;CPU time at the start
+LINPTR:	BLOCK	1		;Byte pointer into LINBUF
+LINEND:	BLOCK	1		;Byte pointer to the last non-blank
+LINBUF:	BLOCK	<TXTW+5>/5+1	;One line of the preview
+PDL:	BLOCK	PDLEN		;Push down list
+
+	LIT
+
+	END	START
