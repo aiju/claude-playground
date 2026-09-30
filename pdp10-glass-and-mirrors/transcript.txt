@@ -1,0 +1,66 @@
+
+KA-10 simulator Open SIMH V4.1-0 Current        git commit id: 87eb7d5e
+
+KA603 04-21-78
+WHY RELOAD: hard
+DATE: 05-25-78
+TIME: 1200
+
+STARTUP OPTION: no ini
+
+%DPA4 IS OFF-LINE
+
+%DPA5 IS OFF-LINE
+
+%DPA6 IS OFF-LINE
+
+%DPA7 IS OFF-LINE
+
+%CONTROLLER DPB IS OFF-LINE
+.SET TTY LC
+
+.set tty width 132
+
+.login 1,2
+JOB 1 KA603 CTY
+Password: 
+1200    25-May-78       Thur
+
+.set spool none
+
+.copy glass.mac=ptr:
+
+.execute glass.mac
+MACRO:  GLASS
+LINK:   Loading
+[LNKXCT GLASS Execution]
+
+GLASS - Clawd among glass and mirrors, ray traced on a KA10
+
+      ########################
+      ########################
+      ####  ############  ####
+      ####  ############  ####
+  ################################
+  ################################
+      ########################
+      ########################
+        ##  ##        ##  ##
+        ##  ##        ##  ##
+
+Punching a 640x480 PPM image, one dot every 16 rows:
+..............................
+
+Camera rays       1228800
+Reflected rays    1612765
+Refracted rays     642507
+Shadow rays        923779
+Deepest level           6
+
+Done in 91 seconds of CPU time.
+
+.kjob/f
+Job 1, User [1,2]  Logged off CTY      1201  25-May-78
+Runtime 1 Min, 31.44 Sec
+
+.Goodbye

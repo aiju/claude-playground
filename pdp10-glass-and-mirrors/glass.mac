@@ -1,0 +1,1752 @@
+	TITLE	GLASS - Clawd among glass and mirrors, ray traced on a KA10
+	SUBTTL	Introduction
+
+;GLASS is a recursive ray tracer in the style of Turner Whitted's 1979
+;paper.  Clawd, the Claude Code mascot, stands on a polished checkerboard
+;at sunset, between a mirror ball, a glass ball and an amber marble,
+;with the Death Star rising behind.  Mirrors reflect, glass reflects
+;and refracts with Fresnel weights, the floor reflects a little, and
+;everything casts shadows.  The picture, a 640x480 colour PPM file,
+;goes to the paper tape punch.
+;
+;Recursion: every level of SHADE has its own frame of storage, and F
+;points to the current one.  To follow a reflected or refracted ray,
+;SHADE fills in the next frame, adds FRLEN to F and calls itself.
+;
+;As before, only KA10 instructions are used: single precision FADR,
+;FSBR, FMPR, FDVR and FSC, with integers floated by FSC and floored by
+;MULI/TSC/ASH.
+
+	SEARCH	UUOSYM
+
+	SUBTTL	Accumulators and assembly parameters
+
+T1=1		;Scratch.  T1/T2 are also used as a double word.
+T2=2
+T3=3
+T4=4
+V1=5		;Vector pointers for the vector routines
+V2=6
+V3=7
+I=10		;Pixel column
+J=11		;Pixel row
+SI=12		;Sub-sample column
+SJ=13		;Sub-sample row
+K=14		;Table pointer
+N=15		;Table counter
+F=16		;Frame of the current level of SHADE
+P=17		;Push down list pointer
+
+PCH=1		;I/O channel for the paper tape punch
+
+IMGW==^D640	;Width of the picture
+IMGH==^D480	;Height of the picture
+SS==2		;SSxSS samples per pixel
+MAXDEP==6	;Deepest level of reflection and refraction
+PDLEN==^D100	;Length of the push down list
+
+;Materials
+
+M.FLR==0	;The checkerboard
+M.CLW==1	;Clawd
+M.EYE==2	;Clawd's eyes
+M.MIR==3	;Mirror
+M.GLS==4	;Clear glass
+M.AMB==5	;Amber glass
+
+;An entry in SPHTAB, the sphere table
+
+SP.C==0		;Centre (three words)
+SP.R==3		;Radius
+SP.R2==4	;Radius squared
+SP.RI==5	;One over the radius
+SP.M==6		;Material
+SPLEN==7
+NSPH==3
+
+;An entry in BOXTAB, the boxes Clawd is made of
+
+BX.LO==0	;Lowest corner (three words)
+BX.HI==3	;Highest corner (three words)
+BX.M==6		;Material
+BXLEN==7
+NBOX==^D16
+
+;A frame: everything one level of SHADE keeps while it recurses
+
+FR.O==0		;Ray origin (three words)
+FR.D==3		;Ray direction
+FR.WT==6	;How much this ray adds to the pixel
+FR.DEP==7	;Level of recursion
+FR.T==^D8	;Distance to the hit
+FR.P==^D9	;Point hit
+FR.N==^D12	;Normal there
+FR.M==^D15	;Material there
+FR.CI==^D16	;Cosine of the angle of incidence
+FR.RF==^D17	;Reflected direction
+FR.C==^D20	;Colour this ray sees
+FR.NN==^D23	;Normal on the side the ray came from
+FR.RR==^D26	;Refracted direction
+FR.ETA==^D29	;Ratio of the refractive indices
+FR.R==^D30	;Fresnel reflectance
+FR.ALB==^D31	;Albedo (three words)
+FR.GL==^D34	;Gloss
+FR.SH==^D35	;Sunlight reaching the point
+FRLEN==^D36
+
+	SUBTTL	The scene
+
+;Lengths are in metres, give or take, with Y up.  Colours are linear;
+;PUTPIX takes the square root for the gamma.
+
+CAMPOS:	0.45		;Camera position
+	0.95
+	-4.7
+LOOK:	0.12		;What it looks at
+	0.72
+	0.3
+FOV:	40.0		;Vertical field of view, degrees
+SUN:	-0.86		;Towards the sun (INIT makes it a unit vector)
+	0.26
+	-0.44
+SUNCOL:	1.25		;Colour of the sunlight
+	0.88
+	0.58
+AMB:	0.07		;Light from the sky, everywhere
+	0.08
+	0.13
+ZENITH:	0.025		;Sky overhead
+	0.06
+	0.22
+DUSK:	0.62		;Sky at the horizon, away from the sun
+	0.36
+	0.30
+GLOWC:	1.0		;Sky at the horizon, under the sun
+	0.55
+	0.20
+FLOOR1:	0.82		;Light squares
+	0.76
+	0.64
+FLOOR2:	0.07		;Dark squares
+	0.09
+	0.13
+FLREF:	0.22		;How much the floor reflects
+CHECKS:	2.0		;Squares per metre
+HAZE:	28.0		;Distance at which the haze is half and half
+CLWCOL:	0.72		;Clawd
+	0.22
+	0.12
+EYECOL:	0.02		;Clawd's eyes
+	0.015
+	0.012
+MIRTNT:	0.88		;Tint of the mirror
+	0.90
+	0.95
+AMBTNT:	1.0		;Tint of the amber glass
+	0.55
+	0.14
+REFIDX:	1.5		;Refractive index of glass
+
+SPHTAB:	0.78		;The glass ball
+	0.5
+	-0.62
+	0.5
+	BLOCK	2
+	M.GLS
+	-1.85		;The mirror ball
+	0.85
+	1.2
+	0.85
+	BLOCK	2
+	M.MIR
+	-0.85		;The amber marble
+	0.28
+	-1.05
+	0.28
+	BLOCK	2
+	M.AMB
+
+;Clawd, as in the Claude Code logo.  Each line is a box, in pixels of
+;the logo: x from, x to, y from, y to, z from, z to, and material.  Z
+;runs from front to back.  A pixel is PX wide and deep and PY high,
+;because the logo is drawn in characters twice as tall as they are wide.
+
+DEPTH==^D8
+CLAWD:	EXP	3,^D15,1,2,0,DEPTH,M.CLW	;Belly
+	EXP	1,^D17,2,3,0,DEPTH,M.CLW	;Arms
+	EXP	3,^D15,4,5,0,DEPTH,M.CLW	;Top of the head
+	EXP	3,5,3,4,0,DEPTH,M.CLW		;Left of the eyes
+	EXP	6,^D12,3,4,0,DEPTH,M.CLW	;Between the eyes
+	EXP	^D13,^D15,3,4,0,DEPTH,M.CLW	;Right of the eyes
+	EXP	5,6,3,4,1,DEPTH,M.EYE		;The eyes, one pixel in
+	EXP	^D12,^D13,3,4,1,DEPTH,M.EYE
+	EXP	4,5,0,1,0,1,M.CLW		;Front legs
+	EXP	6,7,0,1,0,1,M.CLW
+	EXP	^D11,^D12,0,1,0,1,M.CLW
+	EXP	^D13,^D14,0,1,0,1,M.CLW
+	EXP	4,5,0,1,DEPTH-1,DEPTH,M.CLW	;Back legs
+	EXP	6,7,0,1,DEPTH-1,DEPTH,M.CLW
+	EXP	^D11,^D12,0,1,DEPTH-1,DEPTH,M.CLW
+	EXP	^D13,^D14,0,1,DEPTH-1,DEPTH,M.CLW
+PX:	0.1
+PY:	0.2
+CLWPOS:	0.0		;Where the middle of Clawd's feet is
+	0.0
+	0.45
+CLWANG:	-18.0		;Turned a little towards the glass ball
+
+;The Death Star, far away in the sky
+
+DSDIR:	0.30		;Which way it is
+	0.17
+	1.0
+DSDIST:	90.0		;How far
+DSR:	7.5		;Its radius
+DISHD:	-0.62		;Which way its dish faces
+	0.42
+	-0.66
+DSAXIS:	0.25		;Its north pole
+	1.0
+	0.1
+
+EPS:	1.0E-4		;Hits nearer than this are ignored
+NUDGE:	1.0E-3		;New rays start this far off the surface
+FAR:	1.0E6		;No hits further than this
+MINWT:	0.01		;Rays that count for less are not followed
+
+ORIGIN:	EXP	0,0,0
+YAXIS:	EXP	0,1.0,0
+
+	SUBTTL	Main program
+
+START:	RESET
+	MOVE	P,[IOWD PDLEN,PDL]
+	OUTSTR	[ASCIZ /
+GLASS - Clawd among glass and mirrors, ray traced on a KA10
+
+/]
+	PUSHJ	P,BANNER
+	SETZ	T1,
+	RUNTIM	T1,
+	MOVEM	T1,TSTART
+	PUSHJ	P,INIT
+	PUSHJ	P,IMAGE
+	PUSHJ	P,STATS
+	OUTSTR	[ASCIZ /
+Done in /]
+	SETZ	T1,
+	RUNTIM	T1,
+	SUB	T1,TSTART
+	IDIVI	T1,^D1000
+	PUSHJ	P,DECOUT
+	OUTSTR	[ASCIZ / seconds of CPU time.
+/]
+	MONRT.
+	JRST	START
+
+;BANNER - Draw Clawd on the terminal from the front faces in CLAWD.
+;Each pixel is two characters wide and two lines high.
+
+BANNER:	MOVEI	J,4		;Rows of pixels, top down
+BANR1:	MOVE	T1,[POINT 7,LINBUF]
+	MOVEM	T1,LINPTR
+	MOVEM	T1,LINEND
+	SETZ	I,		;Columns
+BANR2:	MOVEI	K,CLAWD		;Is pixel I,J on the front of Clawd?
+	MOVEI	N,NBOX
+	MOVEI	T4," "
+BANR3:	SKIPE	4(K)		;On the front face,
+	JRST	BANR4
+	MOVE	T1,6(K)		; not an eye,
+	CAIE	T1,M.CLW
+	JRST	BANR4
+	CAML	I,0(K)		; and I,J in the box?
+	CAML	I,1(K)
+	JRST	BANR4
+	CAML	J,2(K)
+	CAML	J,3(K)
+	JRST	BANR4
+	MOVEI	T4,"#"
+BANR4:	ADDI	K,7
+	SOJG	N,BANR3
+	IDPB	T4,LINPTR
+	IDPB	T4,LINPTR
+	CAIN	T4," "
+	JRST	BANR5
+	MOVE	T1,LINPTR
+	MOVEM	T1,LINEND
+BANR5:	CAIGE	I,^D17
+	AOJA	I,BANR2
+	MOVEI	T4,15
+	IDPB	T4,LINEND
+	MOVEI	T4,12
+	IDPB	T4,LINEND
+	SETZ	T4,
+	IDPB	T4,LINEND
+	OUTSTR	LINBUF		;Each row twice
+	OUTSTR	LINBUF
+	SOJGE	J,BANR1
+	OUTSTR	[ASCIZ /
+/]
+	POPJ	P,
+
+	SUBTTL	INIT - Work out the scene
+
+INIT:	MOVEI	V1,SUN		;The sun, and its direction along the ground
+	PUSHJ	P,VNRM
+	MOVE	T1,SUN
+	MOVEM	T1,SUNH
+	SETZM	SUNH+1
+	MOVE	T1,SUN+2
+	MOVEM	T1,SUNH+2
+	MOVEI	V1,SUNH
+	PUSHJ	P,VNRM
+	MOVE	T1,[1.0]
+	FDVR	T1,REFIDX
+	MOVEM	T1,IREFX
+
+;The camera
+
+	MOVEI	V1,LOOK		;CAMF = norm(LOOK-CAMPOS)
+	MOVEI	V2,CAMPOS
+	MOVEI	V3,CAMF
+	PUSHJ	P,VSUB
+	MOVEI	V1,CAMF
+	PUSHJ	P,VNRM
+	MOVEI	V1,YAXIS	;CAMR = norm(Y x CAMF)
+	MOVEI	V2,CAMF
+	MOVEI	V3,CAMR
+	PUSHJ	P,VCRS
+	MOVEI	V1,CAMR
+	PUSHJ	P,VNRM
+	MOVEI	V1,CAMF		;CAMU = CAMF x CAMR
+	MOVEI	V2,CAMR
+	MOVEI	V3,CAMU
+	PUSHJ	P,VCRS
+	MOVE	T1,FOV		;TANF = tan(FOV/2)
+	FSC	T1,-1
+	PUSHJ	P,DSIN
+	MOVEM	T1,TMP1
+	MOVE	T1,FOV
+	FSC	T1,-1
+	PUSHJ	P,DCOS
+	MOVE	T2,TMP1
+	FDVR	T2,T1
+	MOVEM	T2,TANF
+
+;The spheres
+
+	MOVEI	K,SPHTAB
+	MOVEI	N,NSPH
+INIT1:	MOVE	T1,SP.R(K)
+	MOVE	T2,T1
+	FMPR	T2,T1
+	MOVEM	T2,SP.R2(K)
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,SP.RI(K)
+	ADDI	K,SPLEN
+	SOJG	N,INIT1
+
+;Clawd's boxes, in metres, in Clawd's own coordinates: X across, Y up
+;and Z from front to back, with the origin between its feet
+
+	MOVE	T1,CLWANG
+	PUSHJ	P,DCOS
+	MOVEM	T1,CLWC
+	MOVE	T1,CLWANG
+	PUSHJ	P,DSIN
+	MOVEM	T1,CLWS
+	MOVEI	K,CLAWD
+	MOVEI	V3,BOXTAB
+	MOVEI	N,NBOX
+INIT2:	MOVE	T1,0(K)		;X from
+	SUBI	T1,^D9
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BX.LO(V3)
+	MOVE	T1,1(K)		;X to
+	SUBI	T1,^D9
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BX.HI(V3)
+	MOVE	T1,2(K)		;Y from
+	FSC	T1,233
+	FMPR	T1,PY
+	MOVEM	T1,BX.LO+1(V3)
+	MOVE	T1,3(K)		;Y to
+	FSC	T1,233
+	FMPR	T1,PY
+	MOVEM	T1,BX.HI+1(V3)
+	MOVE	T1,4(K)		;Z from
+	SUBI	T1,DEPTH/2
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BX.LO+2(V3)
+	MOVE	T1,5(K)		;Z to
+	SUBI	T1,DEPTH/2
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BX.HI+2(V3)
+	MOVE	T1,6(K)
+	MOVEM	T1,BX.M(V3)
+	ADDI	K,7
+	ADDI	V3,BXLEN
+	SOJG	N,INIT2
+	MOVNI	T1,^D8		;The box round all of Clawd
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BBOX
+	MOVNM	T1,BBOX+3
+	SETZM	BBOX+1
+	MOVEI	T1,5
+	FSC	T1,233
+	FMPR	T1,PY
+	MOVEM	T1,BBOX+4
+	MOVNI	T1,DEPTH/2
+	FSC	T1,233
+	FMPR	T1,PX
+	MOVEM	T1,BBOX+2
+	MOVNM	T1,BBOX+5
+
+;The Death Star
+
+	MOVEI	V1,DSDIR
+	PUSHJ	P,VNRM
+	MOVEI	V1,DISHD
+	PUSHJ	P,VNRM
+	MOVEI	V1,DSAXIS
+	PUSHJ	P,VNRM
+	MOVE	T1,DSDIST	;Its centre
+	MOVEI	V1,DSDIR
+	MOVEI	V3,DSC
+	PUSHJ	P,VSCL
+	MOVE	T1,DSR		;The dish is a sphere 0.4 of its radius,
+	FMPR	T1,[1.16]	; 1.16 radii out along DISHD
+	MOVEI	V1,DSC
+	MOVEI	V2,DISHD
+	MOVEI	V3,DISHC
+	PUSHJ	P,VRAY
+	MOVE	T1,DSR
+	FMPR	T1,[0.40]
+	MOVEM	T1,DISHR
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,IDISHR
+	FMPR	T1,T1
+	MOVEM	T1,DISHR2
+	MOVE	T1,DSR
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,IDSR
+	FMPR	T1,T1
+	MOVEM	T1,DSR2
+	MOVE	T1,DSR		;Half the width of the trench
+	FMPR	T1,[0.012]
+	MOVEM	T1,DSTW
+	MOVEI	V1,FLOOR1	;Colour of the floor far away
+	MOVEI	V2,FLOOR2
+	MOVEI	V3,FLOORM
+	PUSHJ	P,VADD
+	MOVE	T1,[0.5]
+	MOVEI	V1,FLOORM
+	PUSHJ	P,VSCL
+	POPJ	P,
+
+	SUBTTL	IMAGE - Punch the picture
+
+IMAGE:	OPEN	PCH,PTPBLK
+	  JRST	NOPTP
+	OUTBUF	PCH,4
+	OUTSTR	[ASCIZ /Punching a /]
+	MOVEI	T1,IMGW
+	PUSHJ	P,DECOUT
+	OUTCHR	["x"]
+	MOVEI	T1,IMGH
+	PUSHJ	P,DECOUT
+	OUTSTR	[ASCIZ / PPM image, one dot every 16 rows:
+/]
+	MOVEI	T1,"P"		;The header
+	PUSHJ	P,PUTB
+	MOVEI	T1,"6"
+	PUSHJ	P,PUTB
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+	MOVEI	T1,IMGW
+	PUSHJ	P,PUTDEC
+	MOVEI	T1," "
+	PUSHJ	P,PUTB
+	MOVEI	T1,IMGH
+	PUSHJ	P,PUTDEC
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+	MOVEI	T1,^D255
+	PUSHJ	P,PUTDEC
+	MOVEI	T1,12
+	PUSHJ	P,PUTB
+	MOVEI	T2,IMGH		;One pixel is SCALE wide
+	FSC	T2,232
+	MOVE	T1,TANF
+	FDVR	T1,T2
+	MOVEM	T1,SCALE
+	MOVEI	T1,SS
+	FSC	T1,233
+	MOVEM	T1,FSS
+	FMPR	T1,T1
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,INVSS2
+	SETZ	J,
+IMG1:	SETZ	I,
+IMG2:	SETZM	ACC
+	SETZM	ACC+1
+	SETZM	ACC+2
+	SETZ	SJ,
+IMG3:	SETZ	SI,
+IMG4:	MOVE	T1,SI		;SX = (I-IMGW/2+(SI+0.5)/SS)*SCALE
+	FSC	T1,233
+	FADR	T1,[0.5]
+	FDVR	T1,FSS
+	MOVE	T2,I
+	SUBI	T2,IMGW/2
+	FSC	T2,233
+	FADR	T1,T2
+	FMPR	T1,SCALE
+	MOVEM	T1,SX
+	MOVE	T1,SJ		;SY = (IMGH/2-J-(SJ+0.5)/SS)*SCALE
+	FSC	T1,233
+	FADR	T1,[0.5]
+	FDVR	T1,FSS
+	MOVEI	T2,IMGH/2
+	SUB	T2,J
+	FSC	T2,233
+	FSBR	T2,T1
+	FMPR	T2,SCALE
+	MOVEM	T2,SY
+	PUSHJ	P,SAMPLE
+	MOVEI	V1,ACC
+	MOVEI	V2,FRAMES+FR.C
+	MOVEI	V3,ACC
+	PUSHJ	P,VADD
+	CAIGE	SI,SS-1
+	AOJA	SI,IMG4
+	CAIGE	SJ,SS-1
+	AOJA	SJ,IMG3
+	MOVE	T1,ACC
+	PUSHJ	P,PUTPIX
+	MOVE	T1,ACC+1
+	PUSHJ	P,PUTPIX
+	MOVE	T1,ACC+2
+	PUSHJ	P,PUTPIX
+	CAIGE	I,IMGW-1
+	AOJA	I,IMG2
+	MOVE	T1,J		;Show that we are still alive
+	ANDI	T1,17
+	CAIN	T1,17
+	OUTCHR	["."]
+	CAIGE	J,IMGH-1
+	AOJA	J,IMG1
+	RELEAS	PCH,
+	OUTSTR	[ASCIZ /
+/]
+	POPJ	P,
+
+NOPTP:	OUTSTR	[ASCIZ /?Can't get the paper tape punch
+/]
+	POPJ	P,
+
+;PUTPIX - Punch one colour component.  T1 has the sum of the samples.
+;The average is gamma corrected with a square root.
+
+PUTPIX:	FMPR	T1,INVSS2
+	PUSHJ	P,SQRT
+	FMPR	T1,[255.0]
+	FADR	T1,[0.5]
+	PUSHJ	P,FLOOR
+	CAILE	T1,^D255
+	MOVEI	T1,^D255
+	JUMPGE	T1,PUTB
+	SETZ	T1,
+				;Fall into PUTB
+
+;PUTB - Punch the byte in T1
+
+PUTB:	SOSGE	PBUF+2
+	JRST	PUTB1
+	IDPB	T1,PBUF+1
+	POPJ	P,
+PUTB1:	OUT	PCH,
+	  JRST	PUTB
+	OUTSTR	[ASCIZ /?Paper tape punch error
+/]
+	MONRT.
+
+;PUTDEC - Punch the number in T1 in decimal
+
+PUTDEC:	IDIVI	T1,^D10
+	PUSH	P,T2
+	SKIPE	T1
+	PUSHJ	P,PUTDEC
+	POP	P,T1
+	ADDI	T1,"0"
+	JRST	PUTB
+
+PTPBLK:	EXP	10		;Image mode: punch the low 8 bits of each word
+	SIXBIT	/PTP/
+	XWD	PBUF,0
+PBUF:	BLOCK	3
+
+;STATS - Say how many rays of each kind there were
+
+STATS:	OUTSTR	[ASCIZ /
+Camera rays    /]
+	MOVE	T1,NCAM
+	PUSHJ	P,DECPAD
+	OUTSTR	[ASCIZ /
+Reflected rays /]
+	MOVE	T1,NREFL
+	PUSHJ	P,DECPAD
+	OUTSTR	[ASCIZ /
+Refracted rays /]
+	MOVE	T1,NREFR
+	PUSHJ	P,DECPAD
+	OUTSTR	[ASCIZ /
+Shadow rays    /]
+	MOVE	T1,NSHAD
+	PUSHJ	P,DECPAD
+	OUTSTR	[ASCIZ /
+Deepest level  /]
+	MOVE	T1,DEEPST
+	PUSHJ	P,DECPAD
+	OUTSTR	[ASCIZ /
+/]
+	POPJ	P,
+
+	SUBTTL	SAMPLE and SHADE - Follow a ray, and the rays it makes
+
+;SAMPLE - Colour of the camera ray through SX,SY on the image plane.
+;It is left in FRAMES+FR.C.
+
+SAMPLE:	AOS	NCAM
+	MOVEI	F,FRAMES
+	MOVE	T1,SX		;D = norm(CAMF + CAMR*SX + CAMU*SY)
+	MOVEI	V1,CAMF
+	MOVEI	V2,CAMR
+	MOVEI	V3,FR.D(F)
+	PUSHJ	P,VRAY
+	MOVE	T1,SY
+	MOVEI	V1,FR.D(F)
+	MOVEI	V2,CAMU
+	PUSHJ	P,VRAY
+	MOVEI	V1,FR.D(F)
+	PUSHJ	P,VNRM
+	MOVE	T1,[CAMPOS,,FRAMES+FR.O]
+	BLT	T1,FRAMES+FR.O+2
+	MOVE	T1,[1.0]
+	MOVEM	T1,FR.WT(F)
+	SETZM	FR.DEP(F)
+	JRST	SHADE
+
+;SHADE - Work out the colour seen along the ray in frame F, and leave
+;it in FR.C(F).  Changes everything except I, J, SI, SJ, F and P.
+
+SHADE:	MOVE	T1,FR.DEP(F)
+	CAMLE	T1,DEEPST
+	MOVEM	T1,DEEPST
+	PUSHJ	P,TRACE
+	  JRST	SHSKY		;Nothing there but sky
+	MOVE	T1,FR.DEP(F)	;Too deep, or too faint to matter?
+	CAIL	T1,MAXDEP
+	JRST	SHAMB
+	MOVE	T1,FR.WT(F)
+	CAMGE	T1,MINWT
+	JRST	SHAMB
+	MOVEI	V1,FR.D(F)	;CI = -D.N
+	MOVEI	V2,FR.N(F)
+	PUSHJ	P,VDOT
+	MOVNM	T1,FR.CI(F)
+	MOVNS	T1		;RF = D + N*2CI
+	FSC	T1,1
+	MOVEI	V1,FR.D(F)
+	MOVEI	V2,FR.N(F)
+	MOVEI	V3,FR.RF(F)
+	PUSHJ	P,VRAY
+	MOVE	T1,FR.M(F)
+	JRST	@MATTAB(T1)
+
+MATTAB:	SHFLR
+	SHCLW
+	SHEYE
+	SHMIR
+	SHGLS
+	SHGLS
+
+SHSKY:	MOVEI	V1,FR.D(F)
+	MOVEI	V3,FR.C(F)
+	JRST	SKY
+
+SHAMB:	MOVSI	T1,AMB
+	HRRI	T1,FR.C(F)
+	BLT	T1,FR.C+2(F)
+	POPJ	P,
+
+;RECUR - Follow a new ray from this one: from (V1)+(V2)*T1, in the
+;direction at (T2), with weight T3.  Its colour ends up in FRLEN+FR.C(F).
+
+RECUR:	MOVEM	T3,FRLEN+FR.WT(F)
+	MOVE	T3,FR.DEP(F)
+	ADDI	T3,1
+	MOVEM	T3,FRLEN+FR.DEP(F)
+	HRLZ	T3,T2
+	HRRI	T3,FRLEN+FR.D(F)
+	BLT	T3,FRLEN+FR.D+2(F)
+	MOVEI	V3,FRLEN+FR.O(F)
+	PUSHJ	P,VRAY
+	ADDI	F,FRLEN
+	PUSHJ	P,SHADE
+	SUBI	F,FRLEN
+	POPJ	P,
+
+	SUBTTL	SHADE - Mirrors and glass
+
+SHMIR:	AOS	NREFL
+	MOVE	T1,NUDGE	;Follow the reflection
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.N(F)
+	MOVEI	T2,FR.RF(F)
+	MOVE	T3,FR.WT(F)
+	FMPR	T3,[0.9]
+	PUSHJ	P,RECUR
+	MOVEI	V1,FRLEN+FR.C(F)
+	MOVEI	V2,MIRTNT
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VMUL
+	MOVEI	V1,FR.RF(F)	;Add a reflection of the sun, (RF.SUN)^256
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	JUMPLE	T1,CPOPJ
+	MOVEI	T4,^D8
+	PUSHJ	P,SQUARN
+	FMPR	T1,[2.0]
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,SUNCOL
+	MOVEI	V3,FR.C(F)
+	JRST	VRAY
+
+;Glass: split the ray into a reflected and a refracted one, weighted by
+;Schlick's approximation to the Fresnel equations.
+
+SHGLS:	SKIPG	T1,FR.CI(F)	;Going in or coming out?
+	JRST	GLS1
+	MOVE	T2,IREFX	;In: ETA = 1/REFIDX, NN = N, C = CI
+	MOVEM	T2,FR.ETA(F)
+	MOVEM	T1,GLSC
+	MOVEI	T3,FR.N(F)
+	HRLZS	T3
+	HRRI	T3,FR.NN(F)
+	BLT	T3,FR.NN+2(F)
+	JRST	GLS2
+GLS1:	MOVE	T2,REFIDX	;Out: ETA = REFIDX, NN = -N, C = -CI
+	MOVEM	T2,FR.ETA(F)
+	MOVNM	T1,GLSC
+	MOVN	T1,FR.N(F)
+	MOVEM	T1,FR.NN(F)
+	MOVN	T1,FR.N+1(F)
+	MOVEM	T1,FR.NN+1(F)
+	MOVN	T1,FR.N+2(F)
+	MOVEM	T1,FR.NN+2(F)
+GLS2:	MOVE	T1,GLSC		;K = 1 - ETA^2*(1-C^2)
+	FMPR	T1,T1
+	MOVNS	T1
+	FADR	T1,[1.0]
+	MOVE	T2,FR.ETA(F)
+	FMPR	T2,T2
+	FMPR	T1,T2
+	MOVNS	T1
+	FADR	T1,[1.0]
+	JUMPGE	T1,GLS3
+	AOS	NREFL		;Total internal reflection
+	MOVE	T1,NUDGE
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.NN(F)
+	MOVEI	T2,FR.RF(F)
+	MOVE	T3,FR.WT(F)
+	PUSHJ	P,RECUR
+	MOVSI	T1,FRLEN+FR.C(F)
+	HRRI	T1,FR.C(F)
+	BLT	T1,FR.C+2(F)
+	POPJ	P,
+
+GLS3:	PUSHJ	P,SQRT		;CT = sqrt(K)
+	MOVEM	T1,GLSCT
+	MOVE	T1,FR.ETA(F)	;RR = D*ETA + NN*(ETA*C-CT)
+	MOVEI	V1,FR.D(F)
+	MOVEI	V3,FR.RR(F)
+	PUSHJ	P,VSCL
+	MOVE	T1,FR.ETA(F)
+	FMPR	T1,GLSC
+	FSBR	T1,GLSCT
+	MOVEI	V1,FR.RR(F)
+	MOVEI	V2,FR.NN(F)
+	PUSHJ	P,VRAY
+	MOVE	T1,GLSC		;X = 1 - (C going in, CT coming out)
+	SKIPG	FR.CI(F)
+	MOVE	T1,GLSCT
+	MOVNS	T1
+	FADR	T1,[1.0]
+	MOVE	T2,[0.04]	;R = 0.04 + 0.96*X^5
+	CAMGE	T1,[1.0E-6]	;(X^5 would underflow)
+	JRST	GLS3A
+	MOVE	T2,T1
+	FMPR	T2,T1
+	FMPR	T2,T2
+	FMPR	T2,T1
+	FMPR	T2,[0.96]
+	FADR	T2,[0.04]
+GLS3A:	MOVEM	T2,FR.R(F)
+	AOS	NREFL
+	AOS	NREFR
+	MOVE	T1,NUDGE	;The reflection
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.NN(F)
+	MOVEI	T2,FR.RF(F)
+	MOVE	T3,FR.WT(F)
+	FMPR	T3,FR.R(F)
+	PUSHJ	P,RECUR
+	MOVE	T1,FR.R(F)
+	MOVEI	V1,FRLEN+FR.C(F)
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VSCL
+	MOVN	T1,NUDGE	;The refraction
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.NN(F)
+	MOVEI	T2,FR.RR(F)
+	MOVE	T3,[1.0]
+	FSBR	T3,FR.R(F)
+	FMPR	T3,FR.WT(F)
+	PUSHJ	P,RECUR
+	MOVE	T1,FR.M(F)	;Amber glass colours the light
+	CAIE	T1,M.AMB
+	JRST	GLS4
+	MOVEI	V1,FRLEN+FR.C(F)
+	MOVEI	V2,AMBTNT
+	MOVEI	V3,FRLEN+FR.C(F)
+	PUSHJ	P,VMUL
+GLS4:	MOVE	T1,[1.0]
+	FSBR	T1,FR.R(F)
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,FRLEN+FR.C(F)
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VRAY
+	SKIPG	FR.CI(F)	;A glint of the sun on the outside
+	POPJ	P,
+	MOVEI	V1,FR.RF(F)
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	JUMPLE	T1,CPOPJ
+	MOVEI	T4,7
+	PUSHJ	P,SQUARN
+	FMPR	T1,[3.0]
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,SUNCOL
+	MOVEI	V3,FR.C(F)
+	JRST	VRAY
+
+	SUBTTL	SHADE - The floor and Clawd
+
+SHCLW:	MOVSI	T1,CLWCOL
+	JRST	SHCLW1
+SHEYE:	MOVSI	T1,EYECOL
+SHCLW1:	HRRI	T1,FR.ALB(F)
+	BLT	T1,FR.ALB+2(F)
+	MOVE	T1,[0.5]
+	MOVEM	T1,FR.GL(F)
+	JRST	SHDIF
+
+SHFLR:	MOVSI	T1,FLOORM	;Too far away to see the squares?
+	MOVE	T2,FR.T(F)
+	CAML	T2,[1000.0]
+	JRST	SHFLR1
+	MOVE	T1,FR.P(F)	;Which square?
+	FMPR	T1,CHECKS
+	PUSHJ	P,FLOOR
+	MOVEM	T1,TMP1
+	MOVE	T1,FR.P+2(F)
+	FMPR	T1,CHECKS
+	PUSHJ	P,FLOOR
+	ADD	T1,TMP1
+	TRNN	T1,1
+	SKIPA	T1,[FLOOR1,,0]
+	MOVSI	T1,FLOOR2
+SHFLR1:	HRRI	T1,FR.ALB(F)
+	BLT	T1,FR.ALB+2(F)
+	MOVE	T1,[0.25]
+	MOVEM	T1,FR.GL(F)
+
+;Everything that isn't glass or a mirror: sunlight if nothing is in
+;the way, sky light, and a highlight
+
+SHDIF:	SETZM	FR.SH(F)
+	MOVEI	V1,FR.N(F)	;Facing the sun?
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	MOVEM	T1,SHDIFF
+	JUMPLE	T1,SHDIF1
+	MOVE	T1,NUDGE	;Yes, how much of it gets here?
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.N(F)
+	MOVEI	V3,RAYO
+	PUSHJ	P,VRAY
+	PUSHJ	P,SHADOW
+	MOVEM	T1,FR.SH(F)
+	FMPR	T1,SHDIFF
+	FMPR	T1,[1.05]
+	JRST	SHDIF2
+SHDIF1:	SETZ	T1,
+SHDIF2:	MOVEI	V1,AMB		;Colour = albedo*(sky + sun)
+	MOVEI	V2,SUNCOL
+	MOVEI	V3,TMPV
+	PUSHJ	P,VRAY
+	MOVEI	V1,FR.ALB(F)
+	MOVEI	V2,TMPV
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VMUL
+	MOVEI	V1,FR.RF(F)	;+ highlight, (RF.SUN)^64
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	JUMPLE	T1,SHDIF3
+	MOVEI	T4,6
+	PUSHJ	P,SQUARN
+	FMPR	T1,FR.SH(F)
+	FMPR	T1,FR.GL(F)
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,SUNCOL
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VRAY
+SHDIF3:	MOVE	T1,FR.M(F)	;The floor also reflects a little
+	CAIE	T1,M.FLR
+	POPJ	P,
+	AOS	NREFL
+	MOVE	T1,NUDGE
+	MOVEI	V1,FR.P(F)
+	MOVEI	V2,FR.N(F)
+	MOVEI	T2,FR.RF(F)
+	MOVE	T3,FR.WT(F)
+	FMPR	T3,FLREF
+	PUSHJ	P,RECUR
+	MOVE	T1,[1.0]
+	FSBR	T1,FLREF
+	MOVEI	V1,FR.C(F)
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VSCL
+	MOVE	T1,FLREF
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,FRLEN+FR.C(F)
+	PUSHJ	P,VRAY
+	MOVE	T1,FR.T(F)	;Haze: mix with the horizon, 1/(1+(T/HAZE)^2)
+	FDVR	T1,HAZE
+	FMPR	T1,T1
+	FADR	T1,[1.0]
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVEM	T2,TMP1
+	MOVE	T1,FR.D(F)
+	MOVEM	T1,SKYD
+	SETZM	SKYD+1
+	MOVE	T1,FR.D+2(F)
+	MOVEM	T1,SKYD+2
+	PUSHJ	P,SKYGRD
+	MOVE	T1,TMP1
+	MOVEI	V1,FR.C(F)
+	MOVEI	V3,FR.C(F)
+	PUSHJ	P,VSCL
+	MOVE	T1,[1.0]
+	FSBR	T1,TMP1
+	MOVEI	V1,FR.C(F)
+	MOVEI	V2,SKYC
+	JRST	VRAY
+
+	SUBTTL	TRACE - Find what a ray hits
+
+;TRACE follows the ray in frame F.  If it hits something it skip
+;returns with FR.T, FR.P, FR.N and FR.M filled in.
+
+TRACE:	MOVEI	T1,FR.O(F)	;Work on a copy of the ray
+	HRLZS	T1
+	HRRI	T1,RAYO
+	BLT	T1,RAYD+2
+	MOVE	T1,FAR
+	MOVEM	T1,BT
+	SETOM	BM
+	SKIPL	T1,RAYD+1	;The floor, if going down
+	JRST	TRAC1
+	MOVN	T2,RAYO+1
+	FDVR	T2,T1
+	CAMG	T2,EPS
+	JRST	TRAC1
+	CAML	T2,BT
+	JRST	TRAC1
+	MOVEM	T2,BT
+	MOVEI	T1,M.FLR
+	MOVEM	T1,BM
+	SETZM	BKIND
+TRAC1:	MOVEI	K,SPHTAB	;The spheres
+	MOVEI	N,NSPH
+TRAC2:	MOVE	V1,K
+	MOVE	T1,SP.R2(K)
+	PUSHJ	P,SPHERE
+	  JRST	TRAC3
+	CAMG	T1,EPS		;Nearer crossing, unless we're inside
+	MOVE	T1,T2
+	CAMG	T1,EPS
+	JRST	TRAC3
+	CAML	T1,BT
+	JRST	TRAC3
+	MOVEM	T1,BT
+	MOVE	T1,SP.M(K)
+	MOVEM	T1,BM
+	MOVEM	K,BOBJ
+	MOVEI	T1,1
+	MOVEM	T1,BKIND
+TRAC3:	ADDI	K,SPLEN
+	SOJG	N,TRAC2
+	PUSHJ	P,CLRAY		;Clawd
+	MOVEI	K,BBOX
+	PUSHJ	P,SLAB
+	  JRST	TRAC6
+	MOVE	T1,TF
+	CAMG	T1,EPS
+	JRST	TRAC6
+	MOVE	T1,TN
+	CAML	T1,BT
+	JRST	TRAC6
+	MOVEI	K,BOXTAB
+	MOVEI	N,NBOX
+TRAC4:	PUSHJ	P,SLAB
+	  JRST	TRAC5
+	MOVE	T1,TN
+	CAMG	T1,EPS
+	JRST	TRAC5
+	CAML	T1,BT
+	JRST	TRAC5
+	MOVEM	T1,BT
+	MOVE	T1,BX.M(K)
+	MOVEM	T1,BM
+	MOVE	T1,AX
+	MOVEM	T1,BAX
+	MOVEI	T1,2
+	MOVEM	T1,BKIND
+TRAC5:	ADDI	K,BXLEN
+	SOJG	N,TRAC4
+TRAC6:	SKIPGE	T1,BM
+	POPJ	P,		;Missed everything
+	MOVEM	T1,FR.M(F)
+	MOVE	T1,BT
+	MOVEM	T1,FR.T(F)
+	MOVEI	V1,RAYO		;P = O + D*T
+	MOVEI	V2,RAYD
+	MOVEI	V3,FR.P(F)
+	PUSHJ	P,VRAY
+	MOVE	T1,BKIND
+	PUSHJ	P,@NRMTAB(T1)
+	JRST	CPOPJ1
+
+NRMTAB:	NRMFLR
+	NRMSPH
+	NRMBOX
+
+NRMFLR:	SETZM	FR.N(F)
+	MOVE	T1,[1.0]
+	MOVEM	T1,FR.N+1(F)
+	SETZM	FR.N+2(F)
+	POPJ	P,
+
+NRMSPH:	MOVE	K,BOBJ		;N = (P-C)/R
+	MOVEI	V1,FR.P(F)
+	MOVE	V2,K
+	MOVEI	V3,FR.N(F)
+	PUSHJ	P,VSUB
+	MOVE	T1,SP.RI(K)
+	MOVEI	V1,FR.N(F)
+	JRST	VSCL
+
+;A face of a box faces along the axis in BAX, against the ray.  Turn
+;it from Clawd's coordinates into the world's.
+
+NRMBOX:	MOVE	T2,BAX
+	MOVE	T1,[1.0]
+	SKIPLE	LD(T2)
+	MOVE	T1,[-1.0]
+	SETZM	FR.N(F)
+	SETZM	FR.N+1(F)
+	SETZM	FR.N+2(F)
+	JUMPE	T2,NRMBX0
+	CAIE	T2,1
+	JRST	NRMBX2
+	MOVEM	T1,FR.N+1(F)	;Up or down
+	POPJ	P,
+NRMBX0:	MOVE	T2,T1		;Along Clawd's X: (C, 0, S)
+	FMPR	T2,CLWC
+	MOVEM	T2,FR.N(F)
+	FMPR	T1,CLWS
+	MOVEM	T1,FR.N+2(F)
+	POPJ	P,
+NRMBX2:	MOVE	T2,T1		;Along Clawd's Z: (-S, 0, C)
+	FMPR	T2,CLWS
+	MOVNM	T2,FR.N(F)
+	FMPR	T1,CLWC
+	MOVEM	T1,FR.N+2(F)
+	POPJ	P,
+
+;CLRAY - Turn the ray RAYO, RAYD into Clawd's coordinates, LO and LD,
+;and work out INV = 1/LD (1E30 where LD is 0).
+
+CLRAY:	MOVEI	V1,RAYO
+	MOVEI	V2,CLWPOS
+	MOVEI	V3,TMPV
+	PUSHJ	P,VSUB
+	MOVEI	V1,TMPV
+	MOVEI	V3,LO
+	PUSHJ	P,ROTY
+	MOVEI	V1,RAYD
+	MOVEI	V3,LD
+	PUSHJ	P,ROTY
+	MOVSI	T3,-3
+CLRAY1:	SKIPN	T1,LD(T3)
+	SKIPA	T2,[1.0E30]
+	JRST	[MOVE	T2,[1.0]
+		 FDVR	T2,T1
+		 JRST	CLRAY2]
+CLRAY2:	MOVEM	T2,INV(T3)
+	AOBJN	T3,CLRAY1
+	POPJ	P,
+
+;ROTY - (V3) = (V1) turned into Clawd's coordinates:
+;(C*X + S*Z, Y, C*Z - S*X)
+
+ROTY:	MOVE	T1,0(V1)
+	FMPR	T1,CLWC
+	MOVE	T2,2(V1)
+	FMPR	T2,CLWS
+	FADR	T1,T2
+	MOVE	T3,1(V1)
+	MOVEM	T3,1(V3)
+	MOVE	T3,2(V1)
+	FMPR	T3,CLWC
+	MOVE	T2,0(V1)
+	FMPR	T2,CLWS
+	FSBR	T3,T2
+	MOVEM	T1,0(V3)
+	MOVEM	T3,2(V3)
+	POPJ	P,
+
+;SLAB - Intersect the ray LO+T*LD with the box at K.  Skip return if
+;it hits, with the crossings in TN and TF and the axis of TN in AX.
+
+SLAB:	MOVE	T1,[-1.0E30]
+	MOVEM	T1,TN
+	MOVN	T1,T1
+	MOVEM	T1,TF
+	SETZB	T4,AX
+SLAB1:	MOVE	V1,K
+	ADD	V1,T4
+	MOVE	T1,BX.LO(V1)	;T1 = (LO-O)*INV
+	FSBR	T1,LO(T4)
+	FMPR	T1,INV(T4)
+	MOVE	T2,BX.HI(V1)	;T2 = (HI-O)*INV
+	FSBR	T2,LO(T4)
+	FMPR	T2,INV(T4)
+	CAMLE	T1,T2
+	EXCH	T1,T2
+	CAMG	T1,TN
+	JRST	SLAB2
+	MOVEM	T1,TN
+	MOVEM	T4,AX
+SLAB2:	CAMGE	T2,TF
+	MOVEM	T2,TF
+	CAIGE	T4,2
+	AOJA	T4,SLAB1
+	MOVE	T1,TN
+	CAMG	T1,TF
+	AOS	(P)
+	POPJ	P,
+
+;SHADOW - How much sunlight reaches RAYO, in T1: 1 if nothing is in
+;the way, less for each glass ball, 0 behind anything else
+
+SHADOW:	AOS	NSHAD
+	MOVE	T1,[SUN,,RAYD]
+	BLT	T1,RAYD+2
+	MOVE	T1,[1.0]
+	MOVEM	T1,SHTR
+	MOVEI	K,SPHTAB
+	MOVEI	N,NSPH
+SHAD1:	MOVE	V1,K
+	MOVE	T1,SP.R2(K)
+	PUSHJ	P,SPHERE
+	  JRST	SHAD3
+	CAMG	T2,EPS
+	JRST	SHAD3
+	MOVE	T1,SP.M(K)
+	CAIN	T1,M.MIR
+	JRST	SHAD9
+	MOVE	T2,[0.72]
+	CAIE	T1,M.GLS
+	MOVE	T2,[0.45]
+	FMPRM	T2,SHTR
+SHAD3:	ADDI	K,SPLEN
+	SOJG	N,SHAD1
+	PUSHJ	P,CLRAY
+	MOVEI	K,BBOX
+	PUSHJ	P,SLAB
+	  JRST	SHAD8
+	MOVE	T1,TF
+	CAMG	T1,EPS
+	JRST	SHAD8
+	MOVEI	K,BOXTAB
+	MOVEI	N,NBOX
+SHAD4:	PUSHJ	P,SLAB
+	  JRST	SHAD5
+	MOVE	T1,TF
+	CAMLE	T1,EPS
+	JRST	SHAD9		;Clawd is in the way
+SHAD5:	ADDI	K,BXLEN
+	SOJG	N,SHAD4
+SHAD8:	MOVE	T1,SHTR
+	POPJ	P,
+SHAD9:	SETZ	T1,
+	POPJ	P,
+
+;SPHERE - Intersect the ray RAYO+T*RAYD with the sphere centred at (V1)
+;with radius squared in T1.  Skip return with the crossings in T1 and
+;T2 (T1<=T2) if the ray's line hits it.
+
+SPHERE:	MOVEM	T1,SPHR2
+	MOVE	T1,RAYO		;OC = RAYO-centre
+	FSBR	T1,0(V1)
+	MOVEM	T1,OC
+	MOVE	T1,RAYO+1
+	FSBR	T1,1(V1)
+	MOVEM	T1,OC+1
+	MOVE	T1,RAYO+2
+	FSBR	T1,2(V1)
+	MOVEM	T1,OC+2
+	MOVE	T1,OC		;B = OC.RAYD
+	FMPR	T1,RAYD
+	MOVE	T2,OC+1
+	FMPR	T2,RAYD+1
+	FADR	T1,T2
+	MOVE	T2,OC+2
+	FMPR	T2,RAYD+2
+	FADR	T1,T2
+	MOVEM	T1,SPHB
+	MOVE	T3,OC		;C = OC.OC-R^2
+	FMPR	T3,T3
+	MOVE	T2,OC+1
+	FMPR	T2,T2
+	FADR	T3,T2
+	MOVE	T2,OC+2
+	FMPR	T2,T2
+	FADR	T3,T2
+	FSBR	T3,SPHR2
+	FMPR	T1,T1		;B^2-C
+	FSBR	T1,T3
+	JUMPL	T1,CPOPJ	;Missed
+	PUSHJ	P,SQRT
+	MOVN	T2,SPHB
+	FADR	T2,T1		;-B+SQRT
+	MOVNS	T1
+	FSBR	T1,SPHB		;-B-SQRT
+	JRST	CPOPJ1
+
+	SUBTTL	SKY - The sky and the Death Star
+
+;SKY - (V3) = the colour of the sky in the direction at (V1).  The
+;Death Star is so far away that every ray might as well start at 0,0,0.
+
+SKY:	MOVEM	V3,SKYOUT
+	HRLZ	T1,V1
+	HRRI	T1,SKYD
+	BLT	T1,SKYD+2
+	MOVE	T1,[SKYD,,RAYD]
+	BLT	T1,RAYD+2
+	SETZM	RAYO
+	SETZM	RAYO+1
+	SETZM	RAYO+2
+	MOVEI	V1,DSC		;The Death Star?
+	MOVE	T1,DSR2
+	PUSHJ	P,SPHERE
+	  JRST	SKY9
+	JUMPLE	T1,SKY9		;Behind us
+	MOVEI	V1,RAYD		;DSP = the point on the hull
+	MOVEI	V3,DSP
+	PUSHJ	P,VSCL
+	MOVEI	V1,DSP		;In the dish?
+	MOVEI	V2,DISHC
+	MOVEI	V3,TMPV
+	PUSHJ	P,VSUB
+	MOVEI	V1,TMPV
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	CAML	T1,DISHR2
+	JRST	[MOVEI	V1,DSP		;No: N = (DSP-DSC)/DSR
+		 MOVEI	V2,DSC
+		 MOVEI	V3,DSN
+		 PUSHJ	P,VSUB
+		 MOVE	T1,IDSR
+		 MOVEI	V1,DSN
+		 PUSHJ	P,VSCL
+		 JRST	SKY5]
+	MOVEI	V1,DISHC	;Yes: DSP = the far side of the dish sphere
+	MOVE	T1,DISHR2
+	PUSHJ	P,SPHERE
+	  JRST	SKY9
+	MOVE	T1,T2
+	MOVEI	V1,RAYD
+	MOVEI	V3,DSP
+	PUSHJ	P,VSCL
+	MOVEI	V1,DSP		;which must be inside the hull
+	MOVEI	V2,DSC
+	MOVEI	V3,TMPV
+	PUSHJ	P,VSUB
+	MOVEI	V1,TMPV
+	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	CAMLE	T1,DSR2
+	JRST	SKY9
+	MOVEI	V1,DISHC	;N = (DISHC-DSP)/DISHR
+	MOVEI	V2,DSP
+	MOVEI	V3,DSN
+	PUSHJ	P,VSUB
+	MOVE	T1,IDISHR
+	MOVEI	V1,DSN
+	PUSHJ	P,VSCL
+SKY5:	MOVEI	V1,DSN		;V = 0.40*max(0,N.SUN) + 0.015
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	JUMPGE	T1,.+2
+	SETZ	T1,
+	FMPR	T1,[0.40]
+	FADR	T1,[0.015]
+	MOVEM	T1,DSV
+	MOVEI	V1,DSP		;Darker in the trench
+	MOVEI	V2,DSC
+	MOVEI	V3,TMPV
+	PUSHJ	P,VSUB
+	MOVEI	V1,TMPV
+	MOVEI	V2,DSAXIS
+	PUSHJ	P,VDOT
+	MOVMS	T1
+	MOVE	T2,DSV
+	CAMGE	T1,DSTW
+	FMPR	T2,[0.35]
+	MOVEM	T2,DSV
+	PUSHJ	P,SKYGRD	;Colour = sky/4 + V*(0.85, 0.80, 0.78)
+	MOVE	V3,SKYOUT
+	MOVE	T1,SKYC
+	FMPR	T1,[0.25]
+	MOVE	T2,DSV
+	FMPR	T2,[0.85]
+	FADR	T1,T2
+	MOVEM	T1,0(V3)
+	MOVE	T1,SKYC+1
+	FMPR	T1,[0.25]
+	MOVE	T2,DSV
+	FMPR	T2,[0.80]
+	FADR	T1,T2
+	MOVEM	T1,1(V3)
+	MOVE	T1,SKYC+2
+	FMPR	T1,[0.25]
+	MOVE	T2,DSV
+	FMPR	T2,[0.78]
+	FADR	T1,T2
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+SKY9:	PUSHJ	P,SKYGRD	;Just sky
+	MOVE	V3,SKYOUT
+	HRLZI	T1,SKYC
+	HRR	T1,V3
+	BLT	T1,2(V3)
+	POPJ	P,
+
+;SKYGRD - SKYC = the sky, without the Death Star, in the direction SKYD
+
+SKYGRD:	MOVE	T1,SKYD		;W = ((1 + cos(angle from the sun,
+	FMPR	T1,T1		; along the ground))/2)^2
+	MOVE	T2,SKYD+2
+	FMPR	T2,T2
+	FADR	T1,T2
+	MOVE	T3,[1.0]
+	JUMPE	T1,SKYG1
+	PUSHJ	P,SQRT
+	MOVEM	T1,TMP2
+	MOVE	T1,SKYD
+	FMPR	T1,SUNH
+	MOVE	T2,SKYD+2
+	FMPR	T2,SUNH+2
+	FADR	T1,T2
+	FDVR	T1,TMP2
+	FADR	T1,[1.0]
+	FSC	T1,-1
+	MOVE	T3,T1
+SKYG1:	FMPR	T3,T3
+	MOVEM	T3,TMP2
+	MOVEI	V1,DUSK		;HOR = DUSK*(1-W) + GLOWC*W
+	MOVEI	V3,SKYC
+	MOVE	T1,[1.0]
+	FSBR	T1,T3
+	PUSHJ	P,VSCL
+	MOVE	T1,TMP2
+	MOVEI	V1,SKYC
+	MOVEI	V2,GLOWC
+	PUSHJ	P,VRAY
+	SKIPGE	T1,SKYD+1	;F = 1 - (1-Y)^8
+	SETZ	T1,
+	MOVNS	T1
+	FADR	T1,[1.0]
+	MOVEI	T4,3
+	PUSHJ	P,SQUARN
+	MOVNS	T1
+	FADR	T1,[1.0]
+	MOVEM	T1,TMP2
+	MOVE	T1,[1.0]	;C = HOR*(1-F) + ZENITH*F
+	FSBR	T1,TMP2
+	MOVEI	V1,SKYC
+	MOVEI	V3,SKYC
+	PUSHJ	P,VSCL
+	MOVE	T1,TMP2
+	MOVEI	V1,SKYC
+	MOVEI	V2,ZENITH
+	PUSHJ	P,VRAY
+	MOVEI	V1,SKYD		;+ the sun, (D.SUN)^1024*25 + (D.SUN)^32*0.6
+	MOVEI	V2,SUN
+	PUSHJ	P,VDOT
+	JUMPLE	T1,CPOPJ
+	MOVEI	T4,5
+	PUSHJ	P,SQUARN
+	MOVE	T2,T1
+	FMPR	T2,[0.6]
+	MOVEM	T2,TMP2
+	MOVEI	T4,5
+	PUSHJ	P,SQUARN
+	FMPR	T1,[25.0]
+	FADR	T1,TMP2
+	MOVEI	V1,SKYC
+	MOVEI	V2,SUNCOL
+	MOVEI	V3,SKYC
+	JRST	VRAY
+
+	SUBTTL	Vector routines
+
+;The vector routines take pointers to three word vectors in V1, V2
+;and V3.  They may change T1 to T3, but not V1 to V3 unless they say so.
+
+;VDOT - T1 = (V1).(V2)
+
+VDOT:	MOVE	T1,0(V1)
+	FMPR	T1,0(V2)
+	MOVE	T2,1(V1)
+	FMPR	T2,1(V2)
+	FADR	T1,T2
+	MOVE	T2,2(V1)
+	FMPR	T2,2(V2)
+	FADR	T1,T2
+	POPJ	P,
+
+;VADD - (V3) = (V1)+(V2)
+
+VADD:	MOVE	T1,0(V1)
+	FADR	T1,0(V2)
+	MOVEM	T1,0(V3)
+	MOVE	T1,1(V1)
+	FADR	T1,1(V2)
+	MOVEM	T1,1(V3)
+	MOVE	T1,2(V1)
+	FADR	T1,2(V2)
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VSUB - (V3) = (V1)-(V2)
+
+VSUB:	MOVE	T1,0(V1)
+	FSBR	T1,0(V2)
+	MOVEM	T1,0(V3)
+	MOVE	T1,1(V1)
+	FSBR	T1,1(V2)
+	MOVEM	T1,1(V3)
+	MOVE	T1,2(V1)
+	FSBR	T1,2(V2)
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VMUL - (V3) = (V1)*(V2), component by component
+
+VMUL:	MOVE	T1,0(V1)
+	FMPR	T1,0(V2)
+	MOVEM	T1,0(V3)
+	MOVE	T1,1(V1)
+	FMPR	T1,1(V2)
+	MOVEM	T1,1(V3)
+	MOVE	T1,2(V1)
+	FMPR	T1,2(V2)
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VSCL - (V3) = (V1)*T1
+
+VSCL:	MOVE	T2,0(V1)
+	FMPR	T2,T1
+	MOVEM	T2,0(V3)
+	MOVE	T2,1(V1)
+	FMPR	T2,T1
+	MOVEM	T2,1(V3)
+	MOVE	T2,2(V1)
+	FMPR	T2,T1
+	MOVEM	T2,2(V3)
+	POPJ	P,
+
+;VRAY - (V3) = (V1)+(V2)*T1
+
+VRAY:	MOVE	T2,0(V2)
+	FMPR	T2,T1
+	FADR	T2,0(V1)
+	MOVEM	T2,0(V3)
+	MOVE	T2,1(V2)
+	FMPR	T2,T1
+	FADR	T2,1(V1)
+	MOVEM	T2,1(V3)
+	MOVE	T2,2(V2)
+	FMPR	T2,T1
+	FADR	T2,2(V1)
+	MOVEM	T2,2(V3)
+	POPJ	P,
+
+;VCRS - (V3) = (V1) x (V2).  V3 must not be V1 or V2.
+
+VCRS:	MOVE	T1,1(V1)
+	FMPR	T1,2(V2)
+	MOVE	T2,2(V1)
+	FMPR	T2,1(V2)
+	FSBR	T1,T2
+	MOVEM	T1,0(V3)
+	MOVE	T1,2(V1)
+	FMPR	T1,0(V2)
+	MOVE	T2,0(V1)
+	FMPR	T2,2(V2)
+	FSBR	T1,T2
+	MOVEM	T1,1(V3)
+	MOVE	T1,0(V1)
+	FMPR	T1,1(V2)
+	MOVE	T2,1(V1)
+	FMPR	T2,0(V2)
+	FSBR	T1,T2
+	MOVEM	T1,2(V3)
+	POPJ	P,
+
+;VNRM - Make (V1) a unit vector.  Changes V2 and V3.
+
+VNRM:	MOVE	V2,V1
+	PUSHJ	P,VDOT
+	PUSHJ	P,SQRT
+	MOVE	T2,[1.0]
+	FDVR	T2,T1
+	MOVE	T1,T2
+	MOVE	V3,V1
+	JRST	VSCL
+
+	SUBTTL	Arithmetic
+
+;SQRT - T1 = SQRT(T1), or 0 if T1 is not positive.  Changes T2 and T3.
+;The first guess halves the exponent and keeps the fraction, which is
+;never out by more than a factor of two, so five rounds of Newton's
+;method are plenty for 27 bits.
+
+SQRT:	JUMPLE	T1,[SETZ T1,
+		    POPJ P,]
+	MOVE	T2,T1
+	LSH	T2,-33		;Exponent, excess 200
+	SUBI	T2,200
+	ASH	T2,-1
+	ADDI	T2,200
+	LSH	T2,33
+	MOVE	T3,T1
+	TLZ	T3,777000	;Fraction
+	IOR	T3,T2		;First guess in T3
+	MOVE	T2,T1		;X in T2
+	REPEAT	5,<
+	MOVE	T1,T2		;Y = (Y + X/Y)/2
+	FDVR	T1,T3
+	FADR	T1,T3
+	FSC	T1,-1
+	MOVE	T3,T1>
+	POPJ	P,
+
+;SQUARN - Square T1 T4 times, giving T1^(2^T4).  Small numbers go to 0:
+;the KA10 does not stop at 0 when a float underflows, it wraps round to
+;a huge number instead.  Changes T4.
+
+SQUARN:	FMPR	T1,T1
+	CAMGE	T1,[1.0E-15]
+	JRST	[SETZ	T1,
+		 POPJ	P,]
+	SOJG	T4,SQUARN
+	POPJ	P,
+
+;FLOOR - T1 = the largest integer not above the float in T1.  Changes T2.
+
+FLOOR:	MULI	T1,400
+	TSC	T1,T1
+	ASH	T2,-243(T1)
+	MOVE	T1,T2
+	POPJ	P,
+
+;DSIN, DCOS - T1 = the sine or cosine of T1 degrees
+;SIN - T1 = the sine of T1 radians.  Changes T2 and T3.
+
+DCOS:	FADR	T1,[90.0]
+DSIN:	FMPR	T1,[0.017453293]
+SIN:	MOVEM	T1,SINX		;Bring X into -PI to PI
+	FMPR	T1,[0.15915494]
+	FADR	T1,[0.5]
+	PUSHJ	P,FLOOR
+	FSC	T1,233
+	FMPR	T1,[6.2831853]
+	MOVNS	T1
+	FADR	T1,SINX
+	CAMG	T1,[1.5707963]	;Then into -PI/2 to PI/2
+	JRST	SIN1
+	MOVNS	T1
+	FADR	T1,[3.1415927]
+	JRST	SIN2
+SIN1:	CAML	T1,[-1.5707963]
+	JRST	SIN2
+	MOVNS	T1
+	FSBR	T1,[3.1415927]
+SIN2:	MOVEM	T1,SINX		;X*(1-X^2/6*(1-X^2/20*(1-X^2/42*(...
+	FMPR	T1,T1
+	MOVEM	T1,SINX2
+	MOVE	T2,[1.0]
+	MOVSI	T3,-6
+SIN3:	FMPR	T2,SINX2
+	FDVR	T2,SINDIV(T3)
+	MOVNS	T2
+	FADR	T2,[1.0]
+	AOBJN	T3,SIN3
+	MOVE	T1,T2
+	FMPR	T1,SINX
+	POPJ	P,
+
+SINDIV:	156.0
+	110.0
+	72.0
+	42.0
+	20.0
+	6.0
+
+;DECOUT - Type the number in T1 in decimal
+
+DECOUT:	JUMPGE	T1,DECOU1
+	OUTCHR	["-"]
+	MOVMS	T1
+DECOU1:	IDIVI	T1,^D10
+	PUSH	P,T2
+	SKIPE	T1
+	PUSHJ	P,DECOU1
+	POP	P,T1
+	ADDI	T1,"0"
+	OUTCHR	T1
+	POPJ	P,
+
+;DECPAD - Type the number in T1 in decimal, right aligned in 10 columns
+
+DECPAD:	MOVE	T2,T1		;Count the digits
+	MOVEI	T4,^D10
+DECPD1:	IDIVI	T2,^D10
+	SUBI	T4,1
+	JUMPN	T2,DECPD1
+DECPD2:	SOJL	T4,DECOUT
+	OUTCHR	[" "]
+	JRST	DECPD2
+
+CPOPJ1:	AOS	(P)
+CPOPJ:	POPJ	P,
+
+	SUBTTL	Storage
+
+;Worked out by INIT
+
+SUNH:	BLOCK	3		;The sun's direction along the ground
+IREFX:	BLOCK	1		;1/REFIDX
+CAMF:	BLOCK	3		;Camera forward
+CAMR:	BLOCK	3		;Camera right
+CAMU:	BLOCK	3		;Camera up
+TANF:	BLOCK	1		;Half the height of the image plane
+CLWC:	BLOCK	1		;Cosine and sine of Clawd's turn
+CLWS:	BLOCK	1
+BOXTAB:	BLOCK	NBOX*BXLEN	;Clawd's boxes, in metres
+BBOX:	BLOCK	6		;The box round all of them
+DSC:	BLOCK	3		;Centre of the Death Star
+DSR2:	BLOCK	1		;Its radius squared
+IDSR:	BLOCK	1		;One over its radius
+DISHC:	BLOCK	3		;Centre of the dish sphere
+DISHR:	BLOCK	1		;Its radius
+DISHR2:	BLOCK	1		;Squared
+IDISHR:	BLOCK	1		;One over it
+DSTW:	BLOCK	1		;Half the width of the trench
+FLOORM:	BLOCK	3		;Floor colour, far away
+
+;Used while tracing
+
+RAYO:	BLOCK	3		;The ray being traced
+RAYD:	BLOCK	3
+BT:	BLOCK	1		;Nearest hit so far
+BM:	BLOCK	1		;Its material
+BKIND:	BLOCK	1		;0 floor, 1 sphere, 2 box
+BOBJ:	BLOCK	1		;The sphere
+BAX:	BLOCK	1		;Axis of the box face
+LO:	BLOCK	3		;The ray in Clawd's coordinates
+LD:	BLOCK	3
+INV:	BLOCK	3		;1/LD
+TN:	BLOCK	1		;Crossings for SLAB
+TF:	BLOCK	1
+AX:	BLOCK	1
+SPHR2:	BLOCK	1		;Temporaries for SPHERE
+SPHB:	BLOCK	1
+OC:	BLOCK	3
+SHTR:	BLOCK	1		;Sunlight getting through, for SHADOW
+SHDIFF:	BLOCK	1		;Cosine of the sun's angle
+GLSC:	BLOCK	1		;Cosines for the glass
+GLSCT:	BLOCK	1
+SKYOUT:	BLOCK	1		;Where SKY puts its answer
+SKYD:	BLOCK	3		;Direction for SKYGRD
+SKYC:	BLOCK	3		;Colour from SKYGRD
+DSP:	BLOCK	3		;Point on the Death Star
+DSN:	BLOCK	3		;Normal there
+DSV:	BLOCK	1		;How light it is
+SX:	BLOCK	1		;Where the sample goes through the image plane
+SY:	BLOCK	1
+SCALE:	BLOCK	1		;Size of a pixel
+FSS:	BLOCK	1		;SS as a float
+INVSS2:	BLOCK	1		;1/SS^2
+ACC:	BLOCK	3		;Sum of the samples in a pixel
+SINX:	BLOCK	1		;Temporaries for SIN
+SINX2:	BLOCK	1
+TMP1:	BLOCK	1
+TMP2:	BLOCK	1
+TMPV:	BLOCK	3
+TSTART:	BLOCK	1		;CPU time at the start
+NCAM:	BLOCK	1		;Rays of each kind
+NREFL:	BLOCK	1
+NREFR:	BLOCK	1
+NSHAD:	BLOCK	1
+DEEPST:	BLOCK	1		;Deepest level of recursion
+LINPTR:	BLOCK	1		;Byte pointer into LINBUF
+LINEND:	BLOCK	1		;Byte pointer to the last non-blank
+LINBUF:	BLOCK	^D10		;One line of the banner
+FRAMES:	BLOCK	<MAXDEP+2>*FRLEN ;One frame for each level of SHADE
+PDL:	BLOCK	PDLEN		;Push down list
+
+	LIT
+
+	END	START
