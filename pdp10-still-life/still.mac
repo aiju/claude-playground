@@ -15,7 +15,7 @@
 ;  - Clawd is glazed: it reflects a little, more at glancing angles.
 ;  - Everything else has a texture made from an integer hash: the weave
 ;    of the tablecloth and its wrinkles, the grain of the oak boards,
-;    the speckles in Clawd's glaze.
+;    the unevenness of Clawd's glaze.
 ;
 ;Recursion: every level of SHADE has its own frame of storage, and F
 ;points to the current one.  To follow a reflected or refracted ray,
@@ -1823,15 +1823,14 @@ PLAST:	MOVE	T1,1(V1)
 	JRST	VSCL
 
 ;GLZTEX - TEXC = Clawd's glaze at the point (V1) in Clawd's space, or
-;an eye if T1 is 2.  The glaze varies a little and has dark speckles.
+;an eye if T1 is 2.  The glaze varies a little.
 
 GLZTEX:	CAIE	T1,2
 	JRST	GLZ1
 	MOVE	T1,[EYECOL,,TEXC]
 	BLT	T1,TEXC+2
 	POPJ	P,
-GLZ1:	MOVEM	V1,GLZP
-	MOVE	T1,0(V1)
+GLZ1:	MOVE	T1,0(V1)
 	FMPR	T1,[3.0]
 	MOVE	T2,1(V1)
 	FMPR	T2,[3.0]
@@ -1843,30 +1842,6 @@ GLZ1:	MOVEM	V1,GLZP
 	FMPR	T1,[0.12]
 	FADR	T1,[0.92]
 	MOVEI	V1,GLAZE
-	MOVEI	V3,TEXC
-	PUSHJ	P,VSCL
-	MOVE	V1,GLZP		;A speckle in this little cube?
-	MOVE	T1,0(V1)
-	FMPR	T1,[12.0]
-	PUSHJ	P,FLOOR
-	MOVEM	T1,TMP1
-	MOVE	V1,GLZP
-	MOVE	T1,1(V1)
-	FMPR	T1,[12.0]
-	PUSHJ	P,FLOOR
-	MOVEM	T1,TMP2
-	MOVE	V1,GLZP
-	MOVE	T1,2(V1)
-	FMPR	T1,[12.0]
-	PUSHJ	P,FLOOR
-	MOVE	T3,T1
-	MOVE	T1,TMP1
-	MOVE	T2,TMP2
-	PUSHJ	P,HASH
-	CAML	T1,[0.025]
-	POPJ	P,
-	MOVE	T1,[0.55]
-	MOVEI	V1,TEXC
 	MOVEI	V3,TEXC
 	JRST	VSCL
 
@@ -2304,7 +2279,6 @@ WDV:	BLOCK	1
 WDSEED:	BLOCK	1
 WDW2:	BLOCK	1
 WDR:	BLOCK	1
-GLZP:	BLOCK	1
 NSX:	BLOCK	1		;Temporaries for NOISE2 and FBM2
 NSY:	BLOCK	1
 NSEED:	BLOCK	1

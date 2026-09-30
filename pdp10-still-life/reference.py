@@ -253,9 +253,7 @@ def plaster(p):
 
 def glaze(pl, m):
     if m == 2: return EYECOL
-    col = mul(GLAZE, 0.92 + 0.12*noise2(pl[0]*3.0, pl[1]*3.0 + pl[2]*3.0, 60))
-    if hash3(fl(pl[0]*12), fl(pl[1]*12), fl(pl[2]*12)) < 0.025: col = mul(col, 0.55)
-    return col
+    return mul(GLAZE, 0.92 + 0.12*noise2(pl[0]*3.0, pl[1]*3.0 + pl[2]*3.0, 60))
 
 # ---- shading ----
 def schlick(r0, x):
