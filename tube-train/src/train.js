@@ -8,8 +8,26 @@ import { FORMATION, BODY, BOGIE } from './dims.js';
 import { buildCarType } from './car.js';
 import { buildInterior } from './interior.js';
 import { buildUnderframe } from './bogie.js';
+import { labelTexture } from './textures.js';
+import { profileAt, vAtY } from './profile.js';
 
 export const CAR_GAP = 0.24;       // between the bodies of coupled cars
+
+// The car's number on each side, low down under a window near one end.
+function addNumbers(car, type, number, t) {
+  const tex = labelTexture(number, { w: 256, h: 64, font: '600 44px "Helvetica Neue", Arial, sans-serif', colour: '#1c2a5a' });
+  const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 });
+  const L = type.length, spec = type.spec;
+  const w = spec.windows[t === 'A' ? 2 : 0];
+  const x = L / 2 - (w[0] + w[1]) / 2;
+  const z = profileAt(vAtY(1.36)).z + 0.002;
+  for (const s of [1, -1]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.11), mat);
+    m.position.set(x, 1.36, s * z);
+    if (s < 0) m.rotation.y = Math.PI;
+    car.add(m);
+  }
+}
 
 export function buildTrain(materials) {
   const types = {};
@@ -38,6 +56,11 @@ export function buildTrain(materials) {
     const leaves = type.leaves.map(l => ({ group: car.getObjectByName(l.group.name), side: l.side, dirX: l.dirX }));
     under.traverse(o => { if (o.userData.wheelset) wheels.push({ mesh: o, sign: turned ? -1 : 1 }); });
     cars.push({ group: car, type: t, turned, length: L, leaves, centre: x - L / 2, spec: type.spec });
+    // car numbers: 11xxx for A cars, 12xxx for B and so on, the unit's
+    // number after
+    const number = `${{ A: 11, B: 12, C: 13, D: 14 }[t]}0${turned ? 48 : 47}`;
+    addNumbers(car, type, number, t);
+    if (t === 'A' && turned) car.getObjectByName('nose').material = materials.noseFor(number);
     // headlights on the leading cab, tail lights on the trailing one
     if (t === 'A') {
       car.traverse(o => {

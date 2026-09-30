@@ -264,6 +264,21 @@ export function buildCarType(type, materials) {
   }
 
   const group = B.toGroup(materials, `car-${type}`);
+  // the destination display above the middle window on each side
+  {
+    const [a, b] = span(...spec.windows[1]);
+    const y = 2.27, p = profileAt(vAtY(y), 0.004);
+    for (const side of [1, -1]) {
+      const d = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.085), materials.sideDisplay);
+      d.position.set((a + b) / 2, p.y, side * p.z);
+      d.rotation.set(-Math.asin(p.ny) * 1, side < 0 ? Math.PI : 0, 0, 'YXZ');
+      group.add(d);
+      const frame = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.13), materials.rubber);
+      frame.position.copy(d.position).addScaledVector(new THREE.Vector3(0, p.ny, side * p.nz), -0.001);
+      frame.rotation.copy(d.rotation);
+      group.add(frame);
+    }
+  }
   if (cab) {
     const nose = new THREE.Mesh(noseGeometry(L / 2), materials.nose);
     nose.name = 'nose';

@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { COLOURS } from './dims.js';
-import { moquetteTexture, floorTexture, glowTexture } from './textures.js';
+import { moquetteTexture, floorTexture, glowTexture, ledTexture } from './textures.js';
 import { frontTextures, frontEmissive } from './nose.js';
 
 export const lighting = {
@@ -154,13 +154,35 @@ export function createMaterials() {
   m.noseGlass = glass({ opacity: 0.32 });
   m.noseGlass.alphaMap = front.glass;
   m.noseGlass.alphaTest = 0.1;
+  // each driving car has its own number on the front
+  const noses = new Map([['11047', m.nose]]);
+  m.noseFor = (number) => {
+    if (!noses.has(number)) {
+      const n = m.nose.clone();
+      n.map = frontTextures({ number }).paint;
+      noses.set(number, n);
+    }
+    return noses.get(number);
+  };
+  // the destination display on each side of each car
+  m.sideDisplay = new THREE.MeshBasicMaterial({ map: sideDisplayTexture('Walthamstow Central'), toneMapped: false });
   return m;
 }
 
-// redraw the front displays
+function sideDisplayTexture(text) {
+  return ledTexture(text, { cols: 96, rows: 12, font: 'bold 10px Arial, sans-serif', dot: 6 });
+}
+
+// redraw the destination displays, on the fronts and the sides
 export function setFrontDisplays(materials, opts) {
   const old = materials.nose.emissiveMap;
-  materials.nose.emissiveMap = frontEmissive(opts);
-  materials.nose.needsUpdate = true;
+  const map = frontEmissive(opts);
+  for (const number of ['11047', '11048']) {
+    const n = materials.noseFor(number);
+    n.emissiveMap = map;
+    n.needsUpdate = true;
+  }
   old?.dispose();
+  materials.sideDisplay.map.dispose();
+  materials.sideDisplay.map = sideDisplayTexture(opts.destination);
 }

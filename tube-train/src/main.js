@@ -86,6 +86,15 @@ function setScene(name) {
   } else state.speed = 0;
 }
 
+// Presets are framed for a landscape screen; on a narrower one, widen the
+// vertical field of view so that the width of the view stays the same.
+function fovFor(presetFov) {
+  const aspect = camera.aspect, wide = 1.6;
+  if (aspect >= wide) return presetFov;
+  const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(presetFov) / 2) * wide / aspect);
+  return Math.min(THREE.MathUtils.radToDeg(2 * half), 95);
+}
+
 function applyLook(v) {
   // look views: turn on the spot, around a target just in front of the camera
   controls.enableZoom = controls.enablePan = !v.look;
@@ -106,12 +115,12 @@ function setView(name, animate = !still) {
   const pos = new THREE.Vector3(...v.pos), target = new THREE.Vector3(...v.target);
   if (v.trackside) placeTrackside(pos, target);
   if (animate && !sceneChange) {
-    state.tween = { t: 0, from: { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov }, to: { pos, target, fov: v.fov || 45 }, v };
+    state.tween = { t: 0, from: { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov }, to: { pos, target, fov: fovFor(v.fov || 45) }, v };
   } else {
     state.tween = null;
     camera.position.copy(pos);
     controls.target.copy(target);
-    camera.fov = v.fov || 45;
+    camera.fov = fovFor(v.fov || 45);
     camera.updateProjectionMatrix();
     applyLook(v);
   }
@@ -131,6 +140,7 @@ function resize() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
+  if (state?.view && !state.tween) camera.fov = fovFor(VIEWS[state.view].fov || 45);
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
@@ -238,7 +248,7 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowUp' && state.scene === 'tunnel') { app.setSpeedKmh(Math.min(80, Math.round(state.targetSpeed * 3.6) + 5)); e.preventDefault(); }
   else if (e.key === 'ArrowDown' && state.scene === 'tunnel') { app.setSpeedKmh(Math.max(0, Math.round(state.targetSpeed * 3.6) - 5)); e.preventDefault(); }
   else if (e.key === 'h') document.body.classList.toggle('bare');
-  else if (e.key === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
+  else if (e.key === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
 });
 
 window.tubeTrain = { stillReady: false, app, state, train, materials, lighting, scene, camera, renderer };
