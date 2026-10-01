@@ -87,9 +87,10 @@ photographs. `src/dims.js` has all the numbers.
   springs and traction motors. The driving cars and the D cars have shoe gear
   for the fourth rail. Equipment cases hang between the bogies.
 - **The line** (`path.js`) is made up as the train goes, one block per
-  station. Each block has a level straight through the station, then a curve
-  or an S-bend (radii of 170 to 470 m, eased in and out) and a dip of up to
-  about 1 in 30 down to the next station. The Victoria line's stations sit
+  station. Each block has a level straight through the station, then a bend
+  or an S-bend (radii of 150 to 320 m, eased in and out) and a dip of up to
+  about 1 in 30 down to the next station. The run-in to the first station is
+  an S-bend, and the train starts out standing in the first curve of it. The Victoria line's stations sit
   on humps like this, so trains run downhill as they pull away and uphill as
   they brake. Anything along the line is placed in a frame (a point on the
   track and its forward, up and right directions) at its distance along it.
@@ -104,9 +105,12 @@ photographs. `src/dims.js` has all the numbers.
   blur it more the further the wall is from the glass.
 - **On a curve** (`train.js`) each car sits on its two bogies, so it is a
   chord of the curve: its middle swings in, its ends swing out, and the
-  bogies turn under it to follow the rails. Cameras ride with a car, stand in
-  the station or stand at the trackside, and each frame a riding camera is
-  moved however its car moved, so it goes round the bends with it.
+  bogies turn under it to follow the rails. Cameras ride with a car, keep to
+  the track ahead of the train (the chase view, which sees the train swing
+  round the bends towards it), stand in the station or stand at the
+  trackside. Each frame a riding camera is moved however the thing it rides
+  with moved, so it goes round the bends with it. The cab and trackside views
+  show the curves best.
 - **The station** (`station.js`) is a deep-level platform tunnel, 140 m
   long and 6.8 m across, set off to one side of the track so there's room for
   the platform. It has glazed tiles with a band in the line's light blue, a

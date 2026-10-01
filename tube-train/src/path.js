@@ -7,7 +7,8 @@
 // model.
 //
 // The underground line is made up as it goes, one block per station: a level
-// straight through the station, then curves and a dip down to the next one.
+// straight through the station, then a bend or an S-bend and a dip down to
+// the next one.
 // Like the Victoria line's, the stations sit on humps, so trains run downhill
 // as they pull away and uphill as they brake.
 
@@ -48,42 +49,51 @@ export class StraightPath {
 }
 
 // The line underground. stationStart(k) is where station k's platform
-// tunnel starts, and each block runs from 40 m before one station to 40 m
-// before the next.
+// tunnel starts, and block k runs from 40 m before station k to 40 m before
+// the next. Block -1 is the run-in to the first station: the train starts
+// there, standing on a bend.
 export class LinePath {
   constructor({ stationStart, stationLength, spacing }) {
     this.stationStart = stationStart;
     this.stationLength = stationLength;
     this.spacing = spacing;
     this.b0 = stationStart(0) - 40;
-    this.blocks = [];
+    this.blocks = [];                 // block k is blocks[k + 1]
   }
 
   blockStart(k) { return this.b0 + k * this.spacing; }
 
-  // The curvature and the dip between stations, made up for each block.
+  // The curvature and the dip between stations, made up for each block:
+  // a bend or an S-bend in every gap between stations, eased in and out.
   layout(k) {
     const r = rng(k * 7919 + 13);
-    const straight = 40 + this.stationLength + 40;
-    const g0 = straight, g1 = this.spacing, G = g1 - g0;
     const curves = [];
-    const kind = r();
-    const radius = () => 170 + r() * 300;
-    const side = () => (r() < 0.5 ? -1 : 1);
-    if (kind < 0.6) {
-      const ease = 25 + r() * 10, hold = 40 + r() * 90;
-      const len = 2 * ease + hold;
-      curves.push({ start: g0 + 15 + r() * (G - 30 - len), ease, hold, k: side() / radius() });
-    } else if (kind < 0.92) {
-      const s = side();
-      const a = { ease: 25, hold: 25 + r() * 40, k: s / radius() };
-      const b = { ease: 25, hold: 25 + r() * 40, k: -s / radius() };
-      const gap = 10 + r() * 25;
-      const len = 4 * 25 + a.hold + b.hold + gap;
-      a.start = g0 + 15 + r() * Math.max(0, G - 30 - len);
-      b.start = a.start + 50 + a.hold + gap;
-      curves.push(a, b);
+    let g0;
+    if (k < 0) {
+      // the run-in: an S-bend, the train standing in the first curve of it
+      // (its front at u = 180, its back at about u = 47)
+      g0 = 0;
+      curves.push({ start: 10, ease: 30, hold: 140, k: -1 / 160 }, { start: 250, ease: 30, hold: 90, k: 1 / 210 });
+    } else {
+      g0 = 40 + this.stationLength + 40;          // the station straight
+      const G = this.spacing - g0;
+      const radius = () => 150 + r() * 170;
+      const side = r() < 0.5 ? -1 : 1;
+      if (r() < 0.4) {
+        const ease = 25 + r() * 10, hold = 70 + r() * 80;
+        const len = 2 * ease + hold;
+        curves.push({ start: g0 + 10 + r() * (G - 25 - len), ease, hold, k: side / radius() });
+      } else {
+        const a = { ease: 25, hold: 40 + r() * 40, k: side / radius() };
+        const b = { ease: 25, hold: 40 + r() * 40, k: -side / radius() };
+        const gap = 5 + r() * 15;
+        const len = 4 * 25 + a.hold + b.hold + gap;
+        a.start = g0 + 10 + r() * Math.max(0, G - 25 - len);
+        b.start = a.start + 50 + a.hold + gap;
+        curves.push(a, b);
+      }
     }
+    const G = this.spacing - g0;
     // up to about 1 in 30, the Victoria line's steepest
     const depth = 1.5 + r() * 1.6;
     return {
@@ -106,12 +116,12 @@ export class LinePath {
   }
 
   block(k) {
-    while (this.blocks.length <= k) {
-      const i = this.blocks.length;
-      const prev = this.blocks[i - 1];
+    while (this.blocks.length <= k + 1) {
+      const i = this.blocks.length - 1;
+      const prev = this.blocks[i];
       const n = Math.round(this.spacing / DS);
       const b = { x: new Float64Array(n + 1), y: new Float64Array(n + 1), z: new Float64Array(n + 1), h: new Float64Array(n + 1), g: new Float64Array(n + 1) };
-      b.x[0] = prev ? prev.x[n] : this.b0;
+      b.x[0] = prev ? prev.x[n] : this.blockStart(-1);
       b.z[0] = prev ? prev.z[n] : 0;
       b.h[0] = prev ? prev.h[n] : 0;
       const L = this.layout(i);
@@ -127,11 +137,11 @@ export class LinePath {
       }
       this.blocks.push(b);
     }
-    return this.blocks[k];
+    return this.blocks[k + 1];
   }
 
   frame(s, out = new Frame()) {
-    if (s < this.b0) return out.set(s, 0, 0, 0, 0);
+    if (s < this.blockStart(-1)) return out.set(s, 0, 0, 0, 0);
     const k = Math.floor((s - this.b0) / this.spacing);
     const b = this.block(k);
     const f = (s - this.blockStart(k)) / DS;

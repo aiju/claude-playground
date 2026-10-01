@@ -138,7 +138,14 @@ function applyLook(v) {
   }
 }
 
-const anchorMatrix = (a) => (a.kind === 'car' ? a.car.group.matrix : a.kind === 'station' ? station.group.matrix : null);
+// what a riding camera moves with: a car, the station, or a point on the
+// track a fixed distance from the front of the train
+function anchorMatrix(a) {
+  if (a.kind === 'car') return a.car.group.matrix;
+  if (a.kind === 'station') return station.group.matrix;
+  if (a.kind === 'track') return pathNow().frame(frontS() + a.offset, a.frame).matrix(a.m);
+  return null;
+}
 
 function setView(name, animate = !still) {
   const v = VIEWS[name] || VIEWS.front;
@@ -164,6 +171,13 @@ function setView(name, animate = !still) {
   } else if (v.trackside) {
     placeTrackside(pos, target);
     anchor = { kind: 'world' };
+  } else if (v.follow === 'track') {
+    // x is along the track from the front of the train, y and z across it
+    pathNow().frame(frontS() + v.pos[0]).apply(0, v.pos[1], v.pos[2], pos);
+    pathNow().frame(frontS() + v.target[0]).apply(0, v.target[1], v.target[2], target);
+    anchor = { kind: 'track', offset: v.pos[0], frame: new Frame(), m: new THREE.Matrix4() };
+    anchor.last = anchorMatrix(anchor).clone();
+    state.focusS = frontS() + v.pos[0];
   } else {
     const car = train.carAt(v.pos[0]);
     pos = train.toCar(car, pos).applyMatrix4(car.group.matrix);
@@ -171,7 +185,9 @@ function setView(name, animate = !still) {
     anchor = { kind: 'car', car, last: car.group.matrix.clone() };
     state.focusS = frontS() + v.pos[0];
   }
-  const jump = sceneChange || anchor.kind !== state.anchor?.kind || anchor.kind === 'world';
+  // cameras riding with the train can glide from one view to another
+  const rides = (a) => a?.kind === 'car' || a?.kind === 'track';
+  const jump = sceneChange || anchor.kind === 'world' || (anchor.kind !== state.anchor?.kind && !(rides(anchor) && rides(state.anchor)));
   state.anchor = anchor;
   if (animate && !jump) {
     state.tween = { t: 0, from: { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov }, to: { pos, target, fov: fovFor(v.fov || 45) }, v };
