@@ -1,8 +1,8 @@
 // Camera presets, grouped by where they are: the depot, the tunnel, or a
 // station. Positions are in metres, with the front of the train at x = 0 and
 // the train running back along -x. Station views are in the station's own
-// coordinates (x from 0 where the trains come in, the platform on the +z
-// side) and move with it.
+// coordinates (x from 0 where our trains come in, our platform on the +z
+// side and the other one beyond it, round z = 13) and move with it.
 //
 // `look` views are from a fixed spot (inside the train): dragging turns the
 // camera rather than orbiting it. `trackside` stands in the tunnel instead of
@@ -26,6 +26,8 @@ export const VIEWS = {
   platform:  { group: 'station', label: 'Platform',  pos: [84, 2.35, 3.5],      target: [35, 1.5, 0.6], anchor: 'station' },
   arriving:  { group: 'station', label: 'Arriving',  pos: [137.4, 2.3, 2.35],   target: [100, 1.4, 0.1], anchor: 'station' },
   doorway:   { group: 'station', label: 'Doors',     pos: [116.6, 2.25, 3.9],   target: [114.3, 1.45, 1.0], anchor: 'station' },
+  across:    { group: 'station', label: 'Across',    pos: [70, 1.65, 2.4],      target: [70, 1.5, 12.5], fov: 62, anchor: 'station' },
+  other:     { group: 'station', label: 'Platform 2', pos: [56, 2.35, 9.5],     target: [105, 1.5, 12.4], anchor: 'station' },
 };
 
 for (const v of Object.values(VIEWS)) v.scene = v.group === 'depot' ? 'depot' : 'tunnel';

@@ -2,10 +2,12 @@
 
 import * as THREE from 'three';
 
-function canvas(w, h) {
+// `read`: the pixels will be read back, so keep the canvas in ordinary
+// memory; reading one the GPU draws makes the page wait for the GPU
+function canvas(w, h, read = false) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
-  return [c, c.getContext('2d')];
+  return [c, c.getContext('2d', { willReadFrequently: read })];
 }
 
 function toTexture(c, { srgb = true, repeat = false, aniso = 8 } = {}) {
@@ -33,7 +35,7 @@ export function rng(seed) {
 // enough that a seat shows a few repeats.
 export function moquetteTexture() {
   const S = 256;
-  const [c, g] = canvas(S, S);
+  const [c, g] = canvas(S, S, true);
   g.fillStyle = '#16255e';
   g.fillRect(0, 0, S, S);
   const cell = 64;
@@ -94,7 +96,7 @@ export function floorTexture() {
 // rendered small, then each pixel becomes a round dot. `text` can be several
 // lines, and a tab in a line pushes what follows it to the right.
 export function ledTexture(text, { cols = 128, rows = 16, colour = [255, 150, 30], font = 'bold 13px sans-serif', align = 'center', dot = 6 } = {}) {
-  const [small, sg] = canvas(cols, rows);
+  const [small, sg] = canvas(cols, rows, true);
   sg.fillStyle = '#000';
   sg.fillRect(0, 0, cols, rows);
   sg.fillStyle = '#fff';

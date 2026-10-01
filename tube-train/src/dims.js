@@ -35,6 +35,10 @@ export const BODY = {
   doorTravel: 0.80,
 };
 
+// The two directions run in tunnels of their own, their tracks this far
+// apart: the other track is on the right, looking the way a train goes.
+export const TRACK_SPACING = 13.0;
+
 export const COUPLER = 0.12; // from the body end to the coupler face (0.1675 at the cab end)
 
 export const BOGIE = {

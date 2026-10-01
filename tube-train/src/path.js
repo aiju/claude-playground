@@ -140,14 +140,23 @@ export class LinePath {
     return this.blocks[k + 1];
   }
 
-  frame(s, out = new Frame()) {
-    if (s < this.blockStart(-1)) return out.set(s, 0, 0, 0, 0);
+  // the track at distance s: position, heading and gradient
+  sample(s, out = {}) {
+    if (s < this.blockStart(-1)) { out.x = s; out.y = out.z = out.h = out.g = 0; return out; }
     const k = Math.floor((s - this.b0) / this.spacing);
     const b = this.block(k);
     const f = (s - this.blockStart(k)) / DS;
     const i = Math.min(Math.floor(f), b.x.length - 2), t = f - i;
     const L = (a) => a[i] + (a[i + 1] - a[i]) * t;
-    return out.set(L(b.x), L(b.y), L(b.z), L(b.h), L(b.g));
+    out.x = L(b.x); out.y = L(b.y); out.z = L(b.z); out.h = L(b.h); out.g = L(b.g);
+    return out;
+  }
+
+  heading(s) { return this.sample(s, this._smp || (this._smp = {})).h; }
+
+  frame(s, out = new Frame()) {
+    const p = this.sample(s, this._smp || (this._smp = {}));
+    return out.set(p.x, p.y, p.z, p.h, p.g);
   }
 
   // the distance along the path nearest to a point, starting from a guess
@@ -165,3 +174,37 @@ export class LinePath {
 }
 
 StraightPath.prototype.nearest = function (p) { return p.x; };
+
+// The other track: `offset` metres to the right of the line, for trains
+// running the other way. Its distance β runs along it the way they go. The
+// two tracks differ in length round the curves (the inner one is shorter,
+// by the offset times the angle turned), so β = offset × heading(s) − s,
+// which makes β measure true distance along this track.
+export class OtherTrack {
+  constructor(line, offset) {
+    this.line = line;
+    this.D = offset;
+    this.smp = {};
+  }
+
+  betaAt(s) { return this.D * this.line.heading(s) - s; }
+
+  // the distance along the line beside β (a contraction, since the curves
+  // are much wider than the offset)
+  sAt(beta) {
+    let s = -beta;
+    for (let i = 0; i < 10; i++) {
+      const n = this.D * this.line.heading(s) - beta;
+      if (Math.abs(n - s) < 1e-7) return n;
+      s = n;
+    }
+    return s;
+  }
+
+  frame(beta, out = new Frame()) {
+    const p = this.line.sample(this.sAt(beta), this.smp);
+    // the line's right is (-sin h, 0, cos h); this track runs the other way
+    return out.set(p.x - this.D * Math.sin(p.h), p.y, p.z + this.D * Math.cos(p.h), p.h + Math.PI, -p.g);
+  }
+}
+OtherTrack.prototype.nearest = LinePath.prototype.nearest;

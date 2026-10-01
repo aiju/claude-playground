@@ -14,7 +14,7 @@
 
 import * as THREE from 'three';
 import { trackMaterials, RAIL_PROFILE, BAR_PROFILE } from './track.js';
-import { addLightTerms, stationTerm, clipTerm, station } from './materials.js';
+import { addLightTerms, stationTerm, clipTerm, station, inStationLocal } from './materials.js';
 import { MeshBuilder, matrixFrom } from './geom.js';
 import { noiseTexture } from './textures.js';
 import { TRACK } from './dims.js';
@@ -235,7 +235,9 @@ function windowPattern(train) {
   return { tex, x0, x1 };
 }
 
-export function buildTunnel(train, path) {
+// `lights`: give the working lights nearest the camera real light, and fill
+// the tunnel with a faint ambient light (only one tunnel needs either).
+export function buildTunnel(train, path, { lights = true } = {}) {
   const group = new THREE.Group();
   group.name = 'tunnel';
 
@@ -367,20 +369,17 @@ export function buildTunnel(train, path) {
 
   // the working lights nearest the camera get real lights
   const lampLights = [];
-  for (let i = 0; i < 4; i++) {
-    const l = new THREE.PointLight(0xffd4a0, 2.2, 14, 1.6);
-    group.add(l);
-    lampLights.push(l);
+  if (lights) {
+    for (let i = 0; i < 4; i++) {
+      const l = new THREE.PointLight(0xffd4a0, 2.2, 14, 1.6);
+      group.add(l);
+      lampLights.push(l);
+    }
+    group.add(new THREE.HemisphereLight(0x9aa4b0, 0x302a26, 0.05));
   }
-  const ambient = new THREE.HemisphereLight(0x9aa4b0, 0x302a26, 0.05);
-  group.add(ambient);
 
   const local = new THREE.Vector3();
-  const inStation = (p) => {
-    if (station.uStOn.value < 0.5) return false;
-    local.copy(p).applyMatrix4(station.uStInv.value);
-    return local.x > 0 && local.x < station.uStLen.value && Math.abs(local.z - 1) < 6;
-  };
+  const inStation = (p) => station.uStOn.value > 0.5 && inStationLocal(local.copy(p).applyMatrix4(station.uStInv.value));
   const world = new THREE.Vector3();
 
   return {
@@ -394,10 +393,11 @@ export function buildTunnel(train, path) {
     // camera's distance along the line), takes it down elsewhere, and moves
     // the real lights to the lamps nearest the camera. Builds at most
     // `budget` pieces at a time, so a long jump doesn't stall a frame.
-    update(trainS, focusS, budget = 3) {
+    // `range`, if given, is the stretch to build instead.
+    update(trainS, focusS, budget = 3, range = null) {
       winUniforms.uTrainS.value = trainS;
-      const lo = Math.floor((Math.min(focusS, trainS - train.length) - 190) / CHUNK);
-      const hi = Math.floor((Math.max(focusS, trainS) + 230) / CHUNK);
+      const lo = Math.floor((range ? range[0] : Math.min(focusS, trainS - train.length) - 190) / CHUNK);
+      const hi = Math.floor((range ? range[1] : Math.max(focusS, trainS) + 230) / CHUNK);
       for (const c of [...chunks.keys()]) if (c < lo - 1 || c > hi + 1) dropChunk(c);
       // nearest the camera first
       const want = [];

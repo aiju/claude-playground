@@ -34,7 +34,8 @@ function addNumbers(car, type, number, t) {
   }
 }
 
-export function buildTrain(materials) {
+// The two kinds of car (driving and not), built once for every train.
+export function buildCarTypes(materials) {
   const types = {};
   for (const t of ['A', 'B']) {
     const type = buildCarType(t, materials);
@@ -42,6 +43,13 @@ export function buildTrain(materials) {
     type.underframe = buildUnderframe(t, type.spec, materials);
     types[t] = type;
   }
+  return types;
+}
+
+// A train. `units` are the numbers of its two units (the cars are numbered
+// 11xxx to 14xxx after them); `sideDisplay` is the material of the
+// destination displays on its sides; `headlights` gives it real lights.
+export function buildTrain(materials, { types = buildCarTypes(materials), units = [47, 48], sideDisplay = null, headlights: withLights = true } = {}) {
   const group = new THREE.Group();
   group.name = 'train';
   const cars = [];
@@ -67,9 +75,10 @@ export function buildTrain(materials) {
     cars.push({ group: car, type: t, turned, length: L, leaves, centre: x - L / 2, spec: type.spec, bogies });
     // car numbers: 11xxx for A cars, 12xxx for B and so on, the unit's
     // number after
-    const number = `${{ A: 11, B: 12, C: 13, D: 14 }[t]}0${turned ? 48 : 47}`;
+    const number = `${{ A: 11, B: 12, C: 13, D: 14 }[t]}0${turned ? units[1] : units[0]}`;
     addNumbers(car, type, number, t);
-    if (t === 'A' && turned) car.getObjectByName('nose').material = materials.noseFor(number);
+    if (t === 'A') car.getObjectByName('nose').material = materials.noseFor(number);
+    if (sideDisplay) car.traverse(o => { if (o.name === 'sideDisplay') o.material = sideDisplay; });
     // headlights on the leading cab, tail lights on the trailing one
     if (t === 'A') {
       car.traverse(o => {
@@ -111,7 +120,7 @@ export function buildTrain(materials) {
 
   // headlights, on the leading car
   const headlights = [];
-  {
+  if (withLights) {
     const lead = cars[0], L = lead.length;
     for (const s of [1, -1]) {
       const spot = new THREE.SpotLight(0xf2f6ff, 40, 0, 0.36, 0.85, 1.35);
@@ -164,5 +173,6 @@ export function buildTrain(materials) {
     return new THREE.Vector3(s * (p.x - car.centre), p.y, s * p.z);
   }
 
-  return { group, cars, length, wheelXs, setDoors, roll, place, carAt, toCar, headlights, materials };
+  const numbers = [`110${units[0]}`, `110${units[1]}`];
+  return { group, cars, length, wheelXs, setDoors, roll, place, carAt, toCar, headlights, materials, types, numbers };
 }

@@ -6,7 +6,7 @@
 // coordinates, so it is the same for every car.
 
 import * as THREE from 'three';
-import { COLOURS } from './dims.js';
+import { COLOURS, TRACK_SPACING } from './dims.js';
 import { moquetteTexture, floorTexture, glowTexture, ledTexture } from './textures.js';
 import { frontTextures, frontEmissive } from './nose.js';
 
@@ -75,21 +75,26 @@ export function addLightTerms(material, terms) {
 // The station: where it is (as the inverse of its frame, taking world
 // positions into the station's own: x from 0 to uStLen along the platform,
 // y up, z to the right, where the platform is) and whether its lights are on
-// (they are off in the depot). Station materials, the tunnel near it and the
-// train's outside all take its light.
+// (they are off in the depot). Station materials, the tunnels near it and the
+// trains' outsides all take its light.
+//
+// It has two platform tunnels: ours, round z = 0, and the other track's,
+// round z = TRACK_SPACING, the same tunnel turned round.
 export const station = {
   uStInv: { value: new THREE.Matrix4() },
   uStLen: { value: 140 },
   uStOn: { value: 0 },
 };
 
+const D = TRACK_SPACING.toFixed(3);
 const STATION_UNIFORMS = `
   uniform mat4 uStInv;
   uniform float uStLen, uStOn;
   vec3 stationLocal(vec3 p) { return (uStInv * vec4(p, 1.0)).xyz; }`;
 
-// Light in the station: two long light troughs, one over the platform (on
-// the +z side) and one over the track, plus the light bouncing off the tiles.
+// Light in the station: in each platform tunnel two long light troughs, one
+// over the platform and one over the track, plus the light bouncing off the
+// tiles. Each tunnel's lights stay on its side of the wall between them.
 export function stationTerm() {
   return {
     key: 'station-light',
@@ -105,22 +110,24 @@ export function stationTerm() {
       }
       float stationInside(vec3 p) {
         float along = smoothstep(-10.0, 3.0, p.x) * (1.0 - smoothstep(uStLen - 3.0, uStLen + 10.0, p.x));
-        // fading out into the passages off the platform
-        return along * (1.0 - smoothstep(5.5, 10.0, abs(p.z - 1.0))) * step(abs(p.y - 1.5), 8.0);
+        float beyond = max(max(-4.5 - p.z, p.z - (${D} + 4.5)), 0.0);
+        return along * (1.0 - smoothstep(0.0, 4.5, beyond)) * step(abs(p.y - 1.5), 8.0);
       }`],
     body: `
       vec3 sp = stationLocal(wp);
       float inside = stationInside(sp) * uStOn;
       if (inside > 0.001) {
         vec3 sn = normalize(mat3(uStInv) * wn);
-        float e = 2.6 * stationLine(sp, sn, vec2(3.95, 3.0)) + 1.6 * stationLine(sp, sn, vec2(4.45, 0.3));
+        float eA = 2.6 * stationLine(sp, sn, vec2(3.95, 3.0)) + 1.6 * stationLine(sp, sn, vec2(4.45, 0.3));
+        float eB = 2.6 * stationLine(sp, sn, vec2(3.95, ${D} - 3.0)) + 1.6 * stationLine(sp, sn, vec2(4.45, ${D} - 0.3));
+        float e = mix(eA, eB, smoothstep(${D} * 0.5 - 1.0, ${D} * 0.5 + 1.0, sp.z));
         float bounce = 0.35 + 0.15 * max(sn.y, 0.0);
         extraIrr += (e + bounce) * inside * vec3(1.0, 0.96, 0.9);
       }`,
   };
 }
 
-// Cuts the running tunnel away where the station is.
+// Cuts the running tunnels away where the station is.
 export function clipTerm() {
   return {
     key: 'station-clip',
@@ -128,9 +135,15 @@ export function clipTerm() {
     decl: STATION_UNIFORMS,
     body: `{
       vec3 sp = stationLocal(wp);
-      if (uStOn > 0.5 && sp.x > 0.01 && sp.x < uStLen - 0.01 && abs(sp.z - 1.0) < 6.0 && sp.y > -3.0 && sp.y < 7.0) discard;
+      if (uStOn > 0.5 && sp.x > 0.01 && sp.x < uStLen - 0.01 && sp.z > -5.0 && sp.z < ${D} + 5.0 && sp.y > -3.0 && sp.y < 7.0) discard;
     }`,
   };
+}
+
+// whether a station-local point is inside the station, for things done
+// outside the shaders
+export function inStationLocal(p) {
+  return p.x > 0 && p.x < station.uStLen.value && p.z > -5 && p.z < TRACK_SPACING + 5;
 }
 
 // The saloon lights: two line lights along the car, shining down and
@@ -252,8 +265,9 @@ export function createMaterials() {
     }
     return noses.get(number);
   };
+  m.allNoses = () => [...noses.values()];
   // the destination display on each side of each car
-  m.sideDisplay = new THREE.MeshBasicMaterial({ map: sideDisplayTexture('Walthamstow Central'), toneMapped: false });
+  m.sideDisplay = sideDisplayMaterial('Walthamstow Central');
   return m;
 }
 
@@ -261,16 +275,24 @@ function sideDisplayTexture(text) {
   return ledTexture(text, { cols: 96, rows: 12, font: 'bold 10px Arial, sans-serif', dot: 6 });
 }
 
-// redraw the destination displays, on the fronts and the sides
-export function setFrontDisplays(materials, opts) {
-  const old = materials.nose.emissiveMap;
+export function sideDisplayMaterial(text) {
+  return new THREE.MeshBasicMaterial({ map: sideDisplayTexture(text), toneMapped: false });
+}
+
+// Redraws a train's destination displays, on its two fronts (by the driving
+// cars' numbers) and along its sides.
+export function setFrontDisplays(materials, opts, { numbers = ['11047', '11048'], side = materials.sideDisplay } = {}) {
   const map = frontEmissive(opts);
-  for (const number of ['11047', '11048']) {
+  const old = new Set();
+  for (const number of numbers) {
     const n = materials.noseFor(number);
+    if (n.emissiveMap && n.emissiveMap !== map) old.add(n.emissiveMap);
     n.emissiveMap = map;
     n.needsUpdate = true;
   }
-  old?.dispose();
-  materials.sideDisplay.map.dispose();
-  materials.sideDisplay.map = sideDisplayTexture(opts.destination);
+  // free the old displays, unless another train still shows them
+  const inUse = new Set(materials.allNoses().map(n => n.emissiveMap));
+  for (const t of old) if (!inUse.has(t)) t.dispose();
+  side.map.dispose();
+  side.map = sideDisplayTexture(opts.destination);
 }

@@ -9,8 +9,10 @@
 // cost ten draw calls.
 //
 // A person lives in a "space": the station (its own coordinates, see
-// station.js) or one of the cars (the car's own coordinates), and moves with
-// it. They walk along a list of waypoints, each in a space of its own; when
+// station.js) or one of the cars of either train (the car's own
+// coordinates), and moves with it. On the platforms, people keep to the one
+// they are on (0, ours, or 1, the other track's); where they go there is
+// worked out in that platform's half-local coordinates, the same for both. They walk along a list of waypoints, each in a space of its own; when
 // they step from the platform into a car, or out of it, their position is
 // carried over from one space to the other.
 
@@ -18,14 +20,14 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { addLightTerms, stationTerm, lighting } from './materials.js';
-import { STATION, EXITS, PASSAGE } from './station.js';
+import { STATION, EXITS, ARCH, CORRIDOR, MID, BENCHES, toStation } from './station.js';
 import { seatLayout } from './interior.js';
 import { rng } from './textures.js';
 
-const MAX = 260;                       // people at once
+const MAX = 440;                       // people at once
 const PLATFORM_Y = STATION.platform;
-const BENCHES = [22, 50, 90, 118];
 const WALL_Z = STATION.cz + Math.sqrt(STATION.radius ** 2 - (STATION.platform - STATION.cy) ** 2);
+const LEN = STATION.length;
 
 // body sizes for someone 1.72 m tall, before their own scale
 const B = {
@@ -111,7 +113,7 @@ const rotX = (m, a) => m.makeRotationX(a);
 const trans = (m, x, y, z) => m.makeTranslation(x, y, z);
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
-export function createPeople({ train, station }) {
+export function createPeople({ trains, station }) {
   const group = new THREE.Group();
   group.name = 'people';
   const geos = partGeometries();
@@ -132,13 +134,15 @@ export function createPeople({ train, station }) {
     group.add(mesh);
   }
 
-  // the cars' layouts, and which seats are taken
-  const cars = train.cars.map((car, i) => {
+  // the cars of both trains, their layouts and which seats are taken; `t`
+  // is the train, and the platform it calls at
+  const cars = trains.flatMap((train, t) => train.cars.map(car => {
     const lay = seatLayout(car.spec);
     // the doors on the platform side: the car's own z on that side
     const side = car.turned ? -1 : 1;
-    return { i, car, lay, side, seatTaken: lay.seats.map(() => null) };
-  });
+    return { t, car, lay, side, seatTaken: lay.seats.map(() => null) };
+  }));
+  cars.forEach((c, i) => { c.i = i; });
 
   const people = [];
   const free = [];
@@ -200,24 +204,31 @@ export function createPeople({ train, station }) {
   const way = (space, x, y, z, extra = {}) => ({ space, x, y, z, ...extra });
   const floorY = (space) => (space === 'station' ? PLATFORM_Y : cars[space].lay.floor);
 
-  // a free spot on the platform to wait at, away from the edge, the benches,
-  // the passages and the other people
-  function waitingSpot(near = null, spread = 30) {
+  // a point on platform `plat` given in its half-local coordinates
+  const at = (plat, x, z, extra) => { const [sx, sz] = toStation(plat, x, z); return way('station', sx, PLATFORM_Y, sz, extra); };
+  const local = (p) => toStation(p.plat, p.pos.x, p.pos.z);
+
+  // a free spot on platform `plat` to wait at (near `near`, if given, in
+  // half-local x), away from the edge, the benches, the passages and the
+  // other people; in station coordinates
+  function waitingSpot(plat, near = null, spread = 30) {
+    let x, z;
     for (let tries = 0; tries < 40; tries++) {
-      const x = near === null ? 5 + r() * (STATION.length - 10)
-        : THREE.MathUtils.clamp(near + (r() * 2 - 1) * spread, 5, STATION.length - 5);
-      const z = 2.35 + r() * 1.8;
+      x = near === null ? 5 + r() * (LEN - 10) : THREE.MathUtils.clamp(near + (r() * 2 - 1) * spread, 5, LEN - 5);
+      z = 2.35 + r() * 1.8;
       if (BENCHES.some(b => Math.abs(b - x) < 1.3) && z > 3.6) continue;
-      if (EXITS.some(e => Math.abs(e - x) < 1.8) && z > 3.2) continue;
+      if ([36, 70, 104].some(e => Math.abs(e - x) < 1.8) && z > 3.2) continue;
       // keep clear of where everyone else is standing, or going to stand
+      const [sx, sz] = toStation(plat, x, z);
       if (people.some(o => {
         if (o.space !== 'station' || o.role === 'leave') return false;
-        const at = o.path.length ? o.path[o.path.length - 1] : o.pos;
-        return Math.hypot(at.x - x, at.z - z) < 0.85;
+        const end = o.path.length ? o.path[o.path.length - 1] : o.pos;
+        return Math.hypot(end.x - sx, end.z - sz) < 0.85;
       })) continue;
-      return { x, z };
+      break;
     }
-    return { x: 5 + r() * (STATION.length - 10), z: 2.4 + r() * 1.6 };
+    const [sx, sz] = toStation(plat, x, z);
+    return { x: sx, z: sz };
   }
 
   // standing still, facing somewhere sensible: the track, or up the tunnel
@@ -227,16 +238,18 @@ export function createPeople({ train, station }) {
     p.path = [];
     const kind = r();
     p.pose = p.likesPhone ? 'phone' : 'stand';
-    if (how === 'wait') p.face = kind < 0.6 ? Math.PI + (r() - 0.5) * 1.2 : -Math.PI / 2 + (r() - 0.5) * 0.8;
+    if (how === 'wait') p.face = (kind < 0.6 ? Math.PI + (r() - 0.5) * 1.2 : -Math.PI / 2 + (r() - 0.5) * 0.8) + p.plat * Math.PI;
   }
 
-  // the nearest door of the train to a point on the platform, in station
+  // the nearest door of train `t` to a point on its platform, in station
   // coordinates, with the car it belongs to
-  function nearestDoor(x) {
+  function nearestDoor(t, x) {
     let best = null;
+    inv.copy(station.group.matrix).invert();
     for (const c of cars) {
+      if (c.t !== t) continue;
       for (const dx of c.lay.doors) {
-        v.set(dx, c.lay.floor, c.side * 1.3).applyMatrix4(c.car.group.matrix).applyMatrix4(inv.copy(station.group.matrix).invert());
+        v.set(dx, c.lay.floor, c.side * 1.3).applyMatrix4(c.car.group.matrix).applyMatrix4(inv);
         const d = Math.abs(v.x - x);
         if (!best || d < best.d) best = { d, car: c.i, dx, sx: v.x };
       }
@@ -274,29 +287,28 @@ export function createPeople({ train, station }) {
 
   function populateStation(n) {
     for (const p of [...people]) if (p.space === 'station') remove(p);
-    for (let i = 0; i < n; i++) {
-      // a few on the benches
-      if (i < 4 && r() < 0.7) {
-        const b = BENCHES[i];
-        const p = spawn('station', b + (r() - 0.5) * 1.2, PLATFORM_Y, WALL_Z - 0.45, Math.PI);
-        if (p) { p.sit = 1; p.role = 'bench'; p.seatH = 0.45; }
-        continue;
+    for (const plat of [0, 1]) {
+      for (let i = 0; i < n[plat]; i++) {
+        // a few on the benches
+        if (i < 4 && r() < 0.7) {
+          const [bx, bz] = toStation(plat, BENCHES[i] + (r() - 0.5) * 1.2, WALL_Z - 0.45);
+          const p = spawn('station', bx, PLATFORM_Y, bz, Math.PI + plat * Math.PI);
+          if (p) { p.plat = plat; p.sit = 1; p.role = 'bench'; p.seatH = 0.45; }
+          continue;
+        }
+        const s = waitingSpot(plat);
+        const p = spawn('station', s.x, PLATFORM_Y, s.z, 0);
+        if (p) { p.plat = plat; settle(p, 'wait'); p.heading = p.face; }
       }
-      const s = waitingSpot();
-      const p = spawn('station', s.x, PLATFORM_Y, s.z, 0);
-      if (p) { settle(p, 'wait'); p.heading = p.face; }
     }
   }
 
-  // ---- what people do when the doors open and close ----
-  let doorsOpenAt = null;
-
-  function doorsOpen() {
-    doorsOpenAt = 0;
+  // ---- what people do when the doors of train `t` open and close ----
+  function doorsOpen(t) {
     // some riders get off: they stand, go to the nearest platform-side door,
     // step out and make for the nearest way out
     for (const p of people) {
-      if (typeof p.space !== 'number' || r() > 0.27) continue;
+      if (typeof p.space !== 'number' || cars[p.space].t !== t || r() > 0.27) continue;
       const c = cars[p.space];
       const near = c.lay.doors.reduce((a, b) => (Math.abs(b - p.pos.x) < Math.abs(a - p.pos.x) ? b : a));
       p.role = 'alight';
@@ -306,29 +318,32 @@ export function createPeople({ train, station }) {
         way(c.i, near + (r() - 0.5) * 0.4, c.lay.floor, c.side * 1.45, { cross: 'station', gate: true }),
       ];
     }
-    // people waiting get on, once the others are off
+    // people waiting on its platform get on, once the others are off
     for (const p of people) {
-      if (p.space !== 'station' || (p.role !== 'wait' && p.role !== 'bench') || r() > 0.88) continue;
-      const d = nearestDoor(p.pos.x);
+      if (p.space !== 'station' || p.plat !== t || (p.role !== 'wait' && p.role !== 'bench') || r() > 0.88) continue;
+      const d = nearestDoor(t, p.pos.x);
       if (!d) continue;
       p.delay = 2.4 + r() * 2.2 + (p.role === 'bench' ? 0.8 : 0);
       p.role = 'board';
-      p.door = d;
+      const z = (zl) => toStation(t, 0, zl)[1];
       p.path = [
-        way('station', d.sx + (r() < 0.5 ? -1 : 1) * (0.55 + r() * 0.35), PLATFORM_Y, STATION.edge + 0.55 + r() * 0.3),
-        way('station', d.sx + (r() - 0.5) * 0.3, PLATFORM_Y, STATION.edge + 0.1, { gate: true }),
-        way('station', d.sx + (r() - 0.5) * 0.3, PLATFORM_Y, STATION.edge - 0.15, { cross: d.car }),
+        way('station', d.sx + (r() < 0.5 ? -1 : 1) * (0.55 + r() * 0.35), PLATFORM_Y, z(STATION.edge + 0.55 + r() * 0.3)),
+        way('station', d.sx + (r() - 0.5) * 0.3, PLATFORM_Y, z(STATION.edge + 0.1), { gate: true, train: t }),
+        way('station', d.sx + (r() - 0.5) * 0.3, PLATFORM_Y, z(STATION.edge - 0.15), { cross: d.car }),
       ];
     }
   }
 
-  function doorsClosing() {
-    doorsOpenAt = null;
+  function doorsClosing(t) {
     for (const p of people) {
       // anyone still on the platform waits for the next one
-      if (p.role === 'board' && p.space === 'station') { const s = waitingSpot(p.pos.x, 4); p.path = [way('station', s.x, PLATFORM_Y, s.z, { then: 'wait' })]; p.role = 'stroll'; }
+      if (p.role === 'board' && p.space === 'station' && p.plat === t) {
+        const s = waitingSpot(p.plat, local(p)[0], 4);
+        p.path = [way('station', s.x, PLATFORM_Y, s.z, { then: 'wait' })];
+        p.role = 'stroll';
+      }
       // anyone still on the train stays on
-      if (p.role === 'alight' && typeof p.space === 'number') { p.path = []; p.role = 'hold'; p.pose = 'hold'; }
+      if (p.role === 'alight' && typeof p.space === 'number' && cars[p.space].t === t) { p.path = []; p.role = 'hold'; p.pose = 'hold'; }
     }
   }
 
@@ -351,31 +366,48 @@ export function createPeople({ train, station }) {
     p.role = 'find';
   }
 
+  // the way out from a cross-passage, in half-local coordinates: into the
+  // passage, round into the corridor towards the nearer end, and along it
+  const cdirOf = (e) => (e < LEN / 2 ? -1 : 1);
+  const corridorMouth = (e, lane) => [e + cdirOf(e) * (ARCH.width / 2 + 0.7), MID + lane * 0.35];
+  const corridorEnd = (e, lane) => [e + cdirOf(e) * (ARCH.width / 2 + CORRIDOR.length - 0.6), MID + lane * 0.35];
+
   // someone has just stepped off: head for the nearest way out
   function alighted(p) {
-    const e = EXITS.reduce((a, b) => (Math.abs(b - p.pos.x) < Math.abs(a - p.pos.x) ? b : a));
+    const [xl] = local(p);
+    const e = EXITS.reduce((a, b) => (Math.abs(b - xl) < Math.abs(a - xl) ? b : a));
     const lane = (r() - 0.5) * 1.4;
     p.path = [
-      way('station', p.pos.x + (e > p.pos.x ? 1 : -1) * 0.8, PLATFORM_Y, STATION.edge + 1.2 + r() * 0.6),
-      way('station', e + lane * 0.6, PLATFORM_Y, 3.6),
-      way('station', e + lane * 0.6, PLATFORM_Y, PASSAGE.end - 0.6, { then: 'gone' }),
+      at(p.plat, xl + (e > xl ? 1 : -1) * 0.8, STATION.edge + 1.2 + r() * 0.6),
+      at(p.plat, e + lane * 0.5, 3.6),
+      at(p.plat, e + lane * 0.3, MID - 0.7),
+      at(p.plat, ...corridorMouth(e, lane)),
+      at(p.plat, ...corridorEnd(e, lane), { then: 'gone' }),
     ];
     p.role = 'leave';
   }
 
-  // new people arrive through the passages from time to time
+  // new people arrive from the way out from time to time, on either platform
   let arrivalTimer = 2;
-  function arrivals(dt, phase) {
+  function arrivals(dt, busy) {
     arrivalTimer -= dt;
     if (arrivalTimer > 0) return;
-    arrivalTimer = 2 + r() * 4;
-    const waiting = people.filter(p => p.space === 'station' && (p.role === 'wait' || p.role === 'stroll')).length;
-    if (waiting > 26 || phase === 'dwell') return;
-    const e = pick(EXITS);
-    const p = spawn('station', e + (r() - 0.5) * 1.2, PLATFORM_Y, PASSAGE.end - 0.6, Math.PI);
+    arrivalTimer = 1 + r() * 2.5;
+    const plat = r() < 0.5 ? 0 : 1;
+    const waiting = people.filter(p => p.space === 'station' && p.plat === plat && (p.role === 'wait' || p.role === 'stroll')).length;
+    if (waiting > 22 || busy[plat]) return;
+    const e = pick(EXITS), lane = (r() - 0.5) * 1.4;
+    const [sx, sz] = toStation(plat, ...corridorEnd(e, lane));
+    const p = spawn('station', sx, PLATFORM_Y, sz, 0);
     if (!p) return;
-    const s = waitingSpot(e);
-    p.path = [way('station', e + (r() - 0.5) * 0.8, PLATFORM_Y, 3.4), way('station', s.x, PLATFORM_Y, s.z, { then: 'wait' })];
+    p.plat = plat;
+    const s = waitingSpot(plat, e);
+    p.path = [
+      at(plat, ...corridorMouth(e, lane)),
+      at(plat, e + lane * 0.3, MID - 0.7),
+      at(plat, e + lane * 0.5, 3.4),
+      way('station', s.x, PLATFORM_Y, s.z, { then: 'wait' }),
+    ];
     p.role = 'stroll';
   }
 
@@ -384,7 +416,10 @@ export function createPeople({ train, station }) {
     if (p.delay > 0) { p.delay -= dt; p.walk = Math.max(0, p.walk - dt * 4); return; }
     const w = p.path[0];
     if (!w) { p.walk = Math.max(0, p.walk - dt * 4); return; }
-    if (w.gate && doors < 0.9) { p.walk = Math.max(0, p.walk - dt * 4); return; }
+    // wait at the door until it is open (the doors of the train boarding, or
+    // of the one getting off)
+    const t = w.train ?? (typeof p.space === 'number' ? cars[p.space].t : 0);
+    if (w.gate && doors[t] < 0.9) { p.walk = Math.max(0, p.walk - dt * 4); return; }
     // standing up first
     if (p.sit > 0 && !p.sitting) {
       p.sit = Math.max(0, p.sit - dt * 1.8);
@@ -411,6 +446,7 @@ export function createPeople({ train, station }) {
     if (d <= 0.06) {
       p.path.shift();
       if (w.cross !== undefined) {
+        if (w.cross === 'station') p.plat = cars[p.space].t;
         moveTo(p, w.cross);
         if (w.cross === 'station') alighted(p); else boarded(p);
         return;
@@ -532,15 +568,15 @@ export function createPeople({ train, station }) {
 
   return {
     group,
-    // a new station: a new crowd on its platform
-    newStation() { populateStation(16 + Math.floor(r() * 10)); arrivalTimer = 1; },
+    // a new station: a new crowd on both its platforms
+    newStation() { populateStation([14 + Math.floor(r() * 9), 10 + Math.floor(r() * 9)]); arrivalTimer = 1; },
     doorsOpen,
     doorsClosing,
-    // dt: time step; doors: how open the doors are; phase: the train's
-    // service phase; accel: its acceleration
-    update(dt, { doors, phase, time, accel = 0 }) {
-      if (doorsOpenAt !== null) doorsOpenAt += dt;
-      arrivals(dt, phase);
+    // dt: time step; doors: how open each train's doors are; busy: whether
+    // each train is standing at its platform; accel: our train's
+    // acceleration
+    update(dt, { doors, busy, time, accel = 0 }) {
+      arrivals(dt, busy);
       for (const p of [...people]) {
         step(p, dt, doors);
         settleStep(p, dt);

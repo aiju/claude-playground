@@ -270,6 +270,7 @@ export function buildCarType(type, materials) {
     const y = 2.27, p = profileAt(vAtY(y), 0.004);
     for (const side of [1, -1]) {
       const d = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.085), materials.sideDisplay);
+      d.name = 'sideDisplay';
       d.position.set((a + b) / 2, p.y, side * p.z);
       d.rotation.set(-Math.asin(p.ny) * 1, side < 0 ? Math.PI : 0, 0, 'YXZ');
       group.add(d);

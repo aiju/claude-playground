@@ -6,9 +6,11 @@ Walthamstow Central to Brixton, as a full eight-car train, inside and out.
 You can look round it in the depot, open its doors and sit in the saloon, then
 send it off through a tube tunnel: ride in the cab, watch it from alongside,
 or stand at the trackside as it comes round a bend out of the dark.
-Underground it runs in service along a winding line, calling at a station
-every half kilometre, where you can wait on the platform with the other
-passengers, watch it pull in and see people get off and on.
+Underground it runs in service along a winding line, in one of a pair of
+twin tunnels, calling at a station every half kilometre. There you can wait
+on the platform with the other passengers, watch it pull in and see people
+get off and on, and look through the arches to the other platform, where
+trains going the other way stop.
 
 Everything is built in code when the page loads. There are no model files.
 
@@ -22,8 +24,8 @@ Any static file server will do. It needs a browser with WebGL and an internet
 connection, because three.js comes from a CDN.
 
 Underground, a map in the corner shows the line round the train from above:
-the bends, the stations with their names, the train, where the camera is and
-which way it looks, and under it the line's height, stretched so the dips
+the bends, both tunnels, the stations with their names, both trains, where
+the camera is and which way it looks, and under it the line's height, stretched so the dips
 show. Click it to zoom out and in.
 
 Drag to look around, scroll or pinch to zoom. The panel switches between the
@@ -34,7 +36,7 @@ sound on and off. Keys:
 
 | Key | |
 | --- | --- |
-| 1–6 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside, Inside; at the station Platform, Arriving, Doors) |
+| 1–6 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside, Inside; at the station Platform, Arriving, Doors, Across, Platform 2) |
 | D | open or close the doors (in the depot) |
 | ↑ ↓ | speed up or slow down (underground) |
 | L | saloon lights |
@@ -118,18 +120,29 @@ photographs. `src/dims.js` has all the numbers.
   trackside. Each frame a riding camera is moved however the thing it rides
   with moved, so it goes round the bends with it. The cab and trackside views
   show the curves best.
-- **The station** (`station.js`) is a deep-level platform tunnel, 140 m
-  long and 6.8 m across, set off to one side of the track so there's room for
-  the platform. It has glazed tiles with a band in the line's light blue, a
-  dark ceiling with two long light troughs, a pit between the rails, posters
-  on the wall across the track, benches, the station's name along both walls,
-  two passages off to the way out, way-out signs and a dot-matrix train
-  indicator. Its light is two more line
-  sources, which the station, the tunnel near it and the outside of the train
-  all add in their shaders, in the station's own coordinates. Only one
-  station exists at a time: when the train has left, it moves on to the next
-  stop along the line and takes the next name. The running tunnel is cut away
-  in the shader where the station is.
+- **The station** (`station.js`) is two deep-level platform tunnels side by
+  side, one for each direction, the second built as the first turned round.
+  Each is 140 m long and 6.8 m across, set off to one side of its track so
+  there's room for the platform. They have glazed tiles with a band in the
+  line's light blue, a dark ceiling with two long light troughs, a pit
+  between the rails, posters on the wall across the track, benches, the
+  station's name along both walls, way-out signs and a dot-matrix train
+  indicator. Three arched cross-passages join the platforms, and the outer
+  two lead off to the way out down a corridor between the tunnels. Each
+  tunnel's light is two more line sources, which the station, the tunnels
+  near it and the outsides of the trains all add in their shaders, in the
+  station's own coordinates. Only one station exists at a time: when the
+  train has left, it moves on to the next stop along the line and takes the
+  next name. The running tunnels are cut away in the shader where the
+  station is.
+- **The other track** (`path.js`, `other.js`) runs 13 m to the right of
+  ours, in a tunnel of its own, with trains going to the other end of the
+  line. On a curve the two tracks are different lengths, so the other one
+  has its own distance along it, worked out from the angle the line has
+  turned. Its tunnel is only built round the station, the one place it can
+  be seen from. There is one other train, which waits out of sight and is
+  sent in to arrive at about the same time as ours, a little before or
+  after; it stops, opens its doors on its platform and leaves again.
 - **The service** (`service.js`) drives the train underground. It pulls
   away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
   its front 3 m short of the end of the platform. It opens the doors on the

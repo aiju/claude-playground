@@ -20,6 +20,7 @@ const C = {
   platform: '#e9e5da',
   blue: '#0098d4',
   train: '#e8352c',
+  trainB: '#b0453d',
   front: '#fff4d6',
   ink: '#eceae4',
   muted: '#a9adb3',
@@ -27,7 +28,8 @@ const C = {
   cone: 'rgba(255, 255, 255, 0.16)',
 };
 
-export function createMinimap({ canvas, line, train, stationStart, stationLength, stationName }) {
+// `other` is the other track ({ track, offset, train }), drawn beside ours.
+export function createMinimap({ canvas, line, train, stationStart, stationLength, stationName, other = null }) {
   const g = canvas.getContext('2d');
   let zoom = 0;
   let angle = null;                    // the plan's rotation, eased
@@ -46,15 +48,39 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
     return [w, h];
   }
 
-  // a stroke along the line from s0 to s1, in plan
-  function along(toPx, s0, s1, step) {
+  // a stroke along the line from s0 to s1, in plan, or beside it
+  function along(toPx, s0, s1, step, offset = 0) {
     g.beginPath();
     const n = Math.max(2, Math.ceil((s1 - s0) / step));
     for (let i = 0; i <= n; i++) {
-      const p = line.frame(s0 + (s1 - s0) * i / n, f).pos;
+      line.frame(s0 + (s1 - s0) * i / n, f);
+      const [x, y] = toPx(f.pos.x + f.r.x * offset, f.pos.z + f.r.z * offset);
+      if (i) g.lineTo(x, y); else g.moveTo(x, y);
+    }
+  }
+
+  // a train as a red stroke from its back to its front, the front lit
+  function trainStroke(toPx, frameAt, front, length, step, colour) {
+    g.beginPath();
+    const n = Math.max(2, Math.ceil(length / step));
+    for (let i = 0; i <= n; i++) {
+      const p = frameAt(front - length + length * i / n).pos;
       const [x, y] = toPx(p.x, p.z);
       if (i) g.lineTo(x, y); else g.moveTo(x, y);
     }
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.6)';
+    g.lineWidth = 8;
+    g.stroke();
+    g.strokeStyle = colour;
+    g.lineWidth = 5;
+    g.stroke();
+    const p = frameAt(front).pos;
+    const [fx, fy] = toPx(p.x, p.z);
+    g.fillStyle = C.front;
+    g.beginPath();
+    g.arc(fx, fy, 2.6, 0, Math.PI * 2);
+    g.fill();
   }
 
   // the boxes labels have taken, so that later ones can keep out of them
@@ -83,7 +109,8 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
 
   return {
     // `s` is the front of the train along the line, `camera` the camera
-    draw({ s, camera, nextStop, toNext, dt = 1 / 60 }) {
+    // otherBeta: where the other train's front is on its track, or null
+    draw({ s, camera, nextStop, toNext, dt = 1 / 60, otherBeta = null }) {
       const [w, h] = size();
       const planH = h - PROFILE_H;
       const span = ZOOMS[zoom];
@@ -121,13 +148,15 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
       const s0 = mid - span * 0.75, s1 = mid + span * 0.75;
       g.lineCap = 'round';
       g.lineJoin = 'round';
-      along(toPx, s0, s1, step);
-      g.strokeStyle = C.tunnelEdge;
-      g.lineWidth = 7;
-      g.stroke();
-      g.strokeStyle = C.tunnel;
-      g.lineWidth = 3.5;
-      g.stroke();
+      for (const offset of other ? [other.offset, 0] : [0]) {
+        along(toPx, s0, s1, step, offset);
+        g.strokeStyle = C.tunnelEdge;
+        g.lineWidth = 7;
+        g.stroke();
+        g.strokeStyle = C.tunnel;
+        g.lineWidth = 3.5;
+        g.stroke();
+      }
 
       // stations
       const k0 = Math.max(0, Math.floor((s0 - stationStart(0)) / (stationStart(1) - stationStart(0))));
@@ -138,29 +167,20 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
         if (a1 < s0 || a0 > s1) continue;
         shown.push(k);
         g.lineCap = 'butt';
-        along(toPx, a0, a1, step);
-        g.strokeStyle = C.platform;
-        g.lineWidth = 9;
-        g.stroke();
-        g.strokeStyle = C.blue;
-        g.lineWidth = 3;
-        g.stroke();
+        for (const offset of other ? [other.offset, 0] : [0]) {
+          along(toPx, a0, a1, step, offset);
+          g.strokeStyle = C.platform;
+          g.lineWidth = 9;
+          g.stroke();
+          g.strokeStyle = C.blue;
+          g.lineWidth = 3;
+          g.stroke();
+        }
       }
 
-      // the train: a red stroke from its back to its front, the front lit
-      g.lineCap = 'round';
-      along(toPx, s - train.length, s, Math.min(step, 4));
-      g.strokeStyle = 'rgba(0,0,0,0.6)';
-      g.lineWidth = 8;
-      g.stroke();
-      g.strokeStyle = C.train;
-      g.lineWidth = 5;
-      g.stroke();
-      const [fx, fy] = toPx(line.frame(s, f).pos.x, f.pos.z);
-      g.fillStyle = C.front;
-      g.beginPath();
-      g.arc(fx, fy, 2.6, 0, Math.PI * 2);
-      g.fill();
+      // the trains
+      if (other && otherBeta !== null) trainStroke(toPx, (b) => other.track.frame(b, f), otherBeta, other.train.length, Math.min(step, 4), C.trainB);
+      trainStroke(toPx, (u) => line.frame(u, f), s, train.length, Math.min(step, 4), C.train);
 
       // the camera and the way it looks
       const [cx, cy] = toPx(camera.position.x, camera.position.z);

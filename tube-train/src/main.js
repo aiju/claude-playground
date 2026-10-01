@@ -1,5 +1,5 @@
-// Sets up the renderer, the two scenes (the depot, and underground: the
-// tunnel with a station on it) and the controls, and runs the loop. The
+// Sets up the renderer, the two scenes (the depot, and underground: twin
+// tunnels with a station on them) and the controls, and runs the loop. The
 // controls panel talks to it through `app`.
 //
 // The train runs along a path: a straight road in the depot, the curving
@@ -10,14 +10,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { createMaterials, lighting, setFrontDisplays, station as stationLight } from './materials.js';
+import { createMaterials, lighting, setFrontDisplays, sideDisplayMaterial, station as stationLight, inStationLocal } from './materials.js';
 import { trackMaterials } from './track.js';
 import { buildTrain } from './train.js';
+import { TRACK_SPACING } from './dims.js';
+import { createOtherService } from './other.js';
 import { buildDepot } from './depot.js';
 import { buildTunnel } from './tunnel.js';
 import { buildStation, STATION } from './station.js';
 import { createService, route, stationStart, stopAt, SPACING } from './service.js';
-import { LinePath, StraightPath, Frame } from './path.js';
+import { LinePath, StraightPath, OtherTrack, Frame } from './path.js';
 import { createSound } from './sound.js';
 import { VIEWS, DEFAULT_VIEW } from './views.js';
 import { buildUI } from './ui.js';
@@ -63,8 +65,21 @@ const station = buildStation();
 station.group.matrixAutoUpdate = false;
 scenes.tunnel.group.add(station.group);
 const service = createService(train.length);
-// passengers: on the platform and in the cars, underground only
-const people = createPeople({ train, station });
+
+// the other track, in its own tunnel beside ours, and a train on it going
+// the other way; only built round the station, since that's the only place
+// it can be seen
+const otherTrack = new OtherTrack(line, TRACK_SPACING);
+const otherSide = sideDisplayMaterial('Brixton');
+const trainB = buildTrain(materials, { types: train.types, units: [63, 64], sideDisplay: otherSide, headlights: false });
+trainB.group.visible = false;
+scenes.tunnel.group.add(trainB.group);
+const tunnelB = buildTunnel(trainB, otherTrack, { lights: false });
+scenes.tunnel.group.add(tunnelB.group);
+const other = createOtherService({ track: otherTrack, trainLength: trainB.length });
+
+// passengers: on the platforms and in both trains, underground only
+const people = createPeople({ trains: [train, trainB], station });
 scenes.tunnel.group.add(people.group);
 
 const sound = createSound(train.wheelXs);
@@ -80,6 +95,7 @@ const state = {
   doorTarget: params.get('doors') === 'open' ? 1 : 0,
   lights: true,
   destination: params.get('dest') || 'Walthamstow Central',
+  doorsB: 0, doorTargetB: 0,        // the other train's doors
   stops: true,                      // stop at stations
   anchor: null,                     // what the camera moves with: { kind: 'car' | 'station' | 'world', ... }
   tracksideS: 0,                    // where along the line the trackside camera stands
@@ -88,7 +104,10 @@ const state = {
   indicator: '',
   tween: null,
 };
-if (params.get('dest')) setFrontDisplays(materials, { destination: state.destination });
+// the other train goes back to where ours came from
+const otherDestination = () => route(state.destination)[0];
+setFrontDisplays(materials, { destination: state.destination });
+setFrontDisplays(materials, { destination: otherDestination() }, { numbers: trainB.numbers, side: otherSide });
 
 const frontS = () => (state.scene === 'depot' ? 0 : state.distance);
 const pathNow = () => (state.scene === 'depot' ? depotPath : line);
@@ -96,6 +115,15 @@ const pathNow = () => (state.scene === 'depot' ? depotPath : line);
 function placeTrain() {
   train.place(pathNow(), frontS());
   train.group.updateMatrixWorld();
+}
+
+// the other train, where its service has it, and hidden when it's away
+function placeOther() {
+  trainB.group.visible = other.visible && state.scene === 'tunnel';
+  if (!trainB.group.visible) return;
+  trainB.roll(other.beta);
+  trainB.place(otherTrack, other.beta);
+  trainB.group.updateMatrixWorld();
 }
 
 function setScene(name) {
@@ -246,10 +274,33 @@ function updateStation() {
     state.stationIndex = k;
     station.setName(stationName(k));
     people.newStation();
+    other.newStation(k);
+    state.doorsB = state.doorTargetB = 0;
+    trainB.setDoors(0, 0);
   }
   line.frame(stationStart(k), sf).matrix(station.group.matrix);
   station.group.matrixWorldNeedsUpdate = true;
   stationLight.uStInv.value.copy(station.group.matrix).invert();
+}
+
+// how long until our train stands at the station on screen: 0 once it has,
+// or has been and gone, null if it is stopped short of it
+function timeToOurs() {
+  const k = state.stationIndex;
+  if (service.phase === 'dwell' || stopAt(k) - state.distance < 0.5) return 0;
+  const d = stopAt(k) - state.distance;
+  const v = Math.max(state.targetSpeed, state.speed);
+  return v < 0.5 ? null : d / v + v / (2 * 1.05);
+}
+
+const when = (secs) => (secs < 40 ? 'due' : `${Math.ceil(secs / 60)} min`);
+
+// the train indicator on the other platform
+function otherIndicatorText() {
+  const due = other.dueIn(timeToOurs());
+  const toStop = other.toStop;
+  const text = other.phase === 'dwell' ? '' : toStop !== null ? when(toStop / 12) : due !== null ? when(due) : `${3 + (state.stationIndex % 3)} min`;
+  return [`1 ${otherDestination()}\t${text}`, other.phase === 'dwell' ? 'Train at platform' : 'Stand behind the yellow line'];
 }
 
 // the train indicator: when the train will be in, or that it is here
@@ -294,6 +345,7 @@ const app = {
   setDestination(name) {
     state.destination = name;
     setFrontDisplays(materials, { destination: name });
+    setFrontDisplays(materials, { destination: otherDestination() }, { numbers: trainB.numbers, side: otherSide });
     state.stationIndex = -1;
     ui?.refresh();
   },
@@ -302,7 +354,7 @@ const app = {
     state.lights = on;
     lighting.saloon.value = on ? 1 : 0.06;
     materials.lamp.emissiveIntensity = on ? materials.lamp.userData.baseEmissive : 0.02;
-    scenes.tunnel.winUniforms.uWinGain.value = on ? 5 : 0.3;
+    scenes.tunnel.winUniforms.uWinGain.value = tunnelB.winUniforms.uWinGain.value = on ? 5 : 0.3;
     ui?.refresh();
   },
   async setSound(on) { await sound.enable(on); ui?.refresh(); },
@@ -312,6 +364,7 @@ const app = {
 const ui = still ? null : buildUI(app);
 const minimap = still ? null : createMinimap({
   canvas: document.getElementById('minimap'), line, train, stationStart, stationLength: STATION.length, stationName,
+  other: { track: otherTrack, offset: TRACK_SPACING, train: trainB },
 });
 // for stills: ?stopped stands the train at the first station
 if (params.has('stopped')) { service.standAt(state, 0); state.doors = state.doorTarget = 1; }
@@ -320,9 +373,14 @@ train.setDoors(state.doors, state.scene === 'depot' ? state.doors : 0);
 // for stills of a train standing at a station: a few seconds of people
 // getting off and on (?board=seconds)
 if (params.has('stopped') && state.scene === 'tunnel') {
-  people.doorsOpen();
+  other.standAt(state.stationIndex);
+  state.doorsB = state.doorTargetB = 1;
+  placeOther();
+  trainB.setDoors(1, 0);
+  people.doorsOpen(0);
+  people.doorsOpen(1);
   const secs = +(params.get('board') || 3.5);
-  for (let t = 0; t < secs; t += 0.05) people.update(0.05, { doors: 1, phase: 'dwell', time: t });
+  for (let t = 0; t < secs; t += 0.05) people.update(0.05, { doors: [1, 1], busy: [true, true], time: t });
 }
 // ?cam=x,y,z&at=x,y,z puts the camera anywhere, for checking details
 if (params.get('cam')) {
@@ -344,7 +402,7 @@ function simulate(dt, time) {
     if (event) {
       state.doorTarget = event === 'open' ? 1 : 0;
       sound.doors(event === 'open');
-      if (event === 'open') people.doorsOpen(); else people.doorsClosing();
+      if (event === 'open') people.doorsOpen(0); else people.doorsClosing(0);
     }
   } else state.speed = 0;
   state.accel = dt > 0 ? (state.speed - before) / dt : 0;
@@ -352,6 +410,19 @@ function simulate(dt, time) {
   placeTrain();
   const shown = state.stationIndex;
   updateStation();
+  if (state.scene === 'tunnel') {
+    const event = other.update(dt, timeToOurs());
+    if (event) {
+      state.doorTargetB = event === 'open' ? 1 : 0;
+      if (event === 'open') people.doorsOpen(1); else people.doorsClosing(1);
+    }
+    if (state.doorsB !== state.doorTargetB) {
+      const k = dt / 2.2;
+      state.doorsB = state.doorTargetB > state.doorsB ? Math.min(state.doorTargetB, state.doorsB + k) : Math.max(state.doorTargetB, state.doorsB - k);
+      trainB.setDoors(state.doorsB, 0);
+    }
+    placeOther();
+  }
   // a camera in the station moves on with it to the next one
   if (state.anchor?.kind === 'station' && shown !== state.stationIndex) state.focusS += stationStart(state.stationIndex) - stationStart(shown);
   followAnchor();
@@ -378,16 +449,28 @@ function simulate(dt, time) {
   }
   controls.update();
   if (state.scene === 'tunnel') {
-    people.update(dt, { doors: state.doors, phase: service.phase, time, accel: state.accel });
+    people.update(dt, {
+      doors: [state.doors, state.doorsB], busy: [service.phase === 'dwell', other.phase === 'dwell'], time, accel: state.accel,
+    });
     state.focusS = line.nearest(camera.position, state.focusS);
     scenes.tunnel.update(frontS(), state.focusS, still ? 999 : 3);
-    // brighter, and less murky, in the station
+    // the other tunnel, round the station: built a few pieces at a time,
+    // and only drawn when the camera is near enough to see into it
+    const s0 = stationStart(state.stationIndex);
+    tunnelB.update(other.beta, 0, still ? 999 : 2, [otherTrack.betaAt(s0 + STATION.length) - 220, otherTrack.betaAt(s0) + 220]);
     stationLocal.copy(camera.position).applyMatrix4(stationLight.uStInv.value);
-    const inside = smooth(-25, 5, stationLocal.x) * (1 - smooth(STATION.length - 5, STATION.length + 25, stationLocal.x)) * (Math.abs(stationLocal.z - 1) < 8 ? 1 : 0);
+    tunnelB.group.visible = stationLocal.x > -60 && stationLocal.x < STATION.length + 60 && stationLocal.z > -8 && stationLocal.z < TRACK_SPACING + 8;
+    // brighter, and less murky, in the station
+    const inside = smooth(-25, 5, stationLocal.x) * (1 - smooth(STATION.length - 5, STATION.length + 25, stationLocal.x))
+      * (inStationLocal({ x: Math.min(Math.max(stationLocal.x, 1), STATION.length - 1), z: stationLocal.z }) ? 1 : 0);
     scene.environmentIntensity = scenes.tunnel.envIntensity + 0.45 * inside;
     scene.fog.density = 0.018 - 0.013 * inside;
-    const text = indicatorText();
-    if (text.join('|') !== state.indicator) { state.indicator = text.join('|'); station.setIndicator(text); }
+    const text = [...indicatorText(), ...otherIndicatorText()];
+    if (text.join('|') !== state.indicator) {
+      state.indicator = text.join('|');
+      station.setIndicator(0, text.slice(0, 2));
+      station.setIndicator(1, text.slice(2));
+    }
   } else {
     scenes.depot.follow(controls.target);
   }
@@ -401,7 +484,7 @@ function frame(time) {
   ui?.tick();
   if (minimap && state.scene === 'tunnel' && !document.body.classList.contains('nomap')) {
     const k = service.nextStop(state.distance);
-    minimap.draw({ s: state.distance, camera, nextStop: k, toNext: service.phase === 'dwell' ? 0 : stopAt(k) - state.distance, dt });
+    minimap.draw({ s: state.distance, camera, nextStop: k, toNext: service.phase === 'dwell' ? 0 : stopAt(k) - state.distance, dt, otherBeta: other.visible ? other.beta : null });
   }
   renderer.render(scene, camera);
   frames++;
@@ -431,6 +514,6 @@ function fastForward(seconds, step = 0.05) {
   for (let t = 0; t < seconds; t += step) simulate(step, (clock += step));
 }
 
-window.tubeTrain = { stillReady: false, app, state, service, line, train, people, materials, lighting, scene, camera, renderer, fastForward };
+window.tubeTrain = { stillReady: false, app, state, service, other, line, otherTrack, train, trainB, people, materials, lighting, scene, camera, renderer, fastForward };
 document.getElementById('status')?.remove();
 requestAnimationFrame(frame);

@@ -1,17 +1,23 @@
-// A deep-level station platform, like the Victoria line's: a big tiled tube
-// with the platform on one side and the track on the other, a pit between
-// the rails, posters on the wall across the track, the station's name along
-// both walls and a train indicator hanging over the platform.
+// A deep-level station, like the Victoria line's: two platform tunnels side
+// by side, one for each direction, joined by arched cross-passages. Each is a
+// big tiled tube with the platform on one side and the track on the other, a
+// pit between the rails, posters on the wall across the track, the station's
+// name along both walls and a train indicator hanging over the platform. Two
+// of the cross-passages also lead off to the way out.
 //
-// Station-local coordinates: x runs from 0 at the end the trains come in to
+// Station-local coordinates: x runs from 0 at the end our trains come in to
 // LENGTH at the end they leave by, as in the rest of the model y is height
-// above the rails and z is across; the platform is on the +z side. The
-// tile motif and the posters are original designs, not the real stations'.
+// above the rails and z is across; our platform is on the +z side. The other
+// platform tunnel is the same tunnel turned round, its track at z =
+// TRACK_SPACING; each is built in "half-local" coordinates of its own, which
+// are the station's for ours. The tile motif and the posters are original
+// designs, not the real stations'.
 
 import * as THREE from 'three';
 import { addLightTerms, stationTerm } from './materials.js';
 import { MeshBuilder, matrixFrom } from './geom.js';
 import { TUNNEL } from './tunnel.js';
+import { TRACK_SPACING } from './dims.js';
 import { rng, ledTexture } from './textures.js';
 
 export const STATION = {
@@ -23,16 +29,38 @@ export const STATION = {
   bed: TUNNEL.bed,
 };
 
-// Two passages lead off the platform to the way out, between the benches.
-// People walk out of them to wait, and into them when they leave.
-export const EXITS = [36, 104];                  // their middles, along the platform
-export const PASSAGE = { width: 2.4, height: 2.45, end: 11.5 };   // end: how far they go (z)
+// Three cross-passages join the platforms, between the benches. The outer
+// two also lead to the way out: a corridor runs off from the middle of each,
+// between the tunnels, towards the nearer end of the station. People walk
+// out of them to wait, and into them when they leave. The positions are
+// symmetric about the middle, so that they suit the other platform as well.
+export const PASSAGES = [36, 70, 104];         // their middles, along the platform
+export const EXITS = [36, 104];
+export const ARCH = { width: 2.4, spring: 1.35, height: 2.6 };   // above the platform: the arch's sides, the passage behind
+export const CORRIDOR = { width: 2.4, length: 7 };
+export const MID = TRACK_SPACING / 2;          // half way between the tracks
+export const BENCHES = [22, 50, 90, 118];
 
 const { length: LEN, radius: R, cy: CY, cz: CZ, platform: PH, edge: EDGE, bed: BED } = STATION;
 const PHI0 = Math.asin((PH - CY) / R);                  // where the wall meets the platform
 const PHI1 = Math.PI - Math.asin((BED - CY) / R);       // and where it meets the track bed
 const circle = (phi, r = R) => [CZ + r * Math.cos(phi), CY + r * Math.sin(phi)];  // (z, y)
-const WALL_Z = circle(PHI0)[0];                         // back of the platform
+export const WALL_Z = circle(PHI0)[0];                  // back of the platform
+const SPRING = PH + ARCH.spring, ARCH_R = ARCH.width / 2, CROWN = SPRING + ARCH_R;
+const PASS_TOP = PH + ARCH.height;
+const zWall = (y) => CZ + Math.sqrt(Math.max(R * R - (y - CY) ** 2, 0));   // the platform side of the tube at height y
+
+// half the width of an arch at height y
+function archHalf(y) {
+  if (y < PH - 1e-6 || y >= CROWN) return 0;
+  if (y <= SPRING) return ARCH.width / 2;
+  const d = y - SPRING;
+  return Math.sqrt(Math.max(ARCH_R * ARCH_R - d * d, 0));
+}
+
+// from a platform's half-local coordinates to the station's, and back (the
+// same both ways): platform 0 is ours, 1 the other track's
+export const toStation = (plat, x, z) => (plat ? [LEN - x, TRACK_SPACING - z] : [x, z]);
 
 function canvas(w, h) {
   const c = document.createElement('canvas');
@@ -218,52 +246,35 @@ function wallPanel(b, x, phi, w, h, inset = 0.03) {
   b.addGeometry(new THREE.PlaneGeometry(w, h), m);
 }
 
-export function buildStation() {
+// One platform tunnel, in half-local coordinates. `ctx` holds the materials
+// both share; `corridors` builds the way-out corridors too (only one of the
+// two does, as they lie between the tunnels).
+function buildPlatform(ctx, { corridors = false } = {}) {
   const group = new THREE.Group();
-  group.name = 'station';
-  const lit = (m) => addLightTerms(m, [stationTerm()]);
-  const tileC = tileTexture([236, 232, 220], 3);
-  const tileMap = texture(tileC, true);
-  const tileBump = new THREE.CanvasTexture(tileC);
-  tileBump.wrapS = tileBump.wrapT = THREE.RepeatWrapping;
-  const dadoMap = texture(tileTexture([88, 110, 128], 8), true);
-  const mats = {
-    tile: lit(new THREE.MeshStandardMaterial({ map: tileMap, bumpMap: tileBump, bumpScale: 0.6, roughness: 0.3, envMapIntensity: 0.3 })),
-    dado: lit(new THREE.MeshStandardMaterial({ map: dadoMap, bumpMap: tileBump, bumpScale: 0.6, roughness: 0.3, envMapIntensity: 0.3 })),
-    band: lit(new THREE.MeshStandardMaterial({ color: 0x0098d4, roughness: 0.25 })),
-    ceiling: lit(new THREE.MeshStandardMaterial({ color: 0x2c2f33, roughness: 0.8 })),
-    soot: lit(new THREE.MeshStandardMaterial({ color: 0x3b3a38, roughness: 0.95 })),
-    platform: lit(new THREE.MeshStandardMaterial({ map: texture(platformTexture(), true), roughness: 0.7 })),
-    concrete: lit(new THREE.MeshStandardMaterial({ color: 0x5c5a57, roughness: 0.95 })),
-    metal: lit(new THREE.MeshStandardMaterial({ color: 0x3a3d41, roughness: 0.5, metalness: 0.6 })),
-    frame: lit(new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: 0.4, metalness: 0.3 })),
-    wood: lit(new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.6 })),
-    lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4e2, emissiveIntensity: 2.5 }),
-    black: new THREE.MeshBasicMaterial({ color: 0x050505 }),
-  };
-  mats.platform.map.repeat.set(1, LEN / 2);
+  const { mats, lit } = ctx;
 
   // ---- the tube itself, in bands: dado, tiles, a blue band, a dark crown
+  const BAND = [3.32, 3.47];
   const shell = { tile: new MeshBuilder(), dado: new MeshBuilder(), band: new MeshBuilder(), ceiling: new MeshBuilder(), soot: new MeshBuilder() };
   const N = 96;
   const pick = (phi) => {
     const [z, y] = circle(phi);
     if (y > 3.75) return 'ceiling';
-    if (y > 3.05 && y < 3.2) return 'band';
+    if (y > BAND[0] && y < BAND[1]) return 'band';
     if (z > CZ) return y < 1.05 ? 'dado' : 'tile';
     return y < PH + 0.1 ? 'soot' : 'tile';
   };
   // cut the bands at their edges so the colours change on a line
   const cuts = [PHI0, PHI1];
-  for (const y of [1.05, 3.05, 3.2, 3.75]) {
+  for (const y of [1.05, ...BAND, 3.75]) {
     const a = Math.asin((y - CY) / R);
     for (const phi of [a, Math.PI - a]) if (phi > PHI0 && phi < PHI1) cuts.push(phi);
   }
   const trackSideStep = Math.asin((PH + 0.1 - CY) / R);
   cuts.push(Math.PI - trackSideStep);
-  // the tops of the passages
-  const passTop = PH + PASSAGE.height;
-  cuts.push(Math.asin((passTop - CY) / R));
+  // finely over the arches on the platform side, so their curves are smooth
+  for (let y = SPRING; y < CROWN; y += 0.04) cuts.push(Math.asin((y - CY) / R));
+  cuts.push(Math.asin((CROWN - CY) / R));
   for (let i = 1; i < N; i++) cuts.push(PHI0 + (PHI1 - PHI0) * i / N);
   cuts.sort((a, b) => a - b);
   let arc = 0;
@@ -274,52 +285,85 @@ export function buildStation() {
     const na = [0, -Math.sin(a), -Math.cos(a)], nb = [0, -Math.sin(b), -Math.cos(b)];
     const va = arc / 1.2, vb = (arc + R * (b - a)) / 1.2;
     arc += R * (b - a);
-    // below the tops of the passages, the platform wall has holes for them
-    const holed = Math.min(za, zb) > CZ && Math.min(ya, yb) < passTop - 1e-3;
+    // the platform wall has the arches cut out of it: each strip is cut into
+    // pieces between them, their ends at each edge where the arch is there
+    const holed = Math.min(za, zb) > CZ && Math.min(ya, yb) < CROWN;
     const spans = [];
-    let x0 = 0;
-    if (holed) for (const e of EXITS) { spans.push([x0, e - PASSAGE.width / 2]); x0 = e + PASSAGE.width / 2; }
-    spans.push([x0, LEN]);
-    for (const [xa, xb] of spans) {
-      shell[pick((a + b) / 2)].quad([xa, ya, za], [xb, ya, za], [xb, yb, zb], [xa, yb, zb], na, na, nb, nb,
-        [xa / 1.2, va], [xb / 1.2, va], [xb / 1.2, vb], [xa / 1.2, vb]);
+    let la = 0, lb = 0;
+    if (holed) {
+      for (const e of PASSAGES) {
+        const ha = archHalf(ya), hb = archHalf(yb);
+        if (ha <= 0 && hb <= 0) continue;
+        spans.push([la, e - ha, lb, e - hb]);
+        la = e + ha; lb = e + hb;
+      }
+    }
+    spans.push([la, LEN, lb, LEN]);
+    for (const [xa0, xa1, xb0, xb1] of spans) {
+      shell[pick((a + b) / 2)].quad([xa0, ya, za], [xa1, ya, za], [xb1, yb, zb], [xb0, yb, zb], na, na, nb, nb,
+        [xa0 / 1.2, va], [xa1 / 1.2, va], [xb1 / 1.2, vb], [xb0 / 1.2, vb]);
     }
   }
 
-  // ---- the passages: tiled walls, a dark ceiling with a light, the floor,
-  // running back from the platform wall into the dark
+  // ---- the cross-passages, from the platform wall to half way to the other
+  // platform (whose own half meets this one there): tiled walls, a dark
+  // ceiling with a light, the floor; and on the outer two, an opening on the
+  // side towards the nearer end, into the way-out corridor
   const passFloor = new MeshBuilder(), passLamp = new MeshBuilder();
-  for (const e of EXITS) {
-    const xl = e - PASSAGE.width / 2, xr = e + PASSAGE.width / 2, zEnd = PASSAGE.end;
-    const zWall = (y) => CZ + Math.sqrt(Math.max(R * R - (y - CY) ** 2, 0));
-    const up = [0, 1, 0], down = [0, -1, 0];
-    passFloor.quad([xl, PH, WALL_Z - 0.01], [xr, PH, WALL_Z - 0.01], [xr, PH, zEnd], [xl, PH, zEnd], up, up, up, up);
-    // side walls, from the curved wall of the platform tunnel outwards
-    const n = 8;
-    for (let i = 0; i < n; i++) {
-      const y0 = PH + PASSAGE.height * i / n, y1 = PH + PASSAGE.height * (i + 1) / n;
-      const pickB = y1 <= 1.05 + 1e-6 ? shell.dado : shell.tile;
-      for (const [x, nx] of [[xl, 1], [xr, -1]]) {
-        const nn = [nx, 0, 0];
-        pickB.quad([x, y0, zWall(y0)], [x, y0, zEnd], [x, y1, zEnd], [x, y1, zWall(y1)], nn, nn, nn, nn,
-          [zWall(y0) / 1.2, y0 / 1.2], [zEnd / 1.2, y0 / 1.2], [zEnd / 1.2, y1 / 1.2], [zWall(y1) / 1.2, y1 / 1.2]);
-      }
+  const up = [0, 1, 0], down = [0, -1, 0];
+  const wallQuads = (b, x, nx, z0f, z1, y0, y1, steps) => {
+    const nn = [nx, 0, 0];
+    for (let i = 0; i < steps; i++) {
+      const ya = y0 + (y1 - y0) * i / steps, yb = y0 + (y1 - y0) * (i + 1) / steps;
+      const target = yb <= 1.05 + 1e-6 ? shell.dado : shell.tile;
+      const za = z0f(ya), zb = z0f(yb);
+      target.quad([x, ya, za], [x, ya, z1], [x, yb, z1], [x, yb, zb], nn, nn, nn, nn,
+        [za / 1.2, ya / 1.2], [z1 / 1.2, ya / 1.2], [z1 / 1.2, yb / 1.2], [zb / 1.2, yb / 1.2]);
     }
-    shell.ceiling.quad([xl, passTop, zWall(passTop)], [xr, passTop, zWall(passTop)], [xr, passTop, zEnd], [xl, passTop, zEnd], down, down, down, down);
-    // the far end, where it turns off out of sight
-    shell.soot.quad([xl, PH, zEnd], [xr, PH, zEnd], [xr, passTop, zEnd], [xl, passTop, zEnd], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
-    box(passLamp, [0.2, 0.03, 3.2], [e, passTop - 0.02, 6.4]);
+    void b;
+  };
+  for (const e of PASSAGES) {
+    const xl = e - ARCH.width / 2, xr = e + ARCH.width / 2;
+    const exit = EXITS.includes(e), cdir = e < LEN / 2 ? -1 : 1;
+    passFloor.quad([xl, PH, WALL_Z - 0.01], [xr, PH, WALL_Z - 0.01], [xr, PH, MID], [xl, PH, MID], up, up, up, up);
+    for (const [x, nx, side] of [[xl, 1, -1], [xr, -1, 1]]) {
+      // the side wall stops short of the middle where the corridor opens
+      const z1 = exit && side === cdir ? MID - CORRIDOR.width / 2 : MID;
+      wallQuads(null, x, nx, zWall, z1, PH, PASS_TOP, 10);
+    }
+    shell.ceiling.quad([xl, PASS_TOP, zWall(PASS_TOP)], [xr, PASS_TOP, zWall(PASS_TOP)], [xr, PASS_TOP, MID], [xl, PASS_TOP, MID], down, down, down, down);
+    box(passLamp, [0.2, 0.03, 1.4], [e, PASS_TOP - 0.02, MID - 1.0]);
+  }
+  // the corridors: from the side of the passage towards the nearer end, a
+  // few metres, then round a corner out of sight
+  if (corridors) {
+    for (const e of EXITS) {
+      const cdir = e < LEN / 2 ? -1 : 1;
+      const x0 = e + cdir * ARCH.width / 2, x1 = x0 + cdir * CORRIDOR.length;
+      const za = MID - CORRIDOR.width / 2, zb = MID + CORRIDOR.width / 2;
+      const [xlo, xhi] = [Math.min(x0, x1), Math.max(x0, x1)];
+      passFloor.quad([xlo, PH, za], [xhi, PH, za], [xhi, PH, zb], [xlo, PH, zb], up, up, up, up);
+      shell.ceiling.quad([xlo, PASS_TOP, za], [xhi, PASS_TOP, za], [xhi, PASS_TOP, zb], [xlo, PASS_TOP, zb], down, down, down, down);
+      for (const [z, nz] of [[za, 1], [zb, -1]]) {
+        const nn = [0, 0, nz];
+        for (const [ya, yb, target] of [[PH, 1.05, shell.dado], [1.05, PASS_TOP, shell.tile]]) {
+          target.quad([xlo, ya, z], [xhi, ya, z], [xhi, yb, z], [xlo, yb, z], nn, nn, nn, nn,
+            [xlo / 1.2, ya / 1.2], [xhi / 1.2, ya / 1.2], [xhi / 1.2, yb / 1.2], [xlo / 1.2, yb / 1.2]);
+        }
+      }
+      const ne = [-cdir, 0, 0];
+      shell.soot.quad([x1, PH, za], [x1, PH, zb], [x1, PASS_TOP, zb], [x1, PASS_TOP, za], ne, ne, ne, ne);
+      box(passLamp, [CORRIDOR.length - 1, 0.03, 0.2], [(x0 + x1) / 2, PASS_TOP - 0.02, MID]);
+    }
   }
 
   // ---- the platform: top, edge and face
   const plat = new MeshBuilder(), conc = new MeshBuilder();
-  const up = [0, 1, 0];
   // the texture runs across the platform (u) and repeats along it (v)
   plat.quad([0, PH, EDGE], [LEN, PH, EDGE], [LEN, PH, WALL_Z], [0, PH, WALL_Z], up, up, up, up, [0, 0], [0, 1], [1, 1], [1, 0]);
   const out = [0, 0, -1];
   conc.quad([0, PH - 0.12, EDGE], [LEN, PH - 0.12, EDGE], [LEN, PH, EDGE], [0, PH, EDGE], out, out, out, out);
   conc.quad([0, BED, EDGE + 0.12], [LEN, BED, EDGE + 0.12], [LEN, PH - 0.12, EDGE + 0.12], [0, PH - 0.12, EDGE + 0.12], out, out, out, out);
-  const down = [0, -1, 0];
   conc.quad([0, PH - 0.12, EDGE], [LEN, PH - 0.12, EDGE], [LEN, PH - 0.12, EDGE + 0.12], [0, PH - 0.12, EDGE + 0.12], down, down, down, down);
   // the track bed, with the pit between the rails
   const zTrackWall = circle(PHI1)[0];
@@ -369,7 +413,7 @@ export function buildStation() {
   // cable tray along the track-side wall, above the posters
   { const [z, y] = circle(Math.PI - Math.asin((3.4 - CY) / R), R - 0.25); box(metal, [LEN - 2, 0.06, 0.4], [LEN / 2, y, z]); }
   // benches against the platform wall, in front of the motif panels
-  const benchXs = [22, 50, 90, 118];
+  const benchXs = BENCHES;
   for (const x of benchXs) {
     box(wood, [1.9, 0.05, 0.42], [x, PH + 0.45, WALL_Z - 0.4]);
     box(wood, [1.9, 0.4, 0.05], [x, PH + 0.75, WALL_Z - 0.16], [-0.12, 0, 0]);
@@ -387,11 +431,9 @@ export function buildStation() {
     mesh.receiveShadow = true;
     group.add(mesh);
   }
-  mats.soot.side = THREE.DoubleSide;
 
   // ---- posters on the wall across the track, and on the platform wall
-  const posterMats = POSTERS.map(p => lit(new THREE.MeshStandardMaterial({ map: texture(posterTexture(p)), roughness: 0.35 })));
-  const wideMats = POSTERS.map(p => lit(new THREE.MeshStandardMaterial({ map: texture(posterTexture(p, 1024, 512)), roughness: 0.35 })));
+  const { posterMats, wideMats, nameMat, motifMat, gapMat, signMat } = ctx;
   const panel = (mat, x, y, side, w, h, inset) => {
     const b = new MeshBuilder();
     const phi = side > 0 ? Math.asin((y - CY) / R) : Math.PI - Math.asin((y - CY) / R);
@@ -400,18 +442,15 @@ export function buildStation() {
     group.add(mesh);
     return mesh;
   };
-  let pi = 0;
+  let pi = ctx.posterStart;
   for (let x = 14; x < LEN - 10; x += 16) {
     panel(mats.frame, x, 1.95, -1, 3.1, 1.6, 0.02);
     panel(wideMats[pi++ % wideMats.length], x, 1.95, -1, 3.0, 1.5, 0.03);
   }
   // the station's name, along both walls, and between the posters
-  const nameTex = texture(nameCanvas('Walthamstow Central'));
-  const nameMat = lit(new THREE.MeshStandardMaterial({ map: nameTex, roughness: 0.3 }));
   for (let x = 6; x < LEN; x += 16) panel(nameMat, x, 2.0, -1, 2.2, 0.34, 0.025);
-  const motifMat = lit(new THREE.MeshStandardMaterial({ map: texture(motifTexture(['#e9e4d6', '#1d6f8f', '#e2a33b'], 11)), roughness: 0.25 }));
   for (let x = 8; x < LEN - 4; x += 14) {
-    if (EXITS.some(e => Math.abs(e - x) < 3)) continue;
+    if (PASSAGES.some(e => Math.abs(e - x) < 3)) continue;
     const bench = benchXs.find(b => Math.abs(b - x) < 7);
     if (bench) {
       panel(motifMat, bench, 1.75, 1, 0.9, 0.9, 0.02);
@@ -425,13 +464,6 @@ export function buildStation() {
     }
   }
   // "MIND THE GAP" along the edge
-  const [gc, gg] = canvas(512, 64);
-  gg.fillStyle = '#f5f2e8';
-  gg.font = '700 46px "Helvetica Neue", Arial, sans-serif';
-  gg.textAlign = 'center'; gg.textBaseline = 'middle';
-  gg.fillText('MIND THE GAP', 256, 34);
-  const gapMat = new THREE.MeshStandardMaterial({ map: texture(gc), transparent: true, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2 });
-  lit(gapMat);
   for (let x = 10; x < LEN - 5; x += 18) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.2), gapMat);
     m.rotation.x = -Math.PI / 2;
@@ -452,6 +484,60 @@ export function buildStation() {
       group.add(d);
     }
   }
+  // way-out signs, hanging on either side of the passages that lead out
+  for (const x of EXITS.flatMap(e => [e - 9, e + 9])) {
+    box(hang, [0.12, 0.36, 1.2], [x, 3.3, 3.6]);
+    for (const s of [1, -1]) {
+      const d = new THREE.Mesh(new THREE.PlaneGeometry(1.14, 0.3), signMat);
+      d.position.set(x + s * 0.061, 3.3, 3.6);
+      d.rotation.y = s * Math.PI / 2;
+      group.add(d);
+    }
+  }
+  group.add(new THREE.Mesh(hang.geometry(), mats.frame));
+  void lit;
+
+  return {
+    group,
+    setIndicator(lines) {
+      indicatorMat.map.dispose();
+      indicatorMat.map = ledTexture(lines, { cols: 160, rows: 22, font: 'bold 10px Arial, sans-serif', dot: 5 });
+    },
+  };
+}
+
+// The whole station: the materials both platform tunnels share, ours, and
+// the other track's turned round beside it.
+export function buildStation() {
+  const group = new THREE.Group();
+  group.name = 'station';
+  const lit = (m) => addLightTerms(m, [stationTerm()]);
+  const tileC = tileTexture([236, 232, 220], 3);
+  const tileMap = texture(tileC, true);
+  const tileBump = new THREE.CanvasTexture(tileC);
+  tileBump.wrapS = tileBump.wrapT = THREE.RepeatWrapping;
+  const dadoMap = texture(tileTexture([88, 110, 128], 8), true);
+  // the tiles are seen from behind round the arches, from in the passages
+  const tiled = { bumpMap: tileBump, bumpScale: 0.6, roughness: 0.3, envMapIntensity: 0.3, side: THREE.DoubleSide };
+  const mats = {
+    tile: lit(new THREE.MeshStandardMaterial({ map: tileMap, ...tiled })),
+    dado: lit(new THREE.MeshStandardMaterial({ map: dadoMap, ...tiled })),
+    band: lit(new THREE.MeshStandardMaterial({ color: 0x0098d4, roughness: 0.25, side: THREE.DoubleSide })),
+    ceiling: lit(new THREE.MeshStandardMaterial({ color: 0x2c2f33, roughness: 0.8, side: THREE.DoubleSide })),
+    soot: lit(new THREE.MeshStandardMaterial({ color: 0x3b3a38, roughness: 0.95, side: THREE.DoubleSide })),
+    platform: lit(new THREE.MeshStandardMaterial({ map: texture(platformTexture(), true), roughness: 0.7 })),
+    concrete: lit(new THREE.MeshStandardMaterial({ color: 0x5c5a57, roughness: 0.95 })),
+    metal: lit(new THREE.MeshStandardMaterial({ color: 0x3a3d41, roughness: 0.5, metalness: 0.6 })),
+    frame: lit(new THREE.MeshStandardMaterial({ color: 0x1d1f22, roughness: 0.4, metalness: 0.3 })),
+    wood: lit(new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.6 })),
+    lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4e2, emissiveIntensity: 2.5 }),
+  };
+  mats.platform.map.repeat.set(1, LEN / 2);
+  const [gc, gg] = canvas(512, 64);
+  gg.fillStyle = '#f5f2e8';
+  gg.font = '700 46px "Helvetica Neue", Arial, sans-serif';
+  gg.textAlign = 'center'; gg.textBaseline = 'middle';
+  gg.fillText('MIND THE GAP', 256, 34);
   const signTex = (() => {
     const [c, g] = canvas(512, 128);
     g.fillStyle = '#111';
@@ -463,33 +549,31 @@ export function buildStation() {
     g.beginPath(); g.moveTo(30, 64); g.lineTo(80, 30); g.lineTo(80, 50); g.lineTo(104, 50); g.lineTo(104, 78); g.lineTo(80, 78); g.lineTo(80, 98); g.closePath(); g.fill();
     return texture(c);
   })();
-  const signMat = new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false });
-  // over each passage, and hanging further along on either side of it
-  for (const e of EXITS) {
-    const s0 = panel(signMat, e, PH + PASSAGE.height + 0.32, 1, 1.4, 0.36, 0.02);
-    void s0;
-  }
-  for (const x of EXITS.flatMap(e => [e - 9, e + 9])) {
-    box(hang, [0.12, 0.36, 1.2], [x, 3.3, 3.6]);
-    for (const s of [1, -1]) {
-      const d = new THREE.Mesh(new THREE.PlaneGeometry(1.14, 0.3), signMat);
-      d.position.set(x + s * 0.061, 3.3, 3.6);
-      d.rotation.y = s * Math.PI / 2;
-      group.add(d);
-    }
-  }
-  group.add(new THREE.Mesh(hang.geometry(), mats.frame));
+  const ctx = {
+    mats, lit, posterStart: 0,
+    posterMats: POSTERS.map(p => lit(new THREE.MeshStandardMaterial({ map: texture(posterTexture(p)), roughness: 0.35 }))),
+    wideMats: POSTERS.map(p => lit(new THREE.MeshStandardMaterial({ map: texture(posterTexture(p, 1024, 512)), roughness: 0.35 }))),
+    nameMat: lit(new THREE.MeshStandardMaterial({ map: texture(nameCanvas('Walthamstow Central')), roughness: 0.3 })),
+    motifMat: lit(new THREE.MeshStandardMaterial({ map: texture(motifTexture(['#e9e4d6', '#1d6f8f', '#e2a33b'], 11)), roughness: 0.25 })),
+    gapMat: lit(new THREE.MeshStandardMaterial({ map: texture(gc), transparent: true, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2 })),
+    signMat: new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }),
+  };
+  const ours = buildPlatform(ctx, { corridors: true });
+  // the other platform shows the posters in a different order
+  ctx.posterStart = 3;
+  const other = buildPlatform(ctx);
+  other.group.rotation.y = Math.PI;
+  other.group.position.set(LEN, 0, TRACK_SPACING);
+  group.add(ours.group, other.group);
 
   return {
     group,
     length: LEN,
     setName(name) {
-      nameMat.map.dispose();
-      nameMat.map = texture(nameCanvas(name));
+      ctx.nameMat.map.dispose();
+      ctx.nameMat.map = texture(nameCanvas(name));
     },
-    setIndicator(lines) {
-      indicatorMat.map.dispose();
-      indicatorMat.map = ledTexture(lines, { cols: 160, rows: 22, font: 'bold 10px Arial, sans-serif', dot: 5 });
-    },
+    // the train indicator over platform 0 (ours) or 1 (the other)
+    setIndicator(plat, lines) { (plat ? other : ours).setIndicator(lines); },
   };
 }

@@ -183,7 +183,8 @@ const TEX_SIZE = 2048;
 function frontCanvas() {
   const c = document.createElement('canvas');
   c.width = c.height = TEX_SIZE;
-  const g = c.getContext('2d');
+  // the paint and the glass are read back to combine them
+  const g = c.getContext('2d', { willReadFrequently: true });
   // work in metres: canvas x is texU, y is 1 - texV
   const sx = TEX_SIZE / (FRONT_TEX.zMax - FRONT_TEX.zMin), sy = TEX_SIZE / (FRONT_TEX.yMax - FRONT_TEX.yMin);
   g.setTransform(-sx, 0, 0, -sy, FRONT_TEX.zMax * sx, FRONT_TEX.yMax * sy);
@@ -350,7 +351,7 @@ export function frontEmissive({ destination = 'Walthamstow Central', train = '21
   const dots = (text, z0, z1, y0, y1, cols, rows, font) => {
     const s = document.createElement('canvas');
     s.width = cols; s.height = rows;
-    const sg = s.getContext('2d');
+    const sg = s.getContext('2d', { willReadFrequently: true });
     sg.fillStyle = '#000'; sg.fillRect(0, 0, cols, rows);
     sg.fillStyle = '#fff'; sg.font = font; sg.textAlign = 'center'; sg.textBaseline = 'middle';
     sg.fillText(text, cols / 2, rows / 2 + 1);

@@ -9,9 +9,9 @@ import { STATION } from './station.js';
 
 export const SPACING = 520;              // from one station to the next
 const FIRST = 380;                       // where the first one starts
-const ACCEL = 1.1, BRAKE = 1.05;         // m/s²
-const OVERRUN = 3;                       // stop this far short of the end wall
-const DWELL = { open: 1.2, close: 15, leave: 18.5 };   // seconds after stopping
+export const ACCEL = 1.1, BRAKE = 1.05;  // m/s²
+export const OVERRUN = 3;                // stop this far short of the end wall
+export const DWELL = { open: 1.2, close: 15, leave: 18.5 };   // seconds after stopping
 
 // The Victoria line, north to south
 export const LINE = [
