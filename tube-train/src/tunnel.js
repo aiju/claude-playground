@@ -2,20 +2,23 @@
 // facing in, a concrete invert with the track set into it, cable runs along
 // the walls and the odd working light.
 //
-// The train stays put and the tunnel slides past it. Everything in the tunnel
-// repeats every PERIOD metres (30 rings), so it only ever has to move by less
-// than one period before jumping back.
+// The tunnel follows the line's path (path.js), round its curves and down its
+// dips. It is built in pieces a couple of periods long, wherever the train
+// and the camera are, and taken down again behind them. The rings, sleepers
+// and cables are instanced along the path; the rails and the invert are swept
+// along it.
 //
 // Light from the train's windows falls on the walls: the tunnel's materials
 // add it in their shaders, from a strip of texture that marks where along the
-// train the windows are.
+// train the windows are, looked up by each point's distance along the line.
 
 import * as THREE from 'three';
-import { buildTrack, trackMaterials } from './track.js';
+import { trackMaterials, RAIL_PROFILE, BAR_PROFILE } from './track.js';
 import { addLightTerms, stationTerm, clipTerm, station } from './materials.js';
 import { MeshBuilder, matrixFrom } from './geom.js';
-import { noiseTexture, rng } from './textures.js';
-import { BODY } from './dims.js';
+import { noiseTexture } from './textures.js';
+import { TRACK } from './dims.js';
+import { Frame } from './path.js';
 
 export const TUNNEL = {
   radius: 1.83,          // to the inside of the flanges
@@ -24,9 +27,8 @@ export const TUNNEL = {
   bed: -0.20,            // top of the concrete the sleepers sit in
   ring: 0.508,           // 20 inches
 };
-export const PERIOD = 30 * TUNNEL.ring;
-// whole periods, so the lamps sit at k * PERIOD + LAMP_PHASE
-const EXTENT = [-12 * PERIOD, 12 * PERIOD];
+export const PERIOD = 30 * TUNNEL.ring;     // a working light every period
+const CHUNK = 2 * PERIOD;                   // the tunnel is built in pieces this long
 const LAMP_PHASE = PERIOD / 2;
 const LAMP_Y = 2.25;
 
@@ -41,9 +43,6 @@ function ringGeometry() {
   const iron = new MeshBuilder();
   const N = 84;
   const flangeT = 0.025, longT = 0.02;
-  const colourAt = [];
-  const push = (b, shade) => { colourAt.push([b.pos.length, shade]); };
-  void push;
   // skin between the flanges, facing the axis
   for (let i = 0; i < N; i++) {
     const a = PHI0 + (PHI1 - PHI0) * i / N, b = PHI0 + (PHI1 - PHI0) * (i + 1) / N;
@@ -110,15 +109,37 @@ function cableSpanGeometry(heights, side) {
   return b.geometry();
 }
 
-// The light that the train's windows throw on to the tunnel. `pattern` is a
-// strip of texture along the train, 1 where there is a window.
+// The light that the train's windows throw on to the tunnel. The tunnel's
+// meshes carry their place along the line (`vPath`: distance along it, height
+// and offset to the right) and their normal in the line's frame (`vPathN`):
+// instanced ones from the instance's distance and the local geometry, swept
+// ones as attributes.
 function windowTerm(u) {
   return {
     key: 'train-windows',
     uniforms: u,
+    vdecl: `
+      attribute vec3 pathCoord;
+      attribute vec3 pathNormal;
+      #ifdef USE_INSTANCING
+        attribute float instS;
+      #endif
+      varying vec3 vPath;
+      varying vec3 vPathN;`,
+    vbody: `
+      #ifdef USE_INSTANCING
+        vPath = vec3(instS + position.x, position.y, position.z);
+        vPathN = objectNormal;
+      #else
+        vPath = pathCoord;
+        vPathN = pathNormal;
+      #endif`,
     decl: `
       uniform sampler2D uWinTex;
-      uniform float uWinX0, uWinX1, uWinGain;
+      uniform float uWinX0, uWinX1, uWinGain, uTrainS;
+      varying vec3 vPath;
+      varying vec3 vPathN;
+      // p is relative to the front of the train, along the line
       float trainWindows(vec3 p, vec3 n) {
         float total = 0.0;
         for (int i = 0; i < 2; i++) {
@@ -136,8 +157,55 @@ function windowTerm(u) {
         }
         return total;
       }`,
-    body: `extraIrr += trainWindows(wp, wn) * uWinGain * vec3(1.0, 0.95, 0.86);`,
+    body: `
+      vec3 pn = normalize(vPathN) * (gl_FrontFacing ? 1.0 : -1.0);
+      extraIrr += trainWindows(vec3(vPath.x - uTrainS, vPath.y, vPath.z), pn) * uWinGain * vec3(1.0, 0.95, 0.86);`,
   };
+}
+
+// Geometry swept along the path: a cross-section (in z, y) carried through
+// frames, with each vertex's place along the line and its normal in the
+// line's frame as attributes for the shaders.
+class Sweep {
+  constructor() { this.pos = []; this.nrm = []; this.pc = []; this.pn = []; }
+  // `frames` are [s, Frame] pairs; `pts` the section; `ref` a point the
+  // faces should look towards
+  add(frames, pts, { closed = false, ref = [0, 1.25], origin }) {
+    const n = pts.length, edges = closed ? n : n - 1;
+    for (let e = 0; e < edges; e++) {
+      const [za, ya] = pts[e], [zb, yb] = pts[(e + 1) % n];
+      const len = Math.hypot(zb - za, yb - ya);
+      if (len < 1e-6) continue;
+      let ny = (zb - za) / len, nz = -(yb - ya) / len;
+      const mz = (za + zb) / 2, my = (ya + yb) / 2;
+      if (nz * (ref[0] - mz) + ny * (ref[1] - my) < 0) { ny = -ny; nz = -nz; }
+      for (let i = 0; i < frames.length - 1; i++) {
+        const [s0, f0] = frames[i], [s1, f1] = frames[i + 1];
+        const P = (f, z, y) => f.apply(0, y, z).sub(origin);
+        const quad = [[f0, s0, za, ya], [f1, s1, za, ya], [f1, s1, zb, yb], [f0, s0, zb, yb]];
+        const v = quad.map(([f, , z, y]) => P(f, z, y));
+        const N = quad.map(([f]) => new THREE.Vector3().copy(f.u).multiplyScalar(ny).addScaledVector(f.r, nz));
+        // wind the two triangles to face the way the normal points
+        const face = new THREE.Vector3().subVectors(v[1], v[0]).cross(new THREE.Vector3().subVectors(v[2], v[0]));
+        const order = face.dot(N[0]) >= 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+        for (const k of order) {
+          this.pos.push(v[k].x, v[k].y, v[k].z);
+          this.nrm.push(N[k].x, N[k].y, N[k].z);
+          this.pc.push(quad[k][1], quad[k][3], quad[k][2]);
+          this.pn.push(0, ny, nz);
+        }
+      }
+    }
+  }
+  geometry() {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
+    g.setAttribute('pathCoord', new THREE.Float32BufferAttribute(this.pc, 3));
+    g.setAttribute('pathNormal', new THREE.Float32BufferAttribute(this.pn, 3));
+    g.computeBoundingSphere();
+    return g;
+  }
 }
 
 // a strip of texture along the train marking its windows, lit or not
@@ -167,15 +235,14 @@ function windowPattern(train) {
   return { tex, x0, x1 };
 }
 
-export function buildTunnel(train) {
+export function buildTunnel(train, path) {
   const group = new THREE.Group();
   group.name = 'tunnel';
-  const scroller = new THREE.Group();
-  group.add(scroller);
 
   const pattern = windowPattern(train);
   const winUniforms = {
-    uWinTex: { value: pattern.tex }, uWinX0: { value: pattern.x0 }, uWinX1: { value: pattern.x1 }, uWinGain: { value: 5.0 },
+    uWinTex: { value: pattern.tex }, uWinX0: { value: pattern.x0 }, uWinX1: { value: pattern.x1 },
+    uWinGain: { value: 5.0 }, uTrainS: { value: 0 },
   };
   // the tunnel is cut away where a station is, and near one the station's
   // lights spill into it
@@ -186,100 +253,135 @@ export function buildTunnel(train) {
   const ironMat = lit(new THREE.MeshStandardMaterial({ color: 0x6a6159, roughness: 0.9, metalness: 0.15, map: grime }));
   const bedMat = lit(new THREE.MeshStandardMaterial({ color: 0x4a4744, roughness: 0.95 }));
   const cableMat = lit(new THREE.MeshStandardMaterial({ color: 0x1c1c1d, roughness: 0.6 }));
+  const glowMat = addLightTerms(new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffd9a0, emissiveIntensity: 4 }), [clipTerm()]);
   const tm = trackMaterials();
   // the track runs on through the stations
   for (const m of Object.values(tm)) addLightTerms(m, [windowTerm(winUniforms), stationTerm()]);
   tm.timber.color.set(0x2c241f);
 
-  // rings, instanced along the tunnel
-  const nRings = Math.ceil((EXTENT[1] - EXTENT[0] + PERIOD) / W);
-  const rings = new THREE.InstancedMesh(ringGeometry(), ironMat, nRings);
-  const r = rng(99);
-  const m = new THREE.Matrix4(), c = new THREE.Color();
-  for (let i = 0; i < nRings; i++) {
-    m.makeTranslation(EXTENT[0] + i * W, 0, 0);
-    rings.setMatrixAt(i, m);
-    // every thirtieth ring matches, so the pattern repeats with the period
-    const k = i % 30;
-    const shade = 0.75 + 0.35 * ((k * 7919) % 30) / 30 + 0.05 * Math.sin(k);
-    c.setRGB(shade, shade * (0.97 + 0.03 * Math.sin(k * 3)), shade * 0.94);
-    rings.setColorAt(i, c);
-  }
-  void r;
-  rings.receiveShadow = true;
-  scroller.add(rings);
-
-  // the invert: concrete up to the sleepers, with a drain down the middle
-  const bedShape = new THREE.Shape();
-  const zEdge = Math.sqrt(RS * RS - (BED - CY) ** 2) + 0.02;
-  bedShape.moveTo(-zEdge, BED);
-  bedShape.lineTo(-0.18, BED);
-  bedShape.lineTo(-0.16, BED - 0.16);
-  bedShape.lineTo(0.16, BED - 0.16);
-  bedShape.lineTo(0.18, BED);
-  bedShape.lineTo(zEdge, BED);
-  bedShape.lineTo(zEdge, BED - 0.4);
-  bedShape.lineTo(-zEdge, BED - 0.4);
-  bedShape.closePath();
-  const bedGeo = new THREE.ExtrudeGeometry(bedShape, { depth: EXTENT[1] - EXTENT[0] + PERIOD, bevelEnabled: false });
-  bedGeo.applyMatrix4(new THREE.Matrix4().set(0, 0, 1, EXTENT[0], 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 1));
-  bedGeo.computeVertexNormals();
-  const bed = new THREE.Mesh(bedGeo, bedMat);
-  bed.receiveShadow = true;
-  scroller.add(bed);
-
-  // track: sleepers and insulators spaced to divide the period
-  scroller.add(buildTrack(EXTENT[0], EXTENT[1] + PERIOD, tm, { sleeper: 'timber', pitch: PERIOD / 24, insulatorPitch: PERIOD / 5, seed: 4 }));
-
-  // cable runs on both walls
-  const nSpans = Math.ceil((EXTENT[1] - EXTENT[0] + PERIOD) / (PERIOD / 10));
-  for (const [heights, side] of [[[0.95, 1.01, 1.07, 1.13, 1.19], 1], [[1.38, 1.44, 1.5], -1], [[2.35, 2.41], 1]]) {
-    const cables = new THREE.InstancedMesh(cableSpanGeometry(heights, side), cableMat, nSpans);
-    for (let i = 0; i < nSpans; i++) { m.makeTranslation(EXTENT[0] + i * PERIOD / 10, 0, 0); cables.setMatrixAt(i, m); }
-    scroller.add(cables);
-  }
-
-  // working lights on the left wall, one a period, and a few real lights
-  // that follow the nearest of them
+  // the pieces every stretch of tunnel is made of, in the line's frame
   const lampZ = -(Math.sqrt(R * R - (LAMP_Y - CY) ** 2) - 0.08);
-  const nLamps = Math.ceil((EXTENT[1] - EXTENT[0] + PERIOD) / PERIOD);
-  const lampBody = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.12, 0.12), cableMat, nLamps);
-  const lampGlow = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, 0.06, 0.02),
-    addLightTerms(new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffd9a0, emissiveIntensity: 4 }), [clipTerm()]), nLamps);
-  for (let i = 0; i < nLamps; i++) {
-    const x = EXTENT[0] + i * PERIOD + LAMP_PHASE;
-    m.makeTranslation(x, LAMP_Y, lampZ);
-    lampBody.setMatrixAt(i, m);
-    m.makeTranslation(x, LAMP_Y - 0.02, lampZ + 0.065);
-    lampGlow.setMatrixAt(i, m);
+  const base = {
+    ring: ringGeometry(),
+    sleeper: new THREE.BoxGeometry(0.25, 0.14, 2.45).translate(0, -TRACK.railHeight - 0.07, 0),
+    lampBody: new THREE.BoxGeometry(0.34, 0.12, 0.12).translate(0, LAMP_Y, lampZ),
+    lampGlow: new THREE.BoxGeometry(0.26, 0.06, 0.02).translate(0, LAMP_Y - 0.02, lampZ + 0.065),
+    insulators: [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]].map(([z, top]) => {
+      const h = top - 0.065 + 0.17;
+      return new THREE.CylinderGeometry(0.045, 0.06, h, 16).translate(0, top - 0.065 - h / 2, z);
+    }),
+    cables: [[[0.95, 1.01, 1.07, 1.13, 1.19], 1], [[1.38, 1.44, 1.5], -1], [[2.35, 2.41], 1]].map(([h, side]) => cableSpanGeometry(h, side)),
+  };
+  const zEdge = Math.sqrt(RS * RS - (BED - CY) ** 2) + 0.02;
+  const BED_PROFILE = [[-zEdge, BED], [-0.18, BED], [-0.16, BED - 0.16], [0.16, BED - 0.16], [0.18, BED], [zEdge, BED]];
+  const railHalf = TRACK.gauge / 2 + TRACK.railHead / 2;
+  const shift = (pts, dz, dy) => pts.map(([z, y]) => [z + dz, y + dy]);
+
+  const f = new Frame(), m = new THREE.Matrix4(), colour = new THREE.Color();
+  const chunks = new Map();
+
+  // an instanced mesh of `geo` at each distance in `ss`, in a piece whose
+  // origin is `origin`
+  function instanced(geo, mat, ss, origin, tint) {
+    const g = new THREE.BufferGeometry();
+    for (const [k, a] of Object.entries(geo.attributes)) g.setAttribute(k, a);
+    if (geo.index) g.setIndex(geo.index);
+    const inst = new Float32Array(ss.length);
+    const mesh = new THREE.InstancedMesh(g, mat, ss.length);
+    ss.forEach((s, i) => {
+      path.frame(s, f).matrix(m);
+      m.setPosition(f.pos.x - origin.x, f.pos.y - origin.y, f.pos.z - origin.z);
+      mesh.setMatrixAt(i, m);
+      inst[i] = s;
+      if (tint) mesh.setColorAt(i, tint(s, colour));
+    });
+    g.setAttribute('instS', new THREE.InstancedBufferAttribute(inst, 1));
+    mesh.computeBoundingSphere();
+    mesh.receiveShadow = true;
+    return mesh;
   }
-  scroller.add(lampBody, lampGlow);
-  const glows = [];
-  for (let i = 0; i < nLamps; i++) {
-    const glow = new THREE.Sprite(train.materials.lampGlow);
-    glow.scale.setScalar(0.9);
-    glow.position.set(EXTENT[0] + i * PERIOD + LAMP_PHASE, LAMP_Y - 0.02, lampZ + 0.1);
-    scroller.add(glow);
-    glows.push(glow);
+
+  // a stretch of tunnel from c * CHUNK to (c + 1) * CHUNK
+  function buildChunk(c) {
+    const s0 = c * CHUNK, s1 = s0 + CHUNK;
+    const g = new THREE.Group();
+    const origin = path.frame(s0).pos.clone();
+    g.position.copy(origin);
+    const every = (step, phase = 0) => { const out = []; for (let s = s0 + phase; s < s1 - 1e-6; s += step) out.push(s); return out; };
+    // rings, each a slightly different shade of grime
+    g.add(instanced(base.ring, ironMat, every(W), origin, (s, col) => {
+      const k = Math.round(s / W);
+      const shade = 0.75 + 0.35 * ((k * 7919) % 30) / 30 + 0.05 * Math.sin(k);
+      return col.setRGB(shade, shade * (0.97 + 0.03 * Math.sin(k * 3)), shade * 0.94);
+    }));
+    g.add(instanced(base.sleeper, tm.timber, every(PERIOD / 24, PERIOD / 48), origin));
+    for (const geo of base.insulators) g.add(instanced(geo, tm.insulator, every(PERIOD / 5, PERIOD / 10), origin));
+    for (const geo of base.cables) g.add(instanced(geo, cableMat, every(PERIOD / 10), origin));
+    const lamps = every(PERIOD, LAMP_PHASE);
+    g.add(instanced(base.lampBody, cableMat, lamps, origin), instanced(base.lampGlow, glowMat, lamps, origin));
+    const glows = lamps.map(s => {
+      const sprite = new THREE.Sprite(train.materials.lampGlow);
+      sprite.scale.setScalar(0.9);
+      path.frame(s, f).apply(0, LAMP_Y - 0.02, lampZ + 0.1, sprite.position).sub(origin);
+      g.add(sprite);
+      return sprite;
+    });
+    // the swept parts: rails, conductor rails and the invert
+    const frames = [];
+    for (let i = 0; i <= 60; i++) { const s = s0 + CHUNK * i / 60; frames.push([s, path.frame(s)]); }
+    const sweeps = { rail: new Sweep(), railTop: new Sweep(), conductor: new Sweep(), bed: new Sweep() };
+    for (const side of [1, -1]) {
+      sweeps.rail.add(frames, shift(RAIL_PROFILE, side * railHalf, 0), { closed: true, ref: [side * railHalf, -0.07], origin });
+      sweeps.railTop.add(frames, [[side * railHalf - 0.029, 0.0006], [side * railHalf + 0.029, 0.0006]], { ref: [side * railHalf, 1], origin });
+    }
+    for (const [z, top] of [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]]) {
+      sweeps.conductor.add(frames, shift(BAR_PROFILE, z, top), { closed: true, ref: [z, top - 0.03], origin });
+    }
+    sweeps.bed.add(frames, BED_PROFILE, { ref: [0, BED + 1], origin });
+    for (const [k, mat] of [['rail', tm.rail], ['railTop', tm.railTop], ['conductor', tm.conductor], ['bed', bedMat]]) {
+      const mesh = new THREE.Mesh(sweeps[k].geometry(), mat);
+      mesh.receiveShadow = true;
+      g.add(mesh);
+    }
+    group.add(g);
+    return { group: g, glows };
   }
+
+  // Takes a piece down. Its instanced meshes share their shapes with every
+  // other piece, so only their own attribute (instS) and instance data are
+  // freed; the swept meshes are the piece's own.
+  function dropChunk(c) {
+    const ch = chunks.get(c);
+    group.remove(ch.group);
+    ch.group.traverse(o => {
+      if (o.isInstancedMesh) {
+        const g = o.geometry;
+        for (const k of Object.keys(g.attributes)) if (k !== 'instS') g.deleteAttribute(k);
+        g.setIndex(null);
+        g.dispose();
+        o.dispose();
+      } else if (o.isMesh) o.geometry.dispose();
+    });
+    chunks.delete(c);
+  }
+
+  // the working lights nearest the camera get real lights
   const lampLights = [];
   for (let i = 0; i < 4; i++) {
     const l = new THREE.PointLight(0xffd4a0, 2.2, 14, 1.6);
     group.add(l);
     lampLights.push(l);
   }
-
-  // headlights
-  const headlights = [];
-  for (const s of [1, -1]) {
-    const spot = new THREE.SpotLight(0xf2f6ff, 40, 0, 0.36, 0.85, 1.35);
-    spot.position.set(0.15, 1.54, s * 0.87);
-    spot.target.position.set(60, 1.0, s * 0.1);
-    group.add(spot, spot.target);
-    headlights.push(spot);
-  }
   const ambient = new THREE.HemisphereLight(0x9aa4b0, 0x302a26, 0.05);
   group.add(ambient);
+
+  const local = new THREE.Vector3();
+  const inStation = (p) => {
+    if (station.uStOn.value < 0.5) return false;
+    local.copy(p).applyMatrix4(station.uStInv.value);
+    return local.x > 0 && local.x < station.uStLen.value && Math.abs(local.z - 1) < 6;
+  };
+  const world = new THREE.Vector3();
 
   return {
     group,
@@ -288,22 +390,29 @@ export function buildTunnel(train) {
     envIntensity: 0.05,
     exposure: 1.25,
     winUniforms,
-    update(distance, camera) {
-      // the tunnel repeats every period, so it can be kept centred on the
-      // camera by whole periods, wherever along the line that is
-      const shift = ((distance % PERIOD) + PERIOD) % PERIOD;
-      scroller.position.x = -shift + Math.round(camera.position.x / PERIOD) * PERIOD;
-      const inStation = (x) => station.uStOn.value > 0.5 && x > station.uStX0.value && x < station.uStX1.value;
-      for (const g of glows) g.visible = !inStation(g.position.x + scroller.position.x);
-      // the lamps nearest the camera get real lights
-      const cx = camera.position.x;
-      const base = Math.floor((cx + shift - LAMP_PHASE) / PERIOD);
+    // Builds the tunnel round the train and the camera (focusS is the
+    // camera's distance along the line), takes it down elsewhere, and moves
+    // the real lights to the lamps nearest the camera. Builds at most
+    // `budget` pieces at a time, so a long jump doesn't stall a frame.
+    update(trainS, focusS, budget = 3) {
+      winUniforms.uTrainS.value = trainS;
+      const lo = Math.floor((Math.min(focusS, trainS - train.length) - 190) / CHUNK);
+      const hi = Math.floor((Math.max(focusS, trainS) + 230) / CHUNK);
+      for (const c of [...chunks.keys()]) if (c < lo - 1 || c > hi + 1) dropChunk(c);
+      // nearest the camera first
+      const want = [];
+      for (let c = lo; c <= hi; c++) if (!chunks.has(c)) want.push(c);
+      want.sort((a, b) => Math.abs(a * CHUNK - focusS) - Math.abs(b * CHUNK - focusS));
+      for (const c of want.slice(0, budget)) chunks.set(c, buildChunk(c));
+      const left = Math.max(0, want.length - budget);
+      for (const ch of chunks.values()) for (const s of ch.glows) s.visible = !inStation(world.copy(s.position).add(ch.group.position));
+      const k0 = Math.round((focusS - LAMP_PHASE) / PERIOD);
       lampLights.forEach((l, i) => {
-        const k = base + [0, 1, -1, 2][i];
-        l.position.set(k * PERIOD + LAMP_PHASE - shift, LAMP_Y - 0.12, lampZ + 0.2);
-        l.visible = !inStation(l.position.x);
+        const k = k0 + [0, 1, -1, 2][i];
+        path.frame(k * PERIOD + LAMP_PHASE, f).apply(0, LAMP_Y - 0.12, lampZ + 0.2, l.position);
+        l.visible = !inStation(l.position);
       });
+      return left;
     },
-    follow() {},
   };
 }

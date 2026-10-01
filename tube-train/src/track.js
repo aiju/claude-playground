@@ -6,20 +6,25 @@ import * as THREE from 'three';
 import { TRACK } from './dims.js';
 import { rng } from './textures.js';
 
-// a rail's cross-section in (z, y), foot to head, centred on z = 0
-function railShape() {
+// a rail's cross-section in (z, y), foot to head, centred on z = 0, its
+// top at y = 0
+const H = TRACK.railHeight;
+export const RAIL_PROFILE = [
+  [-0.066, -H], [0.066, -H], [0.066, -H + 0.012], [0.012, -H + 0.03], [0.009, -0.045],
+  [0.034, -0.035], [0.035, -0.004], [0.031, 0], [-0.031, 0], [-0.035, -0.004], [-0.034, -0.035],
+  [-0.009, -0.045], [-0.012, -H + 0.03], [-0.066, -H + 0.012],
+];
+// a conductor rail's, a flat-topped steel bar
+export const BAR_PROFILE = [[-0.037, -0.065], [0.037, -0.065], [0.037, -0.006], [0.031, 0], [-0.031, 0], [-0.037, -0.006]];
+
+function shapeOf(pts) {
   const s = new THREE.Shape();
-  const h = TRACK.railHeight;
-  const pts = [
-    [-0.066, -h], [0.066, -h], [0.066, -h + 0.012], [0.012, -h + 0.03], [0.009, -0.045],
-    [0.034, -0.035], [0.035, -0.004], [0.031, 0], [-0.031, 0], [-0.035, -0.004], [-0.034, -0.035],
-    [-0.009, -0.045], [-0.012, -h + 0.03], [-0.066, -h + 0.012],
-  ];
   s.moveTo(...pts[0]);
   for (const p of pts.slice(1)) s.lineTo(...p);
   s.closePath();
   return s;
 }
+const railShape = () => shapeOf(RAIL_PROFILE);
 
 // a straight extrusion of a shape in (z, y) along x from x0 to x1
 function extrudeX(shape, x0, x1) {
@@ -65,10 +70,7 @@ export function buildTrack(x0, x1, mats, { sleeper = 'concrete', pitch = 0.7, in
     group.add(rail, top);
   }
   // conductor rails: a steel bar on insulators
-  const bar = new THREE.Shape();
-  bar.moveTo(-0.037, -0.065); bar.lineTo(0.037, -0.065); bar.lineTo(0.037, -0.006);
-  bar.lineTo(0.031, 0); bar.lineTo(-0.031, 0); bar.lineTo(-0.037, -0.006); bar.closePath();
-  const barGeo = extrudeX(bar, x0, x1);
+  const barGeo = extrudeX(shapeOf(BAR_PROFILE), x0, x1);
   const insGeo = new THREE.CylinderGeometry(0.045, 0.06, 1, 16);
   const nIns = Math.floor((x1 - x0) / insulatorPitch);
   for (const [z, top] of conductors ? [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]] : []) {

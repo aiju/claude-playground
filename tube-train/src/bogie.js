@@ -169,6 +169,7 @@ export function buildUnderframe(type, spec, materials) {
   for (const x of bogieXs) {
     const b = bogieGroup(materials, { motored, shoes: spec.shoes });
     b.position.x = x;
+    b.name = 'bogie';                         // turned to follow curves
     group.add(b);
   }
   // equipment cases between the bogies

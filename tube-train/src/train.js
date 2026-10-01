@@ -1,7 +1,10 @@
 // The whole train: eight cars in two units, coupled back to back.
 //
-// The leading car's front is at x = 0 and the train runs back along -x. The
-// second unit's cars are turned round, so its driving car faces the other way.
+// Laid out straight, the leading car's front is at x = 0 and the train runs
+// back along -x ("train-local" x). The second unit's cars are turned round,
+// so its driving car faces the other way. On a curved path each car is set
+// on its two bogies, so it runs as a chord of the curve with its ends
+// swinging out, and the bogies turn under it to follow the rails.
 
 import * as THREE from 'three';
 import { FORMATION, BODY, BOGIE } from './dims.js';
@@ -11,6 +14,7 @@ import { buildUnderframe } from './bogie.js';
 import { labelTexture } from './textures.js';
 import { addLightTerms, stationTerm } from './materials.js';
 import { profileAt, vAtY } from './profile.js';
+import { Frame } from './path.js';
 
 export const CAR_GAP = 0.24;       // between the bodies of coupled cars
 
@@ -49,14 +53,18 @@ export function buildTrain(materials) {
     const car = type.group.clone();
     car.name = `car ${i + 1} (${t})`;
     const turned = i >= FORMATION.length / 2;
-    car.position.x = x - L / 2;
-    if (turned) car.rotation.y = Math.PI;
+
     const under = type.underframe.group.clone();
     car.add(under);
     group.add(car);
     const leaves = type.leaves.map(l => ({ group: car.getObjectByName(l.group.name), side: l.side, dirX: l.dirX }));
     under.traverse(o => { if (o.userData.wheelset) wheels.push({ mesh: o, sign: turned ? -1 : 1 }); });
-    cars.push({ group: car, type: t, turned, length: L, leaves, centre: x - L / 2, spec: type.spec });
+    const sign = turned ? -1 : 1;
+    const bogies = [];
+    car.traverse(o => { if (o.name === 'bogie') bogies.push({ group: o, x: x - L / 2 + sign * o.position.x }); });
+    bogies.sort((a, b) => b.x - a.x);
+    car.matrixAutoUpdate = false;
+    cars.push({ group: car, type: t, turned, length: L, leaves, centre: x - L / 2, spec: type.spec, bogies });
     // car numbers: 11xxx for A cars, 12xxx for B and so on, the unit's
     // number after
     const number = `${{ A: 11, B: 12, C: 13, D: 14 }[t]}0${turned ? 48 : 47}`;
@@ -101,5 +109,60 @@ export function buildTrain(materials) {
     for (const w of wheels) w.mesh.rotation.z = -w.sign * distance / w.mesh.userData.radius;
   }
 
-  return { group, cars, length, wheelXs, setDoors, roll, materials };
+  // headlights, on the leading car
+  const headlights = [];
+  {
+    const lead = cars[0], L = lead.length;
+    for (const s of [1, -1]) {
+      const spot = new THREE.SpotLight(0xf2f6ff, 40, 0, 0.36, 0.85, 1.35);
+      spot.position.set(L / 2 + 0.15, 1.54, s * 0.87);
+      spot.target.position.set(L / 2 + 60, 1.0, s * 0.1);
+      spot.visible = false;
+      lead.group.add(spot, spot.target);
+      headlights.push(spot);
+    }
+  }
+
+  // Puts the train on `path` with its front at distance sFront along it.
+  const fa = new Frame(), fb = new Frame(), fq = new Frame();
+  const F = new THREE.Vector3(), U = new THREE.Vector3(), R = new THREE.Vector3(), O = new THREE.Vector3();
+  const lx = new THREE.Vector3(), lz = new THREE.Vector3(), cross = new THREE.Vector3();
+  function place(path, sFront) {
+    for (const car of cars) {
+      const [a, b] = car.bogies;
+      path.frame(sFront + a.x, fa);
+      path.frame(sFront + b.x, fb);
+      F.subVectors(fa.pos, fb.pos).normalize();
+      U.addVectors(fa.u, fb.u);
+      U.addScaledVector(F, -U.dot(F)).normalize();
+      R.crossVectors(F, U);
+      // the car's middle sits between its bogies' points on the rails
+      O.addVectors(fa.pos, fb.pos).multiplyScalar(0.5).addScaledVector(F, car.centre - (a.x + b.x) / 2);
+      const s = car.turned ? -1 : 1;
+      lx.copy(F).multiplyScalar(s);
+      lz.copy(R).multiplyScalar(s);
+      car.group.matrix.makeBasis(lx, U, lz).setPosition(O);
+      car.group.matrixWorldNeedsUpdate = true;
+      // each bogie turns to lie along the rails under it
+      for (const bg of car.bogies) {
+        path.frame(sFront + bg.x, fq);
+        cross.crossVectors(F, fq.t);
+        bg.group.rotation.y = Math.atan2(cross.dot(U), F.dot(fq.t));
+      }
+    }
+  }
+
+  // the car a train-local x falls in, and that point in the car's own
+  // coordinates
+  function carAt(x) {
+    let best = cars[0];
+    for (const car of cars) if (Math.abs(x - car.centre) < Math.abs(x - best.centre)) best = car;
+    return best;
+  }
+  function toCar(car, p) {
+    const s = car.turned ? -1 : 1;
+    return new THREE.Vector3(s * (p.x - car.centre), p.y, s * p.z);
+  }
+
+  return { group, cars, length, wheelXs, setDoors, roll, place, carAt, toCar, headlights, materials };
 }

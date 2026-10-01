@@ -5,9 +5,10 @@ A 3D model of a London Underground train, rendered in the browser with WebGL
 Walthamstow Central to Brixton, as a full eight-car train, inside and out.
 You can look round it in the depot, open its doors and sit in the saloon, then
 send it off through a tube tunnel: ride in the cab, watch it from alongside,
-or stand at the trackside as it comes out of the dark. Underground it runs in
-service, calling at a station every half kilometre, where you can wait on the
-platform, watch it pull in and see the doors open.
+or stand at the trackside as it comes round a bend out of the dark.
+Underground it runs in service along a winding line, calling at a station
+every half kilometre, where you can wait on the platform, watch it pull in
+and see the doors open.
 
 Everything is built in code when the page loads. There are no model files.
 
@@ -85,14 +86,27 @@ photographs. `src/dims.js` has all the numbers.
 - **Underneath** (`bogie.js`) are the bogies, with wheels, axleboxes, air
   springs and traction motors. The driving cars and the D cars have shoe gear
   for the fourth rail. Equipment cases hang between the bogies.
+- **The line** (`path.js`) is made up as the train goes, one block per
+  station. Each block has a level straight through the station, then a curve
+  or an S-bend (radii of 170 to 470 m, eased in and out) and a dip of up to
+  about 1 in 30 down to the next station. The Victoria line's stations sit
+  on humps like this, so trains run downhill as they pull away and uphill as
+  they brake. Anything along the line is placed in a frame (a point on the
+  track and its forward, up and right directions) at its distance along it.
 - **The tunnel** (`tunnel.js`) is rings of cast-iron segments with their
   flanges facing in, set around a concrete invert with timber sleepers and
   both conductor rails. There are cable runs along the walls and a working
-  light every 15 m. The train stays still and the tunnel slides past it; it
-  repeats every 30 rings, so it never moves more than that before jumping
-  back. The windows throw light on the walls: the tunnel's shaders read a
+  light every 15 m. It is built in 30 m pieces wherever the train and the
+  camera are, and taken down behind them. The rings, sleepers, insulators
+  and cables are instanced along the line; the rails and the invert are swept
+  along it. The windows throw light on the walls: the tunnel's shaders read a
   strip of texture that marks where along the train the windows are, and
   blur it more the further the wall is from the glass.
+- **On a curve** (`train.js`) each car sits on its two bogies, so it is a
+  chord of the curve: its middle swings in, its ends swing out, and the
+  bogies turn under it to follow the rails. Cameras ride with a car, stand in
+  the station or stand at the trackside, and each frame a riding camera is
+  moved however its car moved, so it goes round the bends with it.
 - **The station** (`station.js`) is a deep-level platform tunnel, 140 m
   long and 6.8 m across, set off to one side of the track so there's room for
   the platform. It has glazed tiles with a band in the line's light blue, a
@@ -100,9 +114,10 @@ photographs. `src/dims.js` has all the numbers.
   on the wall across the track, benches, the station's name along both walls,
   way-out signs and a dot-matrix train indicator. Its light is two more line
   sources, which the station, the tunnel near it and the outside of the train
-  all add in their shaders. Only one station exists at a time: when the train
-  has left, it moves on half a kilometre and takes the next name on the line.
-  The running tunnel is cut away in the shader where the station is.
+  all add in their shaders, in the station's own coordinates. Only one
+  station exists at a time: when the train has left, it moves on to the next
+  stop along the line and takes the next name. The running tunnel is cut away
+  in the shader where the station is.
 - **The service** (`service.js`) drives the train underground. It pulls
   away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
   its front 3 m short of the end of the platform. It opens the doors on the

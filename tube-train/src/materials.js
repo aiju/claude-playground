@@ -18,8 +18,9 @@ export const lighting = {
 
 // Adds extra light to a MeshStandardMaterial or MeshPhysicalMaterial. Each
 // term has GLSL declarations and a body that adds irradiance to `extraIrr`
-// from the world position `wp` and normal `wn` (or discards the fragment).
-// Terms accumulate: a material can be given more of them later.
+// from the world position `wp` and normal `wn` (or discards the fragment),
+// and can pass more from the vertex shader (`vdecl`, `vbody`). Terms
+// accumulate: a material can be given more of them later.
 export function addLightTerms(material, terms) {
   const all = material.userData.lightTerms;
   if (all) {
@@ -33,7 +34,10 @@ export function addLightTerms(material, terms) {
     const list = material.userData.lightTerms;
     for (const t of list) Object.assign(shader.uniforms, t.uniforms);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vXtPos;\nvarying vec3 vXtNormal;')
+      .replace('#include <common>', `#include <common>
+        varying vec3 vXtPos;
+        varying vec3 vXtNormal;
+        ${[...new Set(list.flatMap(t => [].concat(t.vdecl || [])))].join('\n')}`)
       .replace('#include <fog_vertex>', `#include <fog_vertex>
         {
           mat4 xm = modelMatrix;
@@ -42,6 +46,7 @@ export function addLightTerms(material, terms) {
           #endif
           vXtPos = (xm * vec4(transformed, 1.0)).xyz;
           vXtNormal = normalize(mat3(xm) * objectNormal);
+          ${list.map(t => t.vbody || '').join('\n')}
         }`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
@@ -61,16 +66,21 @@ export function addLightTerms(material, terms) {
   return material;
 }
 
-// The station: where along the line it is just now, in world x, and whether
-// its lights are on (they are off in the depot). Station materials, the
-// tunnel near it and the train's outside all take its light.
+// The station: where it is (as the inverse of its frame, taking world
+// positions into the station's own: x from 0 to uStLen along the platform,
+// y up, z to the right, where the platform is) and whether its lights are on
+// (they are off in the depot). Station materials, the tunnel near it and the
+// train's outside all take its light.
 export const station = {
-  uStX0: { value: 1e6 },
-  uStX1: { value: 1e6 },
+  uStInv: { value: new THREE.Matrix4() },
+  uStLen: { value: 140 },
   uStOn: { value: 0 },
 };
 
-const STATION_UNIFORMS = 'uniform float uStX0, uStX1, uStOn;';
+const STATION_UNIFORMS = `
+  uniform mat4 uStInv;
+  uniform float uStLen, uStOn;
+  vec3 stationLocal(vec3 p) { return (uStInv * vec4(p, 1.0)).xyz; }`;
 
 // Light in the station: two long light troughs, one over the platform (on
 // the +z side) and one over the track, plus the light bouncing off the tiles.
@@ -87,14 +97,17 @@ export function stationTerm() {
         float lobe = 0.35 + 0.65 * max(-l.x, 0.0);
         return facing * lobe / (dist + 0.6);
       }
-      float stationInside(float x) {
-        return smoothstep(uStX0 - 10.0, uStX0 + 3.0, x) * (1.0 - smoothstep(uStX1 - 3.0, uStX1 + 10.0, x));
+      float stationInside(vec3 p) {
+        float along = smoothstep(-10.0, 3.0, p.x) * (1.0 - smoothstep(uStLen - 3.0, uStLen + 10.0, p.x));
+        return along * step(abs(p.z - 1.0), 8.0) * step(abs(p.y - 1.5), 8.0);
       }`],
     body: `
-      float inside = stationInside(wp.x) * uStOn;
+      vec3 sp = stationLocal(wp);
+      float inside = stationInside(sp) * uStOn;
       if (inside > 0.001) {
-        float e = 2.6 * stationLine(wp, wn, vec2(3.95, 3.0)) + 1.6 * stationLine(wp, wn, vec2(4.45, 0.3));
-        float bounce = 0.35 + 0.15 * max(wn.y, 0.0);
+        vec3 sn = normalize(mat3(uStInv) * wn);
+        float e = 2.6 * stationLine(sp, sn, vec2(3.95, 3.0)) + 1.6 * stationLine(sp, sn, vec2(4.45, 0.3));
+        float bounce = 0.35 + 0.15 * max(sn.y, 0.0);
         extraIrr += (e + bounce) * inside * vec3(1.0, 0.96, 0.9);
       }`,
   };
@@ -106,7 +119,10 @@ export function clipTerm() {
     key: 'station-clip',
     uniforms: station,
     decl: STATION_UNIFORMS,
-    body: 'if (uStOn > 0.5 && wp.x > uStX0 + 0.01 && wp.x < uStX1 - 0.01) discard;',
+    body: `{
+      vec3 sp = stationLocal(wp);
+      if (uStOn > 0.5 && sp.x > 0.01 && sp.x < uStLen - 0.01 && abs(sp.z - 1.0) < 6.0 && sp.y > -3.0 && sp.y < 7.0) discard;
+    }`,
   };
 }
 
