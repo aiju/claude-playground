@@ -66,7 +66,7 @@ try {
     await page.goto(`http://127.0.0.1:${port}/?${query}`);
     await page.waitForFunction(() => window.tubeTrain?.stillReady, null, { timeout: 180000, polling: 250 });
     const file = join(OUT, `${spec.replace(/[^a-z0-9=-]+/gi, '_').slice(0, 80)}.png`);
-    await page.locator('canvas').screenshot({ path: file });
+    await page.locator('#view').screenshot({ path: file });
     console.log(`${file}  (${((Date.now() - started) / 1000).toFixed(1)} s)`);
   }
 } finally {

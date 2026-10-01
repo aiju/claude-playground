@@ -21,6 +21,11 @@ node tools/serve.mjs      # then open http://localhost:8080
 Any static file server will do. It needs a browser with WebGL and an internet
 connection, because three.js comes from a CDN.
 
+Underground, a map in the corner shows the line round the train from above:
+the bends, the stations with their names, the train, where the camera is and
+which way it looks, and under it the line's height, stretched so the dips
+show. Click it to zoom out and in.
+
 Drag to look around, scroll or pinch to zoom. The panel switches between the
 depot, the tunnel and the station and picks a view. It also opens and closes
 the doors in the depot, sets the speed, turns the stops at stations on and
@@ -34,6 +39,7 @@ sound on and off. Keys:
 | ↑ ↓ | speed up or slow down (underground) |
 | L | saloon lights |
 | S | sound |
+| M | show or hide the map (underground) |
 | H | hide the panel |
 | F | fullscreen |
 
@@ -126,6 +132,10 @@ photographs. `src/dims.js` has all the numbers.
   away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
   its front 3 m short of the end of the platform. It opens the doors on the
   platform side, closes them after 15 s with the warning beeps, and leaves.
+- **The map** (`minimap.js`) is drawn on its own 2D canvas each frame,
+  from the same path as the tunnel. It turns slowly so the stretch of line
+  on it always runs left to right, and draws station names only where they
+  have room.
 - **The sound** (`sound.js`) is synthesized: a rumble and a rush of air that
   grow with speed, motors that whine when the train pulls away or brakes, a
   click from each wheel as it crosses a rail joint, and the door beeps.

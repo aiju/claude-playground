@@ -41,7 +41,12 @@
   body.bare #panel { display: none; }
   body.bare #show { display: block; }
   body.still #panel, body.still #show { display: none; }
+  #minimap { position: fixed; top: calc(16px + env(safe-area-inset-top, 0px)); right: 16px; width: 280px; height: 196px; display: none;
+             border-radius: 12px; cursor: zoom-in; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3); }
+  body[data-scene="tunnel"] #minimap { display: block; }
+  body.nomap #minimap, body.still #minimap { display: none; }
   @media (max-width: 480px) {
+    #minimap { top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; width: 190px; height: 140px; }
     #panel { left: 8px; right: 8px; max-width: none; padding: 8px 10px; }
     #panel .head { margin-bottom: 4px; }
     .row { margin: 4px 0; }
@@ -62,6 +67,7 @@
 <body>
 <canvas id="view" tabindex="0" aria-label="3D view of a Victoria line train"></canvas>
 <div id="status">Building the train…</div>
+<canvas id="minimap" role="img" aria-label="Map of the line" title="Click to zoom · M hides the map"></canvas>
 <div id="panel" hidden>
   <div class="head"><strong>Tube train</strong><span class="sub">Victoria line · 2009 Stock</span><button id="hide" type="button" aria-label="Hide the controls" title="Hide (H)">×</button></div>
   <div class="row"><span class="label">Where</span>
@@ -76,7 +82,7 @@
   <div class="row"><span class="label">To</span><select id="dest" aria-label="Destination on the front"></select>
     <button id="lights" type="button" title="L">Saloon lights</button><button id="sound" type="button" title="S">Sound</button>
   </div>
-  <p class="hint">Drag to look around, scroll or pinch to zoom. Keys 1–5 pick a view.</p>
+  <p class="hint">Drag to look around, scroll or pinch to zoom. Keys 1–5 pick a view, M shows or hides the map.</p>
 </div>
 <button id="show" type="button">Controls</button>
 <script type="module" src="src/main.js"></script>

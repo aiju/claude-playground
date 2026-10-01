@@ -21,6 +21,7 @@ import { LinePath, StraightPath, Frame } from './path.js';
 import { createSound } from './sound.js';
 import { VIEWS, DEFAULT_VIEW } from './views.js';
 import { buildUI } from './ui.js';
+import { createMinimap } from './minimap.js';
 
 const params = new URLSearchParams(location.search);
 const still = params.has('still');
@@ -226,14 +227,20 @@ function followAnchor() {
   for (const p of pts) p.applyMatrix4(delta);
 }
 
+// Station k's name: the stops on the way to the destination, starting a few
+// short of it, then round again.
+function stationName(k) {
+  const stops = route(state.destination);
+  return stops[(Math.max(0, stops.length - 4) + k) % stops.length];
+}
+
 // Shows the station the train is at or coming to, at its place on the line.
 const sf = new Frame();
 function updateStation() {
   const k = service.shownStation(state.distance);
   if (k !== state.stationIndex) {
     state.stationIndex = k;
-    const stops = route(state.destination);
-    station.setName(stops[(Math.max(0, stops.length - 4) + k) % stops.length]);
+    station.setName(stationName(k));
   }
   line.frame(stationStart(k), sf).matrix(station.group.matrix);
   station.group.matrixWorldNeedsUpdate = true;
@@ -298,6 +305,9 @@ const app = {
 };
 
 const ui = still ? null : buildUI(app);
+const minimap = still ? null : createMinimap({
+  canvas: document.getElementById('minimap'), line, train, stationStart, stationLength: STATION.length, stationName,
+});
 // for stills: ?stopped stands the train at the first station
 if (params.has('stopped')) { service.standAt(state, 0); state.doors = state.doorTarget = 1; }
 setView(params.get('view') || 'front', false);
@@ -369,6 +379,10 @@ function frame(time) {
   }
   sound.update({ speed: state.speed, accel: state.accel, distance: state.distance, listener: state.scene === 'tunnel' ? state.focusS - frontS() : camera.position.x, tunnel: state.scene === 'tunnel' });
   ui?.tick();
+  if (minimap && state.scene === 'tunnel' && !document.body.classList.contains('nomap')) {
+    const k = service.nextStop(state.distance);
+    minimap.draw({ s: state.distance, camera, nextStop: k, toNext: service.phase === 'dwell' ? 0 : stopAt(k) - state.distance, dt });
+  }
   renderer.render(scene, camera);
   frames++;
   if (still && frames === 3) window.tubeTrain.stillReady = true;
@@ -387,6 +401,7 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowUp' && state.scene === 'tunnel') { app.setSpeedKmh(Math.min(80, Math.round(state.targetSpeed * 3.6) + 5)); e.preventDefault(); }
   else if (e.key === 'ArrowDown' && state.scene === 'tunnel') { app.setSpeedKmh(Math.max(0, Math.round(state.targetSpeed * 3.6) - 5)); e.preventDefault(); }
   else if (e.key === 'h') document.body.classList.toggle('bare');
+  else if (e.key === 'm') document.body.classList.toggle('nomap');
   else if (e.key === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
 });
 
