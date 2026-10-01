@@ -23,6 +23,11 @@ export const STATION = {
   bed: TUNNEL.bed,
 };
 
+// Two passages lead off the platform to the way out, between the benches.
+// People walk out of them to wait, and into them when they leave.
+export const EXITS = [36, 104];                  // their middles, along the platform
+export const PASSAGE = { width: 2.4, height: 2.45, end: 11.5 };   // end: how far they go (z)
+
 const { length: LEN, radius: R, cy: CY, cz: CZ, platform: PH, edge: EDGE, bed: BED } = STATION;
 const PHI0 = Math.asin((PH - CY) / R);                  // where the wall meets the platform
 const PHI1 = Math.PI - Math.asin((BED - CY) / R);       // and where it meets the track bed
@@ -256,6 +261,9 @@ export function buildStation() {
   }
   const trackSideStep = Math.asin((PH + 0.1 - CY) / R);
   cuts.push(Math.PI - trackSideStep);
+  // the tops of the passages
+  const passTop = PH + PASSAGE.height;
+  cuts.push(Math.asin((passTop - CY) / R));
   for (let i = 1; i < N; i++) cuts.push(PHI0 + (PHI1 - PHI0) * i / N);
   cuts.sort((a, b) => a - b);
   let arc = 0;
@@ -266,8 +274,41 @@ export function buildStation() {
     const na = [0, -Math.sin(a), -Math.cos(a)], nb = [0, -Math.sin(b), -Math.cos(b)];
     const va = arc / 1.2, vb = (arc + R * (b - a)) / 1.2;
     arc += R * (b - a);
-    shell[pick((a + b) / 2)].quad([0, ya, za], [LEN, ya, za], [LEN, yb, zb], [0, yb, zb], na, na, nb, nb,
-      [0, va], [LEN / 1.2, va], [LEN / 1.2, vb], [0, vb]);
+    // below the tops of the passages, the platform wall has holes for them
+    const holed = Math.min(za, zb) > CZ && Math.min(ya, yb) < passTop - 1e-3;
+    const spans = [];
+    let x0 = 0;
+    if (holed) for (const e of EXITS) { spans.push([x0, e - PASSAGE.width / 2]); x0 = e + PASSAGE.width / 2; }
+    spans.push([x0, LEN]);
+    for (const [xa, xb] of spans) {
+      shell[pick((a + b) / 2)].quad([xa, ya, za], [xb, ya, za], [xb, yb, zb], [xa, yb, zb], na, na, nb, nb,
+        [xa / 1.2, va], [xb / 1.2, va], [xb / 1.2, vb], [xa / 1.2, vb]);
+    }
+  }
+
+  // ---- the passages: tiled walls, a dark ceiling with a light, the floor,
+  // running back from the platform wall into the dark
+  const passFloor = new MeshBuilder(), passLamp = new MeshBuilder();
+  for (const e of EXITS) {
+    const xl = e - PASSAGE.width / 2, xr = e + PASSAGE.width / 2, zEnd = PASSAGE.end;
+    const zWall = (y) => CZ + Math.sqrt(Math.max(R * R - (y - CY) ** 2, 0));
+    const up = [0, 1, 0], down = [0, -1, 0];
+    passFloor.quad([xl, PH, WALL_Z - 0.01], [xr, PH, WALL_Z - 0.01], [xr, PH, zEnd], [xl, PH, zEnd], up, up, up, up);
+    // side walls, from the curved wall of the platform tunnel outwards
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const y0 = PH + PASSAGE.height * i / n, y1 = PH + PASSAGE.height * (i + 1) / n;
+      const pickB = y1 <= 1.05 + 1e-6 ? shell.dado : shell.tile;
+      for (const [x, nx] of [[xl, 1], [xr, -1]]) {
+        const nn = [nx, 0, 0];
+        pickB.quad([x, y0, zWall(y0)], [x, y0, zEnd], [x, y1, zEnd], [x, y1, zWall(y1)], nn, nn, nn, nn,
+          [zWall(y0) / 1.2, y0 / 1.2], [zEnd / 1.2, y0 / 1.2], [zEnd / 1.2, y1 / 1.2], [zWall(y1) / 1.2, y1 / 1.2]);
+      }
+    }
+    shell.ceiling.quad([xl, passTop, zWall(passTop)], [xr, passTop, zWall(passTop)], [xr, passTop, zEnd], [xl, passTop, zEnd], down, down, down, down);
+    // the far end, where it turns off out of sight
+    shell.soot.quad([xl, PH, zEnd], [xr, PH, zEnd], [xr, passTop, zEnd], [xl, passTop, zEnd], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
+    box(passLamp, [0.2, 0.03, 3.2], [e, passTop - 0.02, 6.4]);
   }
 
   // ---- the platform: top, edge and face
@@ -338,6 +379,7 @@ export function buildStation() {
   const meshes = [
     [shell.tile, mats.tile], [shell.dado, mats.dado], [shell.band, mats.band], [shell.ceiling, mats.ceiling], [shell.soot, mats.soot],
     [plat, mats.platform], [conc, mats.concrete], [ends, mats.soot], [lampB, mats.lamp], [metal, mats.metal], [wood, mats.wood],
+    [passFloor, mats.concrete], [passLamp, mats.lamp],
   ];
   for (const [b, m] of meshes) {
     if (b.empty) continue;
@@ -369,6 +411,7 @@ export function buildStation() {
   for (let x = 6; x < LEN; x += 16) panel(nameMat, x, 2.0, -1, 2.2, 0.34, 0.025);
   const motifMat = lit(new THREE.MeshStandardMaterial({ map: texture(motifTexture(['#e9e4d6', '#1d6f8f', '#e2a33b'], 11)), roughness: 0.25 }));
   for (let x = 8; x < LEN - 4; x += 14) {
+    if (EXITS.some(e => Math.abs(e - x) < 3)) continue;
     const bench = benchXs.find(b => Math.abs(b - x) < 7);
     if (bench) {
       panel(motifMat, bench, 1.75, 1, 0.9, 0.9, 0.02);
@@ -421,7 +464,12 @@ export function buildStation() {
     return texture(c);
   })();
   const signMat = new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false });
-  for (const x of [LEN * 0.18, LEN * 0.82]) {
+  // over each passage, and hanging further along on either side of it
+  for (const e of EXITS) {
+    const s0 = panel(signMat, e, PH + PASSAGE.height + 0.32, 1, 1.4, 0.36, 0.02);
+    void s0;
+  }
+  for (const x of EXITS.flatMap(e => [e - 9, e + 9])) {
     box(hang, [0.12, 0.36, 1.2], [x, 3.3, 3.6]);
     for (const s of [1, -1]) {
       const d = new THREE.Mesh(new THREE.PlaneGeometry(1.14, 0.3), signMat);

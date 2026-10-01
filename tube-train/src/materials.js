@@ -2,8 +2,8 @@
 //
 // Inside, the cars are lit by two long strips of lights along the ceiling.
 // Rather than place dozens of lights, the interior materials add the light of
-// two infinitely long line sources to their shading. Because the train runs
-// along x and never leaves z = 0, that is the same for every car.
+// two infinitely long line sources to their shading, in each car's own
+// coordinates, so it is the same for every car.
 
 import * as THREE from 'three';
 import { COLOURS } from './dims.js';
@@ -37,6 +37,8 @@ export function addLightTerms(material, terms) {
       .replace('#include <common>', `#include <common>
         varying vec3 vXtPos;
         varying vec3 vXtNormal;
+        varying vec3 vXtObj;
+        varying vec3 vXtObjN;
         ${[...new Set(list.flatMap(t => [].concat(t.vdecl || [])))].join('\n')}`)
       .replace('#include <fog_vertex>', `#include <fog_vertex>
         {
@@ -46,12 +48,16 @@ export function addLightTerms(material, terms) {
           #endif
           vXtPos = (xm * vec4(transformed, 1.0)).xyz;
           vXtNormal = normalize(mat3(xm) * objectNormal);
+          vXtObj = transformed;
+          vXtObjN = objectNormal;
           ${list.map(t => t.vbody || '').join('\n')}
         }`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vXtPos;
         varying vec3 vXtNormal;
+        varying vec3 vXtObj;
+        varying vec3 vXtObjN;
         ${[...new Set(list.flatMap(t => [].concat(t.decl)))].join('\n')}`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         {
@@ -99,7 +105,8 @@ export function stationTerm() {
       }
       float stationInside(vec3 p) {
         float along = smoothstep(-10.0, 3.0, p.x) * (1.0 - smoothstep(uStLen - 3.0, uStLen + 10.0, p.x));
-        return along * step(abs(p.z - 1.0), 8.0) * step(abs(p.y - 1.5), 8.0);
+        // fading out into the passages off the platform
+        return along * (1.0 - smoothstep(5.5, 10.0, abs(p.z - 1.0))) * step(abs(p.y - 1.5), 8.0);
       }`],
     body: `
       vec3 sp = stationLocal(wp);
@@ -126,7 +133,9 @@ export function clipTerm() {
   };
 }
 
-// The saloon lights: two line lights along x, shining down and inwards.
+// The saloon lights: two line lights along the car, shining down and
+// inwards. They are worked out in the mesh's own coordinates, which inside a
+// car are the car's, so they follow it round the curves.
 export function saloonTerm({ gain = 1.5, ambient = 0.28 } = {}) {
   return {
     key: `saloon-${gain}-${ambient}`,
@@ -143,7 +152,8 @@ export function saloonTerm({ gain = 1.5, ambient = 0.28 } = {}) {
         return facing * lobe / (dist + 0.35);
       }`,
     body: `
-      float e = saloonLine(wp, wn, uLineZ) + saloonLine(wp, wn, -uLineZ);
+      vec3 cp = vXtObj, cn = normalize(vXtObjN) * (gl_FrontFacing ? 1.0 : -1.0);
+      float e = saloonLine(cp, cn, uLineZ) + saloonLine(cp, cn, -uLineZ);
       extraIrr += vec3(e * ${gain.toFixed(3)} + ${ambient.toFixed(3)}) * uSaloon * vec3(1.0, 0.97, 0.92);`,
   };
 }

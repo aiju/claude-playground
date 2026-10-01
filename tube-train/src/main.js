@@ -22,6 +22,7 @@ import { createSound } from './sound.js';
 import { VIEWS, DEFAULT_VIEW } from './views.js';
 import { buildUI } from './ui.js';
 import { createMinimap } from './minimap.js';
+import { createPeople } from './people.js';
 
 const params = new URLSearchParams(location.search);
 const still = params.has('still');
@@ -62,6 +63,9 @@ const station = buildStation();
 station.group.matrixAutoUpdate = false;
 scenes.tunnel.group.add(station.group);
 const service = createService(train.length);
+// passengers: on the platform and in the cars, underground only
+const people = createPeople({ train, station });
+scenes.tunnel.group.add(people.group);
 
 const sound = createSound(train.wheelXs);
 
@@ -241,6 +245,7 @@ function updateStation() {
   if (k !== state.stationIndex) {
     state.stationIndex = k;
     station.setName(stationName(k));
+    people.newStation();
   }
   line.frame(stationStart(k), sf).matrix(station.group.matrix);
   station.group.matrixWorldNeedsUpdate = true;
@@ -312,6 +317,13 @@ const minimap = still ? null : createMinimap({
 if (params.has('stopped')) { service.standAt(state, 0); state.doors = state.doorTarget = 1; }
 setView(params.get('view') || 'front', false);
 train.setDoors(state.doors, state.scene === 'depot' ? state.doors : 0);
+// for stills of a train standing at a station: a few seconds of people
+// getting off and on (?board=seconds)
+if (params.has('stopped') && state.scene === 'tunnel') {
+  people.doorsOpen();
+  const secs = +(params.get('board') || 3.5);
+  for (let t = 0; t < secs; t += 0.05) people.update(0.05, { doors: 1, phase: 'dwell', time: t });
+}
 // ?cam=x,y,z&at=x,y,z puts the camera anywhere, for checking details
 if (params.get('cam')) {
   camera.position.set(...params.get('cam').split(',').map(Number));
@@ -322,9 +334,9 @@ if (params.get('cam')) {
 const stationLocal = new THREE.Vector3();
 const smooth = (a, b, v) => { const t = Math.min(Math.max((v - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
 let frames = 0, lastTime = null;
-function frame(time) {
-  const dt = lastTime === null ? 1 / 60 : Math.min(Math.max((time - lastTime) / 1000, 0), 0.1);
-  lastTime = time;
+// Moves everything on by dt seconds: the train, the station, the people,
+// the doors and the camera. `time` is the clock, in seconds.
+function simulate(dt, time) {
   // underground, the train runs its service; in the depot it stands
   const before = state.speed;
   if (state.scene === 'tunnel') {
@@ -332,6 +344,7 @@ function frame(time) {
     if (event) {
       state.doorTarget = event === 'open' ? 1 : 0;
       sound.doors(event === 'open');
+      if (event === 'open') people.doorsOpen(); else people.doorsClosing();
     }
   } else state.speed = 0;
   state.accel = dt > 0 ? (state.speed - before) / dt : 0;
@@ -365,6 +378,7 @@ function frame(time) {
   }
   controls.update();
   if (state.scene === 'tunnel') {
+    people.update(dt, { doors: state.doors, phase: service.phase, time, accel: state.accel });
     state.focusS = line.nearest(camera.position, state.focusS);
     scenes.tunnel.update(frontS(), state.focusS, still ? 999 : 3);
     // brighter, and less murky, in the station
@@ -377,6 +391,12 @@ function frame(time) {
   } else {
     scenes.depot.follow(controls.target);
   }
+}
+
+function frame(time) {
+  const dt = lastTime === null ? 1 / 60 : Math.min(Math.max((time - lastTime) / 1000, 0), 0.1);
+  lastTime = time;
+  simulate(dt, time / 1000);
   sound.update({ speed: state.speed, accel: state.accel, distance: state.distance, listener: state.scene === 'tunnel' ? state.focusS - frontS() : camera.position.x, tunnel: state.scene === 'tunnel' });
   ui?.tick();
   if (minimap && state.scene === 'tunnel' && !document.body.classList.contains('nomap')) {
@@ -405,6 +425,12 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
 });
 
-window.tubeTrain = { stillReady: false, app, state, service, line, train, materials, lighting, scene, camera, renderer };
+// for checking: run the world on by some seconds without drawing it
+let clock = 0;
+function fastForward(seconds, step = 0.05) {
+  for (let t = 0; t < seconds; t += step) simulate(step, (clock += step));
+}
+
+window.tubeTrain = { stillReady: false, app, state, service, line, train, people, materials, lighting, scene, camera, renderer, fastForward };
 document.getElementById('status')?.remove();
 requestAnimationFrame(frame);

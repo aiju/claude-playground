@@ -27,12 +27,34 @@ function pole(b, a, c, r = POLE_R) {
 
 function box(b, size, pos, rot) { b.addGeometry(new THREE.BoxGeometry(...size), matrixFrom(pos, rot)); }
 
+// Where the seats are in a car, in the car's own coordinates: each seat's
+// middle along the car (x), its side (s, +1 or -1 in z) and the wall behind
+// it; and the rails along the ceiling that standing passengers hold.
+export function seatLayout(spec) {
+  const L = spec.length;
+  const X = (d) => L / 2 - d;
+  const zWall = liningAt(vAtHeight(1.4)).z;
+  const railZ = 0.80, railY = ceilingY(railZ) - 0.13;
+  const bays = [];
+  const seats = [];
+  for (const [d0, d1] of spec.seatBays) {
+    const x0 = X(d1), x1 = X(d0);
+    const run0 = x0 + 0.07, run1 = x1 - 0.07;
+    const n = Math.max(1, Math.round((run1 - run0) / 0.52));
+    const w = (run1 - run0) / n;
+    bays.push({ x0, x1, run0, run1, n, w });
+    for (const s of [1, -1]) for (let i = 0; i < n; i++) seats.push({ x: run0 + (i + 0.5) * w, s, z: s * (zWall - 0.22) });
+  }
+  // the middles of the doorways, along the car
+  const doors = spec.doors.map(d => X((d.doorway[0] + d.doorway[1]) / 2));
+  return { L, zWall, railZ, railY, bays, seats, doors, floor: FLOOR, seatHeight: FLOOR + 0.47 };
+}
+
 export function buildInterior(type, spec, materials) {
   const L = spec.length;
   const X = (d) => L / 2 - d;
   const B = new Builders();
-  const zWall = liningAt(vAtHeight(1.4)).z;
-  const railZ = 0.80, railY = ceilingY(railZ) - 0.13;
+  const { zWall, railZ, railY } = seatLayout(spec);
   const cushion = (w) => new RoundedBoxGeometry(w, 0.1, 0.46, 3, 0.04);
   const back = (w) => new RoundedBoxGeometry(w, 0.52, 0.09, 3, 0.04);
 

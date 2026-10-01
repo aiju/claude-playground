@@ -7,8 +7,8 @@ You can look round it in the depot, open its doors and sit in the saloon, then
 send it off through a tube tunnel: ride in the cab, watch it from alongside,
 or stand at the trackside as it comes round a bend out of the dark.
 Underground it runs in service along a winding line, calling at a station
-every half kilometre, where you can wait on the platform, watch it pull in
-and see the doors open.
+every half kilometre, where you can wait on the platform with the other
+passengers, watch it pull in and see people get off and on.
 
 Everything is built in code when the page loads. There are no model files.
 
@@ -34,7 +34,7 @@ sound on and off. Keys:
 
 | Key | |
 | --- | --- |
-| 1–5 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside; at the station Platform, Arriving, Doors) |
+| 1–6 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside, Inside; at the station Platform, Arriving, Doors) |
 | D | open or close the doors (in the depot) |
 | ↑ ↓ | speed up or slow down (underground) |
 | L | saloon lights |
@@ -45,7 +45,8 @@ sound on and off. Keys:
 
 The page takes URL options too: `?view=cab`, `?doors=open`,
 `?dest=Brixton`, `?s=900` to start the train that many metres along the line,
-`?stopped` to start it standing at the first station, and
+`?stopped` to start it standing at the first station (with `&board=7`, seven
+seconds after the doors opened), and
 `?cam=x,y,z&at=x,y,z` to put the camera anywhere.
 
 ## Stills
@@ -122,7 +123,8 @@ photographs. `src/dims.js` has all the numbers.
   the platform. It has glazed tiles with a band in the line's light blue, a
   dark ceiling with two long light troughs, a pit between the rails, posters
   on the wall across the track, benches, the station's name along both walls,
-  way-out signs and a dot-matrix train indicator. Its light is two more line
+  two passages off to the way out, way-out signs and a dot-matrix train
+  indicator. Its light is two more line
   sources, which the station, the tunnel near it and the outside of the train
   all add in their shaders, in the station's own coordinates. Only one
   station exists at a time: when the train has left, it moves on to the next
@@ -132,6 +134,18 @@ photographs. `src/dims.js` has all the numbers.
   away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
   its front 3 m short of the end of the platform. It opens the doors on the
   platform side, closes them after 15 s with the warning beeps, and leaves.
+- **The passengers** (`people.js`) are little people made of a few rounded
+  parts, each with their own height, build, skin tone, hair, coat and
+  trousers, and sometimes a backpack, a beanie or a phone. Every kind of part
+  is one instanced mesh for the whole crowd, so a couple of hundred people
+  take ten draw calls, and their poses (walking, sitting, holding the rail,
+  looking at a phone) are set from a few joint angles each frame. Each person
+  lives in the station's coordinates or a car's, and moves with it. When the
+  doors open, about a quarter of the riders stand up, step off and walk out
+  through the passages in the platform wall; then the people waiting go to
+  the nearest door, wait for it to be clear, get on and find a free seat or
+  a rail to hold. Anyone not on when the doors close waits for the next train,
+  and new people keep arriving from the passages.
 - **The map** (`minimap.js`) is drawn on its own 2D canvas each frame,
   from the same path as the tunnel. It turns slowly so the stretch of line
   on it always runs left to right, and draws station names only where they

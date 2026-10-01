@@ -22,6 +22,7 @@ export const VIEWS = {
   passing:   { group: 'tunnel',  label: 'Alongside', pos: [-4.5, 1.72, 1.58],   target: [-40, 1.45, 0.9] },
   window:    { group: 'tunnel',  label: 'Window',    pos: [-22.4, 1.75, -0.35],  target: [-22.9, 1.7, 3.0], fov: 60, look: true },
   trackside: { group: 'tunnel',  label: 'Trackside', pos: [0, 1.1, 1.35],       target: [30, 1.4, 0], trackside: true },
+  riding:    { group: 'tunnel',  label: 'Inside',    pos: [-15.2, 1.62, 0.25],  target: [-3.0, 1.45, -0.05], fov: 62, look: true },
   platform:  { group: 'station', label: 'Platform',  pos: [84, 2.35, 3.5],      target: [35, 1.5, 0.6], anchor: 'station' },
   arriving:  { group: 'station', label: 'Arriving',  pos: [137.4, 2.3, 2.35],   target: [100, 1.4, 0.1], anchor: 'station' },
   doorway:   { group: 'station', label: 'Doors',     pos: [116.6, 2.25, 3.9],   target: [114.3, 1.45, 1.0], anchor: 'station' },
