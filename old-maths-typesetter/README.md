@@ -24,7 +24,10 @@ python3 -m http.server 8000
 The page shows the source on the left and the typeset proofs as book spreads on
 the right, updating as you type. *Impression* sets how hard the type is
 pressed into the paper, from a light kiss to a heavy squeeze; *Letterpress*
-switches between printed and clean digital type; *Size* zooms the pages.
+switches between printed and clean digital type. *Zoom* goes from half to ten
+times the real size of the page (*Fit* fits it to the window); you can also
+zoom with ctrl or ⌘ and the scroll wheel, or by pinching on a trackpad, and
+drag a zoomed page about with the mouse.
 
 From the command line, one SVG per page (they need a browser or another
 viewer that handles SVG filters):

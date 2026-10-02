@@ -99,6 +99,8 @@
   button { cursor: pointer; }
   button:hover, select:hover { border-color: var(--pencil); }
   input[type="range"] { accent-color: var(--pencil); width: 110px; }
+  output { font: 500 0.8rem var(--ui); font-variant-numeric: tabular-nums; min-width: 3.4em; color: var(--muted); }
+  button.small { padding: 3px 8px; font-size: 0.78rem; }
   input[type="checkbox"] { accent-color: var(--pencil); }
   :focus-visible { outline: 2px solid var(--pencil); outline-offset: 2px; }
 
@@ -171,10 +173,12 @@
     padding-block: 28px 48px;
     padding-inline: 16px;
   }
-  .spreads { display: flex; flex-direction: column; align-items: center; gap: 36px; }
-  .spread { display: flex; justify-content: center; width: 100%; }
-  /* pages shrink to fit the desk, never past it */
-  .sheet, .blank { flex: 0 1 var(--page-w); min-width: 0; }
+  .proofs.pannable { cursor: grab; }
+  .proofs.panning { cursor: grabbing; user-select: none; }
+  /* as wide as the pages need, so a zoomed spread scrolls inside the desk */
+  .spreads { display: flex; flex-direction: column; align-items: center; gap: 36px; width: max-content; min-width: 100%; }
+  .spread { display: flex; justify-content: center; }
+  .sheet, .blank { flex: none; width: var(--page-w); }
   .sheet {
     box-shadow: 0 1px 2px var(--shadow), 0 10px 28px -12px var(--shadow);
     position: relative;
@@ -193,7 +197,6 @@
   .spread .sheet.verso::after { right: 0; background: linear-gradient(to left, rgba(40, 30, 10, 0.1), transparent); }
   .spread .sheet.recto::after { left: 0; background: linear-gradient(to right, rgba(40, 30, 10, 0.1), transparent); }
   body.single .spread { flex-direction: column; align-items: center; gap: 36px; }
-  body.single .sheet { flex: none; width: min(var(--page-w), 100%); }
   body.single .blank { display: none; }
   body.single .sheet::after { display: none; }
 
@@ -204,9 +207,8 @@
     main { grid-template-columns: 1fr; }
     .copy { border-right: 0; border-bottom: 1px solid var(--rule); }
     textarea { height: 42vh; }
-    .proofs { overflow: visible; }
+    .proofs { overflow-x: auto; overflow-y: hidden; }
     .spread { flex-direction: column; align-items: center; gap: 24px; }
-    .sheet { flex: none; width: min(var(--page-w), 100%); }
     .blank { display: none; }
     .sheet::after { display: none; }
     .controls { margin-left: 0; }
@@ -234,8 +236,10 @@
       <input id="ink" type="range" min="0" max="1" step="0.05" value="0.55">
     </div>
     <div class="control">
-      <label for="zoom">Size</label>
-      <input id="zoom" type="range" min="300" max="820" step="10" value="460">
+      <label for="zoom">Zoom</label>
+      <input id="zoom" type="range" min="0" max="1000" step="1" value="300" aria-describedby="zoomLabel">
+      <output id="zoomLabel" for="zoom">100%</output>
+      <button id="fit" class="small" type="button" title="Fit the pages to the desk">Fit</button>
     </div>
     <div class="control">
       <input id="letterpress" type="checkbox" checked>
@@ -337,7 +341,7 @@
   // tuned to what the screen can actually show.
   function pixelsPerPoint() {
     const sheet = pagesEl.querySelector(".sheet");
-    const cssWidth = sheet ? sheet.getBoundingClientRect().width : Number($("zoom").value);
+    const cssWidth = sheet ? sheet.getBoundingClientRect().width : zoom * ACTUAL;
     return (cssWidth * (window.devicePixelRatio || 1)) / 450;
   }
 
@@ -393,18 +397,105 @@
     inkTimer = setTimeout(render, 120);
   });
   $("letterpress").addEventListener("change", render);
-  $("zoom").addEventListener("input", (e) => {
-    document.documentElement.style.setProperty("--page-w", `${e.target.value}px`);
+  // ---- zoom and pan ----
+  // 100% is the page at its real size: 450pt = 600 CSS pixels.
+  const ACTUAL = 600;
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 10;
+  const proofs = document.querySelector(".proofs");
+  let zoom = 1;
+  let fitting = true; // follow the desk's width until the reader zooms
+
+  const sliderFor = (z) => Math.round((1000 * Math.log(z / MIN_ZOOM)) / Math.log(MAX_ZOOM / MIN_ZOOM));
+  const zoomFor = (v) => MIN_ZOOM * (MAX_ZOOM / MIN_ZOOM) ** (v / 1000);
+
+  // Set the zoom, keeping the point under `anchor` (client coordinates, or
+  // the middle of the desk) where it is.
+  function setZoom(z, anchor = null) {
+    z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+    const pane = proofs.getBoundingClientRect();
+    const ax = anchor ? anchor.x : pane.left + proofs.clientWidth / 2;
+    const ay = anchor ? anchor.y : pane.top + proofs.clientHeight / 2;
+    const sheets = [...pagesEl.querySelectorAll(".sheet")];
+    let target = null;
+    let fx = 0.5;
+    let fy = 0.5;
+    if (sheets.length) {
+      // the page under the anchor, or failing that the nearest one
+      const dist = (r) => Math.hypot(Math.max(r.left - ax, 0, ax - r.right), Math.max(r.top - ay, 0, ay - r.bottom));
+      target = sheets.reduce((a, b) => (dist(b.getBoundingClientRect()) < dist(a.getBoundingClientRect()) ? b : a));
+      const r = target.getBoundingClientRect();
+      fx = (ax - r.left) / r.width;
+      fy = (ay - r.top) / r.height;
+    }
+    zoom = z;
+    document.documentElement.style.setProperty("--page-w", `${(zoom * ACTUAL).toFixed(1)}px`);
+    $("zoom").value = sliderFor(zoom);
+    $("zoomLabel").value = `${Math.round(zoom * 100)}%`;
+    if (target) {
+      const r = target.getBoundingClientRect();
+      proofs.scrollLeft += r.left + fx * r.width - ax;
+      proofs.scrollTop += r.top + fy * r.height - ay;
+    }
+    proofs.classList.toggle("pannable", proofs.scrollWidth > proofs.clientWidth + 1 || proofs.scrollHeight > proofs.clientHeight + 1);
     rerenderForSize();
+  }
+
+  function fit() {
+    fitting = true;
+    const room = proofs.clientWidth - 32;
+    const across = $("spreads").checked && window.innerWidth > 860 ? 2 : 1;
+    setZoom(room / across / ACTUAL);
+  }
+
+  $("zoom").addEventListener("input", (e) => {
+    fitting = false;
+    setZoom(zoomFor(Number(e.target.value)));
   });
+  $("fit").addEventListener("click", fit);
+
+  // ctrl/⌘ + wheel, and trackpad pinches, zoom about the pointer
+  proofs.addEventListener(
+    "wheel",
+    (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      fitting = false;
+      setZoom(zoom * Math.exp(-e.deltaY * 0.0025), { x: e.clientX, y: e.clientY });
+    },
+    { passive: false },
+  );
+
+  // drag with the mouse to move about a zoomed page
+  let drag = null;
+  proofs.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || !proofs.classList.contains("pannable")) return;
+    drag = { x: e.clientX, y: e.clientY, left: proofs.scrollLeft, top: proofs.scrollTop };
+    proofs.setPointerCapture(e.pointerId);
+    proofs.classList.add("panning");
+  });
+  proofs.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    proofs.scrollLeft = drag.left - (e.clientX - drag.x);
+    proofs.scrollTop = drag.top - (e.clientY - drag.y);
+  });
+  const endDrag = () => {
+    drag = null;
+    proofs.classList.remove("panning");
+  };
+  proofs.addEventListener("pointerup", endDrag);
+  proofs.addEventListener("pointercancel", endDrag);
+
   $("spreads").addEventListener("change", (e) => {
     document.body.classList.toggle("single", !e.target.checked);
-    rerenderForSize();
+    if (fitting) fit();
+    else rerenderForSize();
   });
-  window.addEventListener("resize", rerenderForSize);
+  window.addEventListener("resize", () => (fitting ? fit() : rerenderForSize()));
 
   const first = store.get("sample");
   if (first && [...$("sample").options].some((o) => o.value === first)) $("sample").value = first;
+  fit();
   await loadSample($("sample").value);
-  rerenderForSize(); // the first pass guessed the size of the pages
+  fit(); // now that there are pages to measure
 </script>

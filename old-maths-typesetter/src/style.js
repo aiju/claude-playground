@@ -82,7 +82,7 @@ export const clarendon = {
     saltLevel: 0.7,
     saltAmount: 0.35,
     paperGrain: 0.03,
-    showThrough: 0.018, // the other side of the leaf, seen through the paper
-    throughBlur: 0.45,
+    showThrough: 0.012, // the other side of the leaf, seen through the paper
+    throughBlur: 0.6,
   },
 };
