@@ -1,0 +1,738 @@
+          XX        XX   XXXXXXXXXX   XX        XX  XXXXXXXXX     XXXXXXXXXXXX  XX
+          XXX      XXX  XXXXXXXXXXXX  XXX       XX  XXXXXXXXXX    XXXXXXXXXXXX  XX
+          XXXX    XXXX  XX        XX  XXXX      XX  XX       XX   XX            XX
+          XX XX  XX XX  XX        XX  XX XX     XX  XX        XX  XX            XX
+          XX  XXXX  XX  XX        XX  XX  XX    XX  XX        XX  XX            XX
+          XX   XX   XX  XXXXXXXXXXXX  XX   XX   XX  XX        XX  XXXXXXXX      XX
+          XX        XX  XXXXXXXXXXXX  XX    XX  XX  XX        XX  XXXXXXXX      XX
+          XX        XX  XX        XX  XX     XX XX  XX        XX  XX            XX
+          XX        XX  XX        XX  XX      XXXX  XX        XX  XX            XX
+          XX        XX  XX        XX  XX       XXX  XX       XX   XX            XX
+          XX        XX  XX        XX  XX        XX  XXXXXXXXXX    XXXXXXXXXXXX  XXXXXXXXXXXX
+          XX        XX  XX        XX  XX         X  XXXXXXXXX     XXXXXXXXXXXX  XXXXXXXXXXXX
+
+
+
+                                                         XX                                                  XXXXXXXXXX
+                                                        XXX                                                 XXXXXXXXXXXX
+                                                       XXXX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XXXXXXXXXXXX
+                                                         XX                                                 XXXXXXXXXXXX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                     XXXXXXXXXX                                             XX        XX
+                                                     XXXXXXXXXX                                             XX        XX
+
+
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1....START JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+                                                  H A S P    J O B    L O G
+
+
+$18.17.39 JOB    1 -- MANDEL   -- BEGINNING EXEC - INIT 1 - CLASS A
+ 18.17.39 JOB    1 IEF403I MANDEL   STARTED    TIME=18.17.39
+ 18.17.40 JOB    1 STEP: MANDEL   MANDEL   ASM      ET=00.00.00 RC=0000
+ 18.17.40 JOB    1 STEP: MANDEL   MANDEL   LKED     ET=00.00.00 RC=0000
+ 18.17.40 JOB    1 STEP: MANDEL   MANDEL   GO       ET=00.00.00 RC=0000
+ 18.17.40 JOB    1 IEF404I MANDEL   ENDED      TIME=18.17.40
+$18.17.40 JOB    1 END EXECUTION.
+
+
+
+---- HASP-II JOB STATISTICS ----
+
+
+
+      208 CARDS READ
+
+
+
+      544 SYSOUT PRINT RECORDS
+
+
+
+        0 SYSOUT PUNCH RECORDS
+
+
+
+     0.02 MINUTES EXECUTION TIME
+//MANDEL   JOB 1,MANDELBROT,CLASS=A,MSGCLASS=A,MSGLEVEL=(1,1),          JOB    1
+//             REGION=256K
+***
+*** THE MANDELBROT SET ON THE LINE PRINTER.  ASSEMBLER F ASSEMBLES
+*** THE PROGRAM, THE LINKAGE EDITOR LINKS IT AND THE GO STEP RUNS IT.
+***
+//MANDEL   EXEC ASMFCLG
+***
+*** THE PROCEDURE WANTS ITS WORK FILES ON SEPARATE CHANNELS AND DRIVES,
+*** BUT THIS SYSTEM HAS ONLY TWO PUBLIC WORK PACKS, BOTH ON CHANNEL 1.
+***
+XXASM    EXEC  PGM=IEUASM,PARM=LOAD,REGION=50K                          00020018
+XXSYSLIB DD    DSNAME=SYS1.MACLIB,DISP=SHR                         IEUD 00040016
+//ASM.SYSUT1 DD SEP=
+X/SYSUT1 DD    DSNAME=&SYSUT1,UNIT=SYSSQ,SPACE=(1700,(400,50)),        X00050018
+XX             SEP=(SYSLIB)                                             00060018
+XXSYSUT2 DD    DSNAME=&SYSUT2,UNIT=SYSSQ,SPACE=(1700,(400,50))          00070018
+//ASM.SYSUT3 DD UNIT=SYSSQ
+X/SYSUT3 DD    DSNAME=&SYSUT3,SPACE=(1700,(400,50)),                   X00080018
+XX             UNIT=(SYSSQ,SEP=(SYSUT2,SYSUT1,SYSLIB))                  00090018
+XXSYSPRINT DD  SYSOUT=A                                                 00140000
+//ASM.SYSPUNCH DD DUMMY
+X/SYSPUNCH DD  SYSOUT=B                                                 00150018
+XXSYSGO     DD DSNAME=&LOADSET,UNIT=SYSSQ,SPACE=(80,(200,50)),         X00160000
+XX             DISP=(MOD,PASS)                                          00180000
+//ASM.SYSIN DD *
+IEF236I ALLOC. FOR MANDEL   ASM      MANDEL
+IEF237I 150   ALLOCATED TO SYSLIB
+IEF237I 158   ALLOCATED TO SYSUT1
+IEF237I 159   ALLOCATED TO SYSUT2
+IEF237I 158   ALLOCATED TO SYSUT3
+IEF237I 721   ALLOCATED TO SYSPRINT
+IEF237I 159   ALLOCATED TO SYSGO
+IEF237I 701   ALLOCATED TO SYSIN
+IEF142I - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   SYS1.MACLIB                                  KEPT
+IEF285I   VOL SER NOS= ASPRES.
+IEF285I   SYS64098.T181739.RV000.MANDEL.SYSUT1         DELETED
+IEF285I   VOL SER NOS= PERMA0.
+IEF285I   SYS64098.T181739.RV000.MANDEL.SYSUT2         DELETED
+IEF285I   VOL SER NOS= WORKA0.
+IEF285I   SYS64098.T181739.RV000.MANDEL.SYSUT3         DELETED
+IEF285I   VOL SER NOS= PERMA0.
+IEF285I   SYS64098.T181739.RV000.MANDEL.LOADSET        PASSED
+IEF285I   VOL SER NOS= WORKA0.
+IEF373I STEP /ASM     / START 64098.1817
+IEF374I STEP /ASM     / STOP  64098.1817 CPU   0MIN 00.20SEC MAIN 256K LCS   0K
+
+********************************************* OS/360 MVT RELEASE 21.8F    SYSTEM ASP1 **********************************************
+*                                                    <==STEP END STATISTICS==>                                                     *
+*   STEP NUM  001        STEP INIT TIME 18:17:39.26   ALLOC START    18:17:39.27   MAIN REGION ----- 256K                          *
+*   STEP NAME ASM        STEP END TIME  18:17:40.21   PGM START TIME 18:17:39.84   MAIN STORAGE ---- 256K    CONDITION CODE 0000   *
+*   PSTP NAME MANDEL     ELAPSED TIME   00:00:00.95   STEP DPRTY ----------- 123   LCS REGION -------- 0K                          *
+*   PGM NAME  IEUASM     STEP CPU TIME  00:00:00.20   PROTECT KEY ----------- 14   LCS STORAGE  ------ 0K                          *
+*..................................................................................................................................*
+*                                                    <==STEP EXCP STATISTICS==>                                                    *
+*   UNIT     EXCP COUNT       UNIT     EXCP COUNT       UNIT     EXCP COUNT       UNIT     EXCP COUNT       UNIT     EXCP COUNT    *
+*   0150 ----------- 97       0158 ----------- 49       0159 ----------- 79       0158 ---------- 121       0721 ---------- 332    *
+*   0159 ----------- 20       0701 ---------- 191                                                                                  *
+************************************************************************************************************************************
+XXLKED   EXEC  PGM=IEWL,PARM=(XREF,LET,LIST,NCAL),REGION=96K,          X00210018
+XX             COND=(8,LT,ASM)                                          00220018
+XXSYSLIN DD    DSNAME=&LOADSET,DISP=(OLD,DELETE)                        00240000
+XX       DD    DDNAME=SYSIN                                             00260000
+XXSYSLMOD DD   DSNAME=&GOSET(GO),UNIT=SYSDA,SPACE=(1024,(50,20,1)),    X00280000
+XX             DISP=(MOD,PASS)                                          00300000
+//LKED.SYSUT1 DD UNIT=SYSDA
+X/SYSUT1 DD    DSNAME=&SYSUT1,UNIT=(SYSDA,SEP=(SYSLIN,SYSLMOD)),       X00320018
+XX             SPACE=(1024,(50,20))                                     00340000
+XXSYSPRINT DD  SYSOUT=A                                                 00360000
+IEF236I ALLOC. FOR MANDEL   LKED     MANDEL
+IEF237I 159   ALLOCATED TO SYSLIN
+IEF237I 158   ALLOCATED TO SYSLMOD
+IEF237I 159   ALLOCATED TO SYSUT1
+IEF237I 721   ALLOCATED TO SYSPRINT
+IEF142I - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   SYS64098.T181739.RV000.MANDEL.LOADSET        DELETED
+IEF285I   VOL SER NOS= WORKA0.
+IEF285I   SYS64098.T181739.RV000.MANDEL.GOSET          PASSED
+IEF285I   VOL SER NOS= PERMA0.
+IEF285I   SYS64098.T181739.RV000.MANDEL.SYSUT1         DELETED
+IEF285I   VOL SER NOS= WORKA0.
+IEF373I STEP /LKED    / START 64098.1817
+IEF374I STEP /LKED    / STOP  64098.1817 CPU   0MIN 00.01SEC MAIN 130K LCS   0K
+
+********************************************* OS/360 MVT RELEASE 21.8F    SYSTEM ASP1 **********************************************
+*                                                    <==STEP END STATISTICS==>                                                     *
+*   STEP NUM  002        STEP INIT TIME 18:17:40.22   ALLOC START    18:17:40.23   MAIN REGION ----- 256K                          *
+*   STEP NAME LKED       STEP END TIME  18:17:40.33   PGM START TIME 18:17:40.27   MAIN STORAGE ---- 130K    CONDITION CODE 0000   *
+*   PSTP NAME MANDEL     ELAPSED TIME   00:00:00.11   STEP DPRTY ----------- 123   LCS REGION -------- 0K                          *
+*   PGM NAME  IEWL       STEP CPU TIME  00:00:00.01   PROTECT KEY ----------- 14   LCS STORAGE  ------ 0K                          *
+*..................................................................................................................................*
+*                                                    <==STEP EXCP STATISTICS==>                                                    *
+*   UNIT     EXCP COUNT       UNIT     EXCP COUNT       UNIT     EXCP COUNT       UNIT     EXCP COUNT                              *
+*   0159 ----------- 21       0158 ------------ 7       0159 ------------ 0       0721 ----------- 17                              *
+************************************************************************************************************************************
+
+XXGO     EXEC  PGM=*.LKED.SYSLMOD,COND=((8,LT,ASM),(4,LT,LKED))         40360018
+//GO.SYSPRINT DD SYSOUT=A
+//
+IEF236I ALLOC. FOR MANDEL   GO       MANDEL
+IEF237I 158   ALLOCATED TO PGM=*.DD
+IEF237I 721   ALLOCATED TO SYSPRINT
+IEF142I - STEP WAS EXECUTED - COND CODE 0000
+IEF285I   SYS64098.T181739.RV000.MANDEL.GOSET          PASSED
+IEF285I   VOL SER NOS= PERMA0.
+IEF373I STEP /GO      / START 64098.1817
+IEF374I STEP /GO      / STOP  64098.1817 CPU   0MIN 00.03SEC MAIN   6K LCS   0K
+
+********************************************* OS/360 MVT RELEASE 21.8F    SYSTEM ASP1 **********************************************
+*                                                    <==STEP END STATISTICS==>                                                     *
+*   STEP NUM  003        STEP INIT TIME 18:17:40.34   ALLOC START    18:17:40.34   MAIN REGION ----- 256K                          *
+*   STEP NAME GO         STEP END TIME  18:17:40.41   PGM START TIME 18:17:40.37   MAIN STORAGE ------ 6K    CONDITION CODE 0000   *
+*   PSTP NAME MANDEL     ELAPSED TIME   00:00:00.07   STEP DPRTY ----------- 123   LCS REGION -------- 0K                          *
+*   PGM NAME  PGM=*.DD   STEP CPU TIME  00:00:00.03   PROTECT KEY ----------- 14   LCS STORAGE  ------ 0K                          *
+*..................................................................................................................................*
+*                                                    <==STEP EXCP STATISTICS==>                                                    *
+*   UNIT     EXCP COUNT       UNIT     EXCP COUNT                                                                                  *
+*   0158 ------------ 0       0721 ----------- 59                                                                                  *
+************************************************************************************************************************************
+IEF285I   SYS64098.T181739.RV000.MANDEL.GOSET          DELETED
+IEF285I   VOL SER NOS= PERMA0.
+IEF375I  JOB /MANDEL  / START 64098.1817
+IEF376I  JOB /MANDEL  / STOP  64098.1817 CPU   0MIN 00.24SEC
+
+********************************************* OS/360 MVT RELEASE 21.8F    SYSTEM ASP1 **********************************************
+*                                                     <==JOB END STATISTICS==>                                                     *
+*   JOB NAME  MANDEL     JOB READ TIME 18:17:39.19   JOB READ DATE 1964.098 1964/04/07 TUESDAY     JOB CPU TIME      00:00:00.24   *
+*   JOB CLASS A          JOB INIT TIME 18:17:39.26   JOB INIT DATE 1964.098 1964/04/07 TUESDAY     JOB ELAPSED TIME  00:00:01.17   *
+*   JOB ID    JOB00001   JOB END TIME  18:17:40.43   JOB END DATE  1964.098 1964/04/07 TUESDAY     JOB PRIORITY -------------- 7   *
+************************************************************************************************************************************
+
+                                              EXTERNAL SYMBOL DICTIONARY                                       PAGE    1
+SYMBOL   TYPE ID  ADDR  LENGTH LD ID                                                                      18.17  4/07/64
+
+
+          PC  01 000000 000000
+MANDEL    SD  02 000000 000428       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    1
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+                                      2 ***********************************************************************
+                                      3 *                                                                     *
+                                      4 *  MANDEL PRINTS THE MANDELBROT SET ON THE LINE PRINTER.  IT USES     *
+                                      5 *  ONLY THE SYSTEM/360 INSTRUCTION SET, AND DOES ITS ARITHMETIC IN    *
+                                      6 *  LONG (64-BIT) HEXADECIMAL FLOATING POINT.                          *
+                                      7 *                                                                     *
+                                      8 *  EACH PRINT POSITION STANDS FOR A POINT C OF THE COMPLEX PLANE.     *
+                                      9 *  STARTING FROM Z = 0, THE PROGRAM SETS Z = Z*Z + C OVER AND OVER    *
+                                     10 *  UNTIL ABS(Z) > 2 OR IT HAS DONE IT 64 TIMES, AND PRINTS A          *
+                                     11 *  CHARACTER THAT SHOWS HOW MANY TIMES IT TOOK.  POINTS THAT ARE      *
+                                     12 *  STILL IN AFTER 64 TIMES ARE IN THE SET, AND ARE PRINTED AS @.      *
+                                     13 *                                                                     *
+                                     14 *  THE 1403 PRINTS 10 CHARACTERS TO THE INCH ACROSS AND 6 LINES TO    *
+                                     15 *  THE INCH DOWN, SO A STEP DOWN IS 10/6 OF A STEP ACROSS.            *
+                                     16 *                                                                     *
+                                     17 ***********************************************************************
+
+
+000078                               19 COLS     EQU   120                 PRINT POSITIONS ACROSS
+000039                               20 ROWS     EQU   57                  LINES DOWN
+00001C                               21 MIDROW   EQU   28                  THE LINE WITH Y = 0
+000006                               22 MARGIN   EQU   6                   BLANK POSITIONS ON THE LEFT
+000040                               23 MAXITER  EQU   64                  ITERATIONS BEFORE WE GIVE UP
+
+
+000000                               25 R0       EQU   0
+000001                               26 R1       EQU   1
+000002                               27 R2       EQU   2                   LINE NUMBER
+000003                               28 R3       EQU   3                   COLUMN NUMBER
+000004                               29 R4       EQU   4                   ITERATIONS LEFT
+000005                               30 R5       EQU   5                   NEXT PRINT POSITION
+000006                               31 R6       EQU   6
+00000C                               32 R12      EQU   12                  BASE REGISTER
+00000D                               33 R13      EQU   13
+00000E                               34 R14      EQU   14
+00000F                               35 R15      EQU   15
+000000                               36 F0       EQU   0                   THE S/360 HAS FOUR FLOATING POINT
+000002                               37 F2       EQU   2                   REGISTERS, 0, 2, 4 AND 6
+000004                               38 F4       EQU   4
+000006                               39 F6       EQU   6       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    2
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+000000                               41 MANDEL   CSECT
+                                     42          SAVE  (14,12)
+000000                               43+         DS    0H
+000000 90EC D00C            0000C    44+         STM   14,12,12(13) SAVE REGISTERS
+000004 05C0                          45          BALR  R12,0
+000006                               46          USING *,R12
+000006 50D0 C14E            00154    47          ST    R13,SAVEAREA+4
+00000A 41D0 C14A            00150    48          LA    R13,SAVEAREA
+                                     49          OPEN  (PRINTER,OUTPUT)
+00000E 0700                          50+         CNOP  0,4 ALIGN LIST TO FULLWORD
+000010 4510 C012            00018    51+         BAL   1,*+8 LOAD REG1 W/LIST ADDR.
+000014 8F                            52+         DC    AL1(143) OPTION BYTE
+000015 0003BC                        53+         DC    AL3(PRINTER) DCB ADDRESS
+000018 0A13                          54+         SVC   19 ISSUE OPEN SVC
+                                     55 *
+                                     56 *        THE HEADING, WITH THE DATE AND THE TIME OF DAY
+                                     57 *
+                                     58          TIME  DEC                 R0 = HHMMSSTH, R1 = 00YYDDDF
+00001A 4110 0002            00002    59+         LA    1,2(0,0) LOAD 1 TO SPECIFY UNIT
+00001E 0A0B                          60+         SVC   11 ISSUE TIME SVC
+000020 5010 C1DA            001E0    61          ST    R1,WORK
+000024 F342 C1DE C1DB 001E4 001E1    62          UNPK  DIGITS(5),WORK+1(3) YYDDD
+00002A D201 C282 C1DE 00288 001E4    63          MVC   HDATE(2),DIGITS
+000030 D202 C285 C1E0 0028B 001E6    64          MVC   HDATE+3(3),DIGITS+2
+000036 5000 C1DA            001E0    65          ST    R0,WORK
+00003A F363 C1DE C1DA 001E4 001E0    66          UNPK  DIGITS(7),WORK(4)   HHMMSS, AND A TENTH WE IGNORE
+000040 D201 C290 C1DE 00296 001E4    67          MVC   HTIME(2),DIGITS
+000046 D201 C293 C1E0 00299 001E6    68          MVC   HTIME+3(2),DIGITS+2
+00004C D201 C296 C1E2 0029C 001E8    69          MVC   HTIME+6(2),DIGITS+4
+                                     70          PUT   PRINTER,HEADING
+000052 4110 C3B6            003BC    71+         LA    1,PRINTER LOAD PARAMETER REG 1
+000056 4100 C226            0022C    72+         LA    0,HEADING LOAD PARAMETER REG 0
+00005A 58F0 1030            00030    73+         L     15,48(0,1) LOAD PUT ROUTINE ADDR.
+00005E 05EF                          74+         BALR  14,15 LINK TO PUT ROUTINE
+                                     75 *
+                                     76 *        THE PICTURE, ONE LINE AT A TIME
+                                     77 *
+000060 4110 001C            0001C    78          LA    R1,MIDROW
+000064 45E0 C13E            00144    79          BAL   R14,FLOAT
+000068 6C00 C1AA            001B0    80          MD    F0,DY
+00006C 6000 C1BA            001C0    81          STD   F0,YTOP             Y OF THE TOP LINE
+000070 1B22                          82          SR    R2,R2
+000072 1812                          83 ROWLOOP  LR    R1,R2
+000074 45E0 C13E            00144    84          BAL   R14,FLOAT
+000078 6C00 C1AA            001B0    85          MD    F0,DY
+00007C 6820 C1BA            001C0    86          LD    F2,YTOP
+000080 2B20                          87          SDR   F2,F0
+000082 6020 C1CA            001D0    88          STD   F2,CIMAG            Y = YTOP - LINE * DY
+000086 9240 C330      00336          89          MVI   LINE,C' '           BLANK THE LINE: SINGLE SPACE, AND
+00008A D283 C331 C330 00337 00336    90          MVC   LINE+1(L'LINE-1),LINE  LET MVC SPREAD THE BLANK ALONG
+000090 1222                          91          LTR   R2,R2
+000092 4770 C094            0009A    92          BNZ   FIRSTCOL
+000096 92F0 C330      00336          93          MVI   LINE,C'0'           DOUBLE SPACE BEFORE THE FIRST LINE
+00009A 4150 C337            0033D    94 FIRSTCOL LA    R5,LINE+1+MARGIN
+00009E 1B33                          95          SR    R3,R3       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    3
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+0000A0 1813                          96 COLLOOP  LR    R1,R3
+0000A2 45E0 C13E            00144    97          BAL   R14,FLOAT
+0000A6 6C00 C1A2            001A8    98          MD    F0,DX
+0000AA 6A00 C1B2            001B8    99          AD    F0,XLEFT
+0000AE 6000 C1C2            001C8   100          STD   F0,CREAL            X = XLEFT + COLUMN * DX
+0000B2 2B00                         101          SDR   F0,F0               F0 = REAL PART OF Z
+0000B4 2B22                         102          SDR   F2,F2               F2 = IMAGINARY PART OF Z
+0000B6 4140 0040            00040   103          LA    R4,MAXITER
+0000BA 2840                         104 ITERATE  LDR   F4,F0
+0000BC 2C40                         105          MDR   F4,F0               F4 = ZR*ZR
+0000BE 2862                         106          LDR   F6,F2
+0000C0 2C62                         107          MDR   F6,F2               F6 = ZI*ZI
+0000C2 6060 C1D2            001D8   108          STD   F6,ZISQ
+0000C6 2A64                         109          ADR   F6,F4               F6 = ZR*ZR + ZI*ZI
+0000C8 6960 C19A            001A0   110          CD    F6,FOUR
+0000CC 4720 C0E0            000E6   111          BH    ESCAPED             ABS(Z) > 2: IT GOES OFF TO INFINITY
+0000D0 2C20                         112          MDR   F2,F0
+0000D2 2A22                         113          ADR   F2,F2
+0000D4 6A20 C1CA            001D0   114          AD    F2,CIMAG            ZI = 2*ZR*ZI + Y
+0000D8 6B40 C1D2            001D8   115          SD    F4,ZISQ
+0000DC 6A40 C1C2            001C8   116          AD    F4,CREAL
+0000E0 2804                         117          LDR   F0,F4               ZR = ZR*ZR - ZI*ZI + X
+0000E2 4640 C0B4            000BA   118          BCT   R4,ITERATE
+0000E6 4160 0040            00040   119 ESCAPED  LA    R6,MAXITER
+0000EA 1B64                         120          SR    R6,R4               ITERATIONS DONE, UP TO MAXITER
+0000EC 4366 C1E5            001EB   121          IC    R6,SHADES(R6)
+0000F0 4260 5000            00000   122          STC   R6,0(,R5)
+0000F4 4150 5001            00001   123          LA    R5,1(,R5)
+0000F8 4130 3001            00001   124          LA    R3,1(,R3)
+0000FC 5930 C41A            00420   125          C     R3,=A(COLS)
+000100 4740 C09A            000A0   126          BL    COLLOOP
+                                    127          PUT   PRINTER,LINE
+000104 4110 C3B6            003BC   128+         LA    1,PRINTER LOAD PARAMETER REG 1
+000108 4100 C330            00336   129+         LA    0,LINE LOAD PARAMETER REG 0
+00010C 58F0 1030            00030   130+         L     15,48(0,1) LOAD PUT ROUTINE ADDR.
+000110 05EF                         131+         BALR  14,15 LINK TO PUT ROUTINE
+000112 4120 2001            00001   132          LA    R2,1(,R2)
+000116 5920 C41E            00424   133          C     R2,=A(ROWS)
+00011A 4740 C06C            00072   134          BL    ROWLOOP
+                                    135 *
+                                    136 *        THE FOOTING, AND HOME
+                                    137 *
+                                    138          PUT   PRINTER,FOOTING
+00011E 4110 C3B6            003BC   139+         LA    1,PRINTER LOAD PARAMETER REG 1
+000122 4100 C2AB            002B1   140+         LA    0,FOOTING LOAD PARAMETER REG 0
+000126 58F0 1030            00030   141+         L     15,48(0,1) LOAD PUT ROUTINE ADDR.
+00012A 05EF                         142+         BALR  14,15 LINK TO PUT ROUTINE
+                                    143          CLOSE (PRINTER)
+00012C                              144+         CNOP  0,4 ALIGN LIST TO FULLWORD
+00012C 4510 C12E            00134   145+         BAL   1,*+8 LOAD REG1 W/LIST ADDR
+000130 80                           146+         DC    AL1(128) OPTION BYTE
+000131 0003BC                       147+         DC    AL3(PRINTER) DCB ADDRESS
+000134 0A14                         148+         SVC   20 ISSUE CLOSE SVC
+000136 58D0 C14E            00154   149          L     R13,SAVEAREA+4
+                                    150          RETURN (14,12),RC=0       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    4
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+00013A 98EC D00C            0000C   151+         LM    14,12,12(13) RESTORE THE REGISTERS
+00013E 41F0 0000            00000   152+         LA    15,0(0,0) LOAD RETURN CODE
+000142 07FE                         153+         BR    14 RETURN       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    5
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+                                    155 ***********************************************************************
+                                    156 *                                                                     *
+                                    157 *  FLOAT SETS F0 TO THE INTEGER IN R1, WHICH MUST NOT BE NEGATIVE.    *
+                                    158 *  THERE IS NO INSTRUCTION FOR THIS.  INSTEAD WE PUT THE INTEGER IN   *
+                                    159 *  THE LOW WORD OF A LONG FLOATING POINT NUMBER WHOSE EXPONENT IS     *
+                                    160 *  16**14, WHICH MAKES THE 14 HEX DIGITS OF THE FRACTION AN INTEGER,  *
+                                    161 *  AND ADD IT TO ZERO, WHICH NORMALIZES IT.  RETURNS VIA R14.         *
+                                    162 *                                                                     *
+                                    163 ***********************************************************************
+000144 5010 C196            0019C   164 FLOAT    ST    R1,FLOATW+4
+000148 2B00                         165          SDR   F0,F0
+00014A 6A00 C192            00198   166          AD    F0,FLOATW
+00014E 07FE                         167          BR    R14       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    6
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+                                    169 *
+                                    170 *        CONSTANTS AND WORK AREAS
+                                    171 *
+000150 0000000000000000             172 SAVEAREA DC    18F'0'
+000198 4E00000000000000             173 FLOATW   DC    X'4E000000',F'0'    EXPONENT 16**14, FRACTION 0
+0001A0 4140000000000000             174 FOUR     DC    D'4'
+0001A8 3F66666666666666             175 DX       DC    D'0.025'            3 UNITS ACROSS IN 120 COLUMNS
+0001B0 3FAAAAAAAAAAAAAF             176 DY       DC    D'0.04166666666666667'   DX * 10/6
+0001B8 C123CCCCCCCCCCCD             177 XLEFT    DC    D'-2.2375'          -2.25, PLUS HALF A COLUMN
+0001C0                              178 YTOP     DS    D
+0001C8                              179 CREAL    DS    D
+0001D0                              180 CIMAG    DS    D
+0001D8                              181 ZISQ     DS    D
+0001E0                              182 WORK     DS    F
+0001E4                              183 DIGITS   DS    CL7
+                                    184 *
+                                    185 *        THE CHARACTER TO PRINT FOR EACH NUMBER OF ITERATIONS
+                                    186 *
+0001EB 40404040                     187 SHADES   DC    CL4' '              0-3
+0001EF 4B6B7A                       188          DC    C'.,:'              4, 5, 6
+0001F2 5E5E                         189          DC    C';;'               7-8
+0001F4 6060                         190          DC    C'--'               9-10
+0001F6 7E7E7E                       191          DC    C'==='              11-13
+0001F9 4E4E4E4E                     192          DC    4C'+'               14-17
+0001FD 5C5C5C5C5C5C                 193          DC    6C'*'               18-23
+000203 E7E7E7E7E7E7E7E7             194          DC    9C'X'               24-32
+00020C 6C6C6C6C6C6C6C6C             195          DC    12C'%'              33-44
+000218 7B7B7B7B7B7B7B7B             196          DC    19C'#'              45-63
+00022B 7C                           197          DC    C'@'                64: IN THE SET
+                                    198 *
+                                    199 *        PRINT LINES: A CARRIAGE CONTROL CHARACTER AND 132 POSITIONS
+                                    200 *
+00022C F1404040404040               201 HEADING  DC    C'1',CL6' '         SKIP TO A NEW PAGE
+000233 E3C8C540D4C1D5C4             202          DC    C'THE MANDELBROT SET, COMPUTED IN SYSTEM/360 '
+00025E C8C5E7C1C4C5C3C9             203          DC    CL37'HEXADECIMAL FLOATING POINT'
+000283 C4C1E3C540                   204          DC    C'DATE '
+000288 E8E84BC4C4C4                 205 HDATE    DC    C'YY.DDD'
+00028E 404040E3C9D4C540             206          DC    C'   TIME '
+000296 C8C84BD4D44BE2E2             207 HTIME    DC    C'HH.MM.SS'
+00029E 4040404040404040             208          DC    CL19' '
+0002B1 F0404040404040               209 FOOTING  DC    C'0',CL6' '         DOUBLE SPACE
+0002B8 E740C6D9D6D44060             210          DC    C'X FROM -2.25 TO 0.75, Y FROM -1.17 TO 1.17.  '
+0002E5 7C40D4C5C1D5E240             211          DC    C'@ MEANS STILL BOUNDED AFTER 64 ITERATIONS.'
+00030F 4040404040404040             212          DC    CL39' '
+000336                              213 LINE     DS    CL133
+                                    214 *
+                                    215 PRINTER  DCB   DDNAME=SYSPRINT,DSORG=PS,MACRF=PM,RECFM=FBA,LRECL=133,  X
+                                                       BLKSIZE=133
+
+
+                                    217+*                       DATA CONTROL BLOCK
+                                    218+*
+0003BB 00
+0003BC                              219+PRINTER  DC    0F'0' ORIGIN ON WORD BOUNDARY       MANDEL - THE MANDELBROT SET IN HEX FLOATING POINT                                                       PAGE    7
+
+
+  LOC  OBJECT CODE    ADDR1 ADDR2  STMT   SOURCE STATEMENT                                            F04MAR74   4/07/64
+
+                                    221+*                       DIRECT ACCESS DEVICE INTERFACE
+
+0003BC 0000000000000000             223+         DC    BL16'0' FDAD,DVTBL
+0003CC 00000000                     224+         DC    A(0) KEYLE,DEVT,TRBAL
+
+                                    226+*                       COMMON ACCESS METHOD INTERFACE
+
+0003D0 00                           228+         DC    AL1(0) BUFNO
+0003D1 000001                       229+         DC    AL3(1) BUFCB
+0003D4 0000                         230+         DC    AL2(0) BUFL
+0003D6 4000                         231+         DC    BL2'0100000000000000' DSORG
+0003D8 00000001                     232+         DC    A(1) IOBAD
+
+                                    234+*                       FOUNDATION EXTENSION
+
+0003DC 00                           236+         DC    BL1'00000000' BFTEK,BFLN,HIARCHY
+0003DD 000001                       237+         DC    AL3(1) EODAD
+0003E0 94                           238+         DC    BL1'10010100' RECFM
+0003E1 000000                       239+         DC    AL3(0) EXLST
+
+                                    241+*                       FOUNDATION BLOCK
+
+0003E4 E2E8E2D7D9C9D5E3             243+         DC    CL8'SYSPRINT' DDNAME
+0003EC 02                           244+         DC    BL1'00000010' OFLGS
+0003ED 00                           245+         DC    BL1'00000000' IFLG
+0003EE 0050                         246+         DC    BL2'0000000001010000' MACR
+
+                                    248+*                       BSAM-BPAM-QSAM INTERFACE
+
+0003F0 00                           250+         DC    BL1'00000000' RER1
+0003F1 000001                       251+         DC    AL3(1) CHECK, GERR, PERR
+0003F4 00000001                     252+         DC    A(1) SYNAD
+0003F8 0000                         253+         DC    H'0' CIND1, CIND2
+0003FA 0085                         254+         DC    AL2(133) BLKSIZE
+0003FC 00000000                     255+         DC    F'0' WCPO, WCPL, OFFSR, OFFSW
+000400 00000001                     256+         DC    A(1) IOBA
+000404 00                           257+         DC    AL1(0) NCP
+000405 000001                       258+         DC    AL3(1) EOBR, EOBAD
+
+                                    260+*                            QSAM INTERFACE
+
+000408 00000001                     262+         DC    A(1) RECAD
+00040C 0000                         263+         DC    H'0' QSWS
+00040E 0085                         264+         DC    AL2(133) LRECL
+000410 00                           265+         DC    BL1'00000000' EROPT
+000411 000001                       266+         DC    AL3(1) CNTRL
+000414 00000000                     267+         DC    F'0' PRECL
+000418 00000001                     268+         DC    A(1) EOB
+000420                              269          LTORG
+000420 00000078                     270                =A(COLS)
+000424 00000039                     271                =A(ROWS)
+000000                              272          END   MANDEL                                                 RELOCATION DICTIONARY                                          PAGE   1
+
+
+ POS.ID   REL.ID   FLAGS   ADDRESS                                                                               4/07/64
+
+   02       02      08     000015
+   02       02      08     000131                                             CROSS-REFERENCE                                                   PAGE    1
+
+
+SYMBOL    LEN  VALUE  DEFN     REFERENCES                                                                        4/07/64
+
+CIMAG    00008 0001D0 00180   0088  0114
+COLLOOP  00002 0000A0 00096   0126
+COLS     00001 000078 00019   0125  0270
+CREAL    00008 0001C8 00179   0100  0116
+DIGITS   00007 0001E4 00183   0062  0063  0064  0066  0067  0068  0069
+DX       00008 0001A8 00175   0098
+DY       00008 0001B0 00176   0080  0085
+ESCAPED  00004 0000E6 00119   0111
+FIRSTCOL 00004 00009A 00094   0092
+FLOAT    00004 000144 00164   0079  0084  0097
+FLOATW   00004 000198 00173   0164  0166
+FOOTING  00001 0002B1 00209   0140
+FOUR     00008 0001A0 00174   0110
+F0       00001 000000 00036   0080  0081  0085  0087  0098  0099  0100  0101  0101  0104  0105  0112  0117  0165  0165
+                              0166
+F2       00001 000002 00037   0086  0087  0088  0102  0102  0106  0107  0112  0113  0113  0114
+F4       00001 000004 00038   0104  0105  0109  0115  0116  0117
+F6       00001 000006 00039   0106  0107  0108  0109  0110
+HDATE    00006 000288 00205   0063  0064
+HEADING  00001 00022C 00201   0072
+HTIME    00008 000296 00207   0067  0068  0069
+ITERATE  00002 0000BA 00104   0118
+LINE     00133 000336 00213   0089  0090  0090  0090  0093  0094  0129
+MANDEL   00001 000000 00041   0272
+MARGIN   00001 000006 00022   0094
+MAXITER  00001 000040 00023   0103  0119
+MIDROW   00001 00001C 00021   0078
+PRINTER  00004 0003BC 00219   0053  0071  0128  0139  0147
+ROWLOOP  00002 000072 00083   0134
+ROWS     00001 000039 00020   0133  0271
+R0       00001 000000 00025   0065
+R1       00001 000001 00026   0061  0078  0083  0096  0164
+R12      00001 00000C 00032   0045  0046
+R13      00001 00000D 00033   0047  0048  0149
+R14      00001 00000E 00034   0079  0084  0097  0167
+R15      00001 00000F 00035
+R2       00001 000002 00027   0082  0082  0083  0091  0091  0132  0132  0133
+R3       00001 000003 00028   0095  0095  0096  0124  0124  0125
+R4       00001 000004 00029   0103  0118  0120
+R5       00001 000005 00030   0094  0122  0123  0123
+R6       00001 000006 00031   0119  0120  0121  0121  0122
+SAVEAREA 00004 000150 00172   0047  0048  0149
+SHADES   00004 0001EB 00187   0121
+WORK     00004 0001E0 00182   0061  0062  0065  0066
+XLEFT    00008 0001B8 00177   0099
+YTOP     00008 0001C0 00178   0081  0086
+ZISQ     00008 0001D8 00181   0108  0115
+
+
+
+NO STATEMENTS FLAGGED IN THIS ASSEMBLY
+*STATISTICS*     SOURCE RECORDS (SYSIN) =   189      SOURCE RECORDS (SYSLIB) =  3073
+*OPTIONS IN EFFECT*   LIST, DECK, LOAD, NORENT, XREF, NOTEST, ALGN, OS, NOTERM, LINECNT =  55
+  331 PRINTED LINES
+F128-LEVEL LINKAGE EDITOR OPTIONS SPECIFIED XREF,LET,LIST,NCAL
+          DEFAULT OPTION(S) USED -  SIZE=(131072,18432)
+
+
+                                                CROSS REFERENCE TABLE
+
+
+  CONTROL SECTION                       ENTRY
+
+    NAME    ORIGIN  LENGTH                NAME   LOCATION     NAME   LOCATION     NAME   LOCATION     NAME   LOCATION
+
+  MANDEL        00     428
+
+
+
+  LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION             LOCATION  REFERS TO SYMBOL  IN CONTROL SECTION
+
+
+ ENTRY ADDRESS       00
+ TOTAL LENGTH       428
+
+****GO        DOES NOT EXIST BUT HAS BEEN ADDED TO DATA SET
+
+      THE MANDELBROT SET, COMPUTED IN SYSTEM/360 HEXADECIMAL FLOATING POINT           DATE 64.098   TIME 18.17.40
+
+                                                                                   ............
+                                                                              ........,;::,,,.......
+                                                                          ..........,,:;--;:,,,,.......
+                                                                       ...........,,,,::-X-;::::,........
+                                                                     ............,,,,::;;-+--*==:,.........
+                                                                  .............,,,,,,:;;;-=+*=-;::,,.........
+                                                                ..............,,,,,,:;;;-==*+=-;;:,,,,........
+                                                              ..............,,,,,,::;-+==+@@#+---;:,,,,,........
+                                                            ..............,,,,,:::;;*+X#X#@@#X+++-;:,,,,,,.......
+                                                          ..............,,,,:::::;;;-=*#@@@@@@@%=-;;::,,,,,,,.....
+                                                        ..............,,,::::::;;;;;-+@@@@@@@@@X+-;;;::::,,,,,,....
+                                                      ............,,,,:;;;;;;;;;;----=+@@@@@@@@X=--;;;;::::::;;,,...
+                                                    ...........,,,,,::;++%%=----*X=+@++*@@@@@%*++++=+%+;;;;;;-*;:,...
+                                                  .........,,,,,,,:::;;%X*X%%%=+@@#@@@@@@@@@@@@@@@@@@@+---==-=#--,,...
+                                                ......,,,,,,,,,,,::::;;-=*@@@@#@@@@@@@@@@@@@@@@@@@@@@@X@=*XX*X*+;:,,..
+                                              ....,,,,,,,,,,,,,:::::;;;-=*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*=-;:,,...
+                                           ....,,,,,,,,,,,,,,::::::;-=+=+*%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;;:,,,...
+                                       .....,:::::,,,,,,,,::::::;;;-*%XX#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=-;;::,,...
+                                  .......,,:==-::::::::::::;;;;;;;;-=*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@X-;;;,,....
+                             .........,,,,::;+-;;;;;;;==;;;;;;;;;;-=**#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+*=%-:,....
+                         ...........,,,,,:::;=====----*+=---;;;---=+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%-:,.....
+                       ...........,,,,,,,::;;--=*%*+==+X%+X+=-----X%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;;:,.....
+                     ...........,,,,,,,,::;;;--+X@@@X@@@@#%@*@====+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+==;:,.....
+                   ............,,,,,,,,:;;;;--==+X@@@@@@@@@@@@%+++@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+;,,......
+                  ...........,,,,,,,,::;;;--=+%#@@@@@@@@@@@@@@@@**@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;:,,......
+                 ...........,,::::::;;;+=--==*%@@@@@@@@@@@@@@@@@@X@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=;::,,......
+                ...,,....,,::::::;;;;;-=+*+***@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+-;:,,,......
+                .,,,:::;;-;;;;;;;;;-X-=*+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=;;::,,,......
+                @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@X+=-;;::,,,......
+                .,,,:::;;-;;;;;;;;;-X-=*+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=;;::,,,......
+                ...,,....,,::::::;;;;;-=+*+***@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+-;:,,,......
+                 ...........,,::::::;;;+=--==*%@@@@@@@@@@@@@@@@@@X@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=;::,,......
+                  ...........,,,,,,,,::;;;--=+%#@@@@@@@@@@@@@@@@**@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;:,,......
+                   ............,,,,,,,,:;;;;--==+X@@@@@@@@@@@@%+++@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+;,,......
+                     ...........,,,,,,,,::;;;--+X@@@X@@@@#%@*@====+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+==;:,.....
+                       ...........,,,,,,,::;;--=*%*+==+X%+X+=-----X%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;;:,.....
+                         ...........,,,,,:::;=====----*+=---;;;---=+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%-:,.....
+                             .........,,,,::;+-;;;;;;;==;;;;;;;;;;-=**#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+*=%-:,....
+                                  .......,,:==-::::::::::::;;;;;;;;-=*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@X-;;;,,....
+                                       .....,:::::,,,,,,,,::::::;;;-*%XX#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=-;;::,,...
+                                           ....,,,,,,,,,,,,,,::::::;-=+=+*%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+=;;:,,,...
+                                              ....,,,,,,,,,,,,,:::::;;;-=*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*=-;:,,...
+                                                ......,,,,,,,,,,,::::;;-=*@@@@#@@@@@@@@@@@@@@@@@@@@@@@X@=*XX*X*+;:,,..
+                                                  .........,,,,,,,:::;;%X*X%%%=+@@#@@@@@@@@@@@@@@@@@@@+---==-=#--,,...
+                                                    ...........,,,,,::;++%%=----*X=+@++*@@@@@%*++++=+%+;;;;;;-*;:,...
+                                                      ............,,,,:;;;;;;;;;;----=+@@@@@@@@X=--;;;;::::::;;,,...
+                                                        ..............,,,::::::;;;;;-+@@@@@@@@@X+-;;;::::,,,,,,....
+                                                          ..............,,,,:::::;;;-=*#@@@@@@@%=-;;::,,,,,,,.....
+                                                            ..............,,,,,:::;;*+X#X#@@#X+++-;:,,,,,,.......
+                                                              ..............,,,,,,::;-+==+@@#+---;:,,,,,........
+                                                                ..............,,,,,,:;;;-==*+=-;;:,,,,........
+                                                                  .............,,,,,,:;;;-=+*=-;::,,.........
+                                                                     ............,,,,::;;-+--*==:,.........
+                                                                       ...........,,,,::-X-;::::,........
+                                                                          ..........,,:;--;:,,,,.......
+                                                                              ........,;::,,,.......
+                                                                                   ............
+
+      X FROM -2.25 TO 0.75, Y FROM -1.17 TO 1.17.  @ MEANS STILL BOUNDED AFTER 64 ITERATIONS.          XX        XX   XXXXXXXXXX   XX        XX  XXXXXXXXX     XXXXXXXXXXXX  XX
+          XXX      XXX  XXXXXXXXXXXX  XXX       XX  XXXXXXXXXX    XXXXXXXXXXXX  XX
+          XXXX    XXXX  XX        XX  XXXX      XX  XX       XX   XX            XX
+          XX XX  XX XX  XX        XX  XX XX     XX  XX        XX  XX            XX
+          XX  XXXX  XX  XX        XX  XX  XX    XX  XX        XX  XX            XX
+          XX   XX   XX  XXXXXXXXXXXX  XX   XX   XX  XX        XX  XXXXXXXX      XX
+          XX        XX  XXXXXXXXXXXX  XX    XX  XX  XX        XX  XXXXXXXX      XX
+          XX        XX  XX        XX  XX     XX XX  XX        XX  XX            XX
+          XX        XX  XX        XX  XX      XXXX  XX        XX  XX            XX
+          XX        XX  XX        XX  XX       XXX  XX       XX   XX            XX
+          XX        XX  XX        XX  XX        XX  XXXXXXXXXX    XXXXXXXXXXXX  XXXXXXXXXXXX
+          XX        XX  XX        XX  XX         X  XXXXXXXXX     XXXXXXXXXXXX  XXXXXXXXXXXX
+
+
+
+                                                         XX                                                  XXXXXXXXXX
+                                                        XXX                                                 XXXXXXXXXXXX
+                                                       XXXX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XXXXXXXXXXXX
+                                                         XX                                                 XXXXXXXXXXXX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                         XX                                                 XX        XX
+                                                     XXXXXXXXXX                                             XX        XX
+                                                     XXXXXXXXXX                                             XX        XX
+
+
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+HASP-II*A*PRINTER1......END JOB    1.....6.17.40 PM  7 APR 64....ROOM     ....MANDEL  ....MANDELBROT          ....PRINTER1*A*HASP-II
+
