@@ -172,24 +172,34 @@ export function inkFilter(id, lp, ink, width, height, seed, px = 4) {
     lessen("saltV", lp.saltAmount * detail, "salt"),
     multiply("dens2", "salt", "dens3"),
     multiply("shape", "dens3", "alpha"),
-    `<feColorMatrix in="alpha" type="matrix" values="0 0 0 0 ${n(r)} 0 0 0 0 ${n(g)} 0 0 0 0 ${n(b)} 1 0 0 0 0"/>`,
+    `<feColorMatrix in="alpha" type="matrix" values="0 0 0 0 ${n(r)} 0 0 0 0 ${n(g)} 0 0 0 0 ${n(b)} 1 0 0 0 0" result="inked"/>`,
+    // ink wicks a little way into the paper along its fibres
+    `<feGaussianBlur in="inked" stdDeviation="${n(Math.max(lp.feather, 0.25 / px))}"/>`,
     `</filter>`,
   ].join("");
 }
 
-// Paper: a faint grain of fibres running with the machine direction, and a
-// cloudier unevenness at a larger scale.
+// Paper: a fine grain of fibres, a cloudier unevenness at a larger scale,
+// and now and then a dark fleck of fibre.
 export function paperFilter(id, lp, paper, width, height, seed) {
   const [r, g, b] = hexToRgb(paper);
   const a = lp.paperGrain;
+  const fleck = lp.paperFlecks;
   return [
     `<filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${width}" height="${height}" color-interpolation-filters="sRGB">`,
-    noise("0.35 1.1", 3, seed + 3, "grainRaw"),
+    noise("1.1 1.5", 3, seed + 3, "grainRaw"),
     channel("grainRaw", 0, "grain"),
-    noise("0.008 0.013", 3, seed + 4, "cloudRaw"),
+    noise("0.02 0.026", 3, seed + 4, "cloudRaw"),
     channel("cloudRaw", 0, "cloud"),
-    `<feComposite in="grain" in2="cloud" operator="arithmetic" k2="0.55" k3="0.45" result="mix"/>`,
-    `<feColorMatrix in="mix" type="matrix" values="${n(a)} 0 0 0 ${n(r - a / 2)} ${n(a)} 0 0 0 ${n(g - a / 2)} ${n(a * 0.9)} 0 0 0 ${n(b - a * 0.45)} 0 0 0 0 1"/>`,
+    `<feComposite in="grain" in2="cloud" operator="arithmetic" k2="0.85" k3="0.15" result="mix"/>`,
+    // flecks: rare peaks of a fine noise, kept and darkened
+    noise("0.9 1.4", 1, seed + 5, "fleckRaw"),
+    channel("fleckRaw", 0, "fleckN"),
+    cut("fleckN", 30, 0.5 + 0.5 * (1 - fleck), "fleckV"),
+    lessen("fleckV", 0.35, "fleckDark"),
+    `<feColorMatrix in="mix" type="matrix" values="${n(a)} 0 0 0 ${n(r - a / 2)} ${n(a)} 0 0 0 ${n(g - a / 2)} ${n(a * 0.9)} 0 0 0 ${n(b - a * 0.45)} 0 0 0 0 1" result="sheet"/>`,
+    multiply("sheet", "fleckDark", "flecked"),
+    `<feComposite in="flecked" in2="flecked" operator="arithmetic" k2="1"/>`,
     `</filter>`,
   ].join("");
 }

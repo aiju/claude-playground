@@ -54,23 +54,29 @@ export const clarendon = {
   widowPenalty: 150,
   brokenPenalty: 100,
 
-  // ink and paper
-  paper: "#f8f4ea",
-  ink: "#1b1815",
+  // ink and paper: a brown-black ink on a cream stock that has aged a little
+  paper: "#ece2c8",
+  ink: "#21170e",
 
   // How the type prints; see letterpress.js. null draws clean digital type.
-  // Lengths in points, frequencies per point.
+  // Lengths in points, frequencies per point. Calibrated against a 400 ppi
+  // colour scan of Hardy's "Some famous problems of the theory of numbers"
+  // (Clarendon Press, 1920) with tools/measure-ink.py: the ink's edge goes
+  // from 10% to 90% over 0.9pt, hairlines print at about 40% of the darkness
+  // of stems, and the paper's texture has a standard deviation of about 3
+  // levels in 255.
   letterpress: {
     impression: 0.55, // 0 a light kiss, 1 heavy: how much ink is squeezed out
-    spread: 0.1, // how far past the type's edge the ink is squeezed
-    squeeze: 0.16, // how far the ink is pushed about, which rounds corners
-    edge: 0.05, // width of the ink's edge
+    spread: 0.16, // how far past the type's edge the ink is squeezed
+    squeeze: 0.23, // how far the ink is pushed about, which rounds corners
+    edge: 0.4, // width of the ink's edge
+    feather: 0.17, // how far ink wicks into the paper
     reach: 0.6, // how far round a sort its own ink and height apply
-    fibre: 1.8, // fineness of the paper fibres that roughen the edge
-    roughness: 0.4,
+    fibre: 1.25, // fineness of the paper fibres that roughen the edge
+    roughness: 0.85,
     heightVariation: 0.12, // sorts don't all stand quite type-high...
     heightEffect: 0.35, // ...and a low one prints thinner and may break up
-    inkVariation: 0.05, // nor take quite the same ink
+    inkVariation: 0.06, // nor take quite the same ink
     worn: 0.006, // share of sorts that are worn or set low
     jitter: 0.035, // how far a sort sits out of place
     twist: 0.25, // degrees
@@ -81,7 +87,8 @@ export const clarendon = {
     saltFrequency: 2.6, // specks of paper the ink missed
     saltLevel: 0.7,
     saltAmount: 0.35,
-    paperGrain: 0.03,
+    paperGrain: 0.2,
+    paperFlecks: 0.3, // stray dark fibres in the paper
     showThrough: 0.012, // the other side of the leaf, seen through the paper
     throughBlur: 0.6,
   },

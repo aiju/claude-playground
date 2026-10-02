@@ -110,9 +110,11 @@ type meets uncoated paper:
 - **Squeeze.** Under pressure the ink is pushed a little past the edge of each
   letter. The filter blurs the type and cuts it again further out, so corners
   round off and the brackets of the serifs fill in.
-- **Fibres.** The paper's fibres make that edge ragged. A fine noise field
-  moves the cut in and out, but only near an edge, so it never puts ink where
-  there was none.
+- **Fibres.** The paper's fibres make that edge ragged, and the ink wicks a
+  little way along them, so the edge fades into the paper rather than
+  stopping. A fine noise field moves the edge in and out, but only near it,
+  so it never puts ink where there was none. Hairlines take less ink and
+  print greyer than the stems.
 - **Sorts.** Every letter was a separate piece of metal. Each glyph gets its
   own ink density, its own height (a low sort prints thinner and may break up,
   as a few in Hardy's book do), and a tiny shift and twist. These come from a
@@ -121,9 +123,19 @@ type meets uncoated paper:
 - **Inking.** The rollers lay ink unevenly across the page; the squeeze
   leaves the middle of a stroke a shade lighter than its edges; and the
   paper's tooth leaves specks the ink missed.
-- **Paper.** Faint grain running with the machine direction, a cloudier
-  unevenness, and the page on the other side of the leaf showing through,
-  mirrored.
+- **Paper.** A cream stock with a fine grain, a cloudier unevenness, the odd
+  dark fleck of fibre, and the page on the other side of the leaf showing
+  through, mirrored.
+
+The settings are calibrated against a 400 ppi colour scan of Hardy's *Some
+Famous Problems of the Theory of Numbers* (Clarendon Press, 1920; public
+domain, from the Internet Archive). `tools/measure-ink.py` measures a crop of
+running text: how far the ink's edge takes to go from 10% to 90% darkness,
+how dark stems and hairlines print, and the colour and texture of ink and
+paper. On that scan and on the typesetter's output at the same resolution it
+gives an edge of 0.9pt for both, hairlines at 38% of full darkness for both,
+and paper texture with a standard deviation of 3.1 and 2.7 levels. More scans
+can be measured the same way.
 
 Most of this lives in SVG filters, with every length in points, so the texture
 belongs to the paper and doesn't change as the page is zoomed. The filters do
