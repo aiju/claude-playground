@@ -231,11 +231,15 @@
     </div>
     <div class="control">
       <label for="ink">Impression</label>
-      <input id="ink" type="range" min="0" max="0.5" step="0.02" value="0.24">
+      <input id="ink" type="range" min="0" max="1" step="0.05" value="0.55">
     </div>
     <div class="control">
       <label for="zoom">Size</label>
       <input id="zoom" type="range" min="300" max="820" step="10" value="460">
+    </div>
+    <div class="control">
+      <input id="letterpress" type="checkbox" checked>
+      <label for="letterpress">Letterpress</label>
     </div>
     <div class="control">
       <input id="spreads" type="checkbox" checked>
@@ -327,9 +331,26 @@
     return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   }
 
+  let lastPx = 0;
+
+  // Device pixels per point at the current size: the letterpress texture is
+  // tuned to what the screen can actually show.
+  function pixelsPerPoint() {
+    const sheet = pagesEl.querySelector(".sheet");
+    const cssWidth = sheet ? sheet.getBoundingClientRect().width : Number($("zoom").value);
+    return (cssWidth * (window.devicePixelRatio || 1)) / 450;
+  }
+
   function render() {
-    const ink = Number($("ink").value);
-    const sheet = (p) => `<div class="sheet ${p.number % 2 ? "recto" : "verso"}" aria-label="Page ${p.number}">${ts.render(p, { inkSpread: ink })}</div>`;
+    const letterpress = $("letterpress").checked ? { ...ts.style.letterpress, impression: Number($("ink").value) } : null;
+    const px = pixelsPerPoint();
+    lastPx = px;
+    const byNumber = new Map(pages.map((p) => [p.number, p]));
+    const sheet = (p) => {
+      // the page on the other side of the leaf shows through
+      const back = byNumber.get(p.number % 2 ? p.number + 1 : p.number - 1);
+      return `<div class="sheet ${p.number % 2 ? "recto" : "verso"}" aria-label="Page ${p.number}">${ts.render(p, { style: { letterpress }, back, px })}</div>`;
+    };
     // pair versos (even) with the rectos (odd) that face them
     const spreads = [];
     for (const p of pages) {
@@ -343,6 +364,19 @@
       .join("");
   }
 
+  // re-render when the size on screen settles
+  let sizeTimer = 0;
+  function rerenderForSize() {
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(() => {
+      const px = pixelsPerPoint();
+      if (Math.abs(px - lastPx) / px > 0.15) {
+        lastPx = px;
+        render();
+      }
+    }, 300);
+  }
+
   let timer = 0;
   source.addEventListener("input", () => {
     clearTimeout(timer);
@@ -353,11 +387,24 @@
   });
   $("sample").addEventListener("change", (e) => loadSample(e.target.value));
   $("reset").addEventListener("click", () => loadSample($("sample").value, { fresh: true }));
-  $("ink").addEventListener("input", render);
-  $("zoom").addEventListener("input", (e) => document.documentElement.style.setProperty("--page-w", `${e.target.value}px`));
-  $("spreads").addEventListener("change", (e) => document.body.classList.toggle("single", !e.target.checked));
+  let inkTimer = 0;
+  $("ink").addEventListener("input", () => {
+    clearTimeout(inkTimer);
+    inkTimer = setTimeout(render, 120);
+  });
+  $("letterpress").addEventListener("change", render);
+  $("zoom").addEventListener("input", (e) => {
+    document.documentElement.style.setProperty("--page-w", `${e.target.value}px`);
+    rerenderForSize();
+  });
+  $("spreads").addEventListener("change", (e) => {
+    document.body.classList.toggle("single", !e.target.checked);
+    rerenderForSize();
+  });
+  window.addEventListener("resize", rerenderForSize);
 
   const first = store.get("sample");
   if (first && [...$("sample").options].some((o) => o.value === first)) $("sample").value = first;
   await loadSample($("sample").value);
+  rerenderForSize(); // the first pass guessed the size of the pages
 </script>

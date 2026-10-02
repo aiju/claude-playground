@@ -21,8 +21,11 @@ const { pages, warnings } = ts.typeset(await readFile(input, "utf8"));
 for (const w of warnings) console.warn("warning:", w);
 const t1 = performance.now();
 await mkdir(outDir, { recursive: true });
+const byNumber = new Map(pages.map((p) => [p.number, p]));
 for (const page of pages) {
   const file = join(outDir, `page-${String(page.number).padStart(3, "0")}.svg`);
-  await writeFile(file, ts.render(page));
+  // the back of a recto is the next verso, and the other way round
+  const back = byNumber.get(page.number % 2 ? page.number + 1 : page.number - 1);
+  await writeFile(file, ts.render(page, { back }));
 }
 console.log(`${pages.length} pages in ${Math.round(t1 - t0)} ms -> ${outDir}/`);

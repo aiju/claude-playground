@@ -22,10 +22,12 @@ python3 -m http.server 8000
 ```
 
 The page shows the source on the left and the typeset proofs as book spreads on
-the right, updating as you type. *Impression* sets how much ink the
-letterpress squeezes out; *Size* zooms the pages.
+the right, updating as you type. *Impression* sets how hard the type is
+pressed into the paper, from a light kiss to a heavy squeeze; *Letterpress*
+switches between printed and clean digital type; *Size* zooms the pages.
 
-From the command line, one SVG per page:
+From the command line, one SVG per page (they need a browser or another
+viewer that handles SVG filters):
 
 ```sh
 node tools/render.mjs samples/hardy-divergent-series.tex out/
@@ -92,8 +94,43 @@ browser's text layout.
   with footnotes taking room from the page they fall on, pages filled out to
   the same depth, and no page ending just before a display.
 - **Drawing** (`src/svg.js`): each glyph is a path, so the pages look the same
-  everywhere. A thin stroke in the ink colour stands in for the spread of ink
-  under letterpress.
+  everywhere.
+- **Printing** (`src/letterpress.js`): the type is printed rather than drawn
+  (see below).
+
+## Printing
+
+A letterpress page is not a clean vector drawing, and that is most of what
+makes a scan of an old book look old. The renderer imitates how inked metal
+type meets uncoated paper:
+
+- **Squeeze.** Under pressure the ink is pushed a little past the edge of each
+  letter. The filter blurs the type and cuts it again further out, so corners
+  round off and the brackets of the serifs fill in.
+- **Fibres.** The paper's fibres make that edge ragged. A fine noise field
+  moves the cut in and out, but only near an edge, so it never puts ink where
+  there was none.
+- **Sorts.** Every letter was a separate piece of metal. Each glyph gets its
+  own ink density, its own height (a low sort prints thinner and may break up,
+  as a few in Hardy's book do), and a tiny shift and twist. These come from a
+  random generator seeded with the page number, so a page always prints the
+  same way.
+- **Inking.** The rollers lay ink unevenly across the page; the squeeze
+  leaves the middle of a stroke a shade lighter than its edges; and the
+  paper's tooth leaves specks the ink missed.
+- **Paper.** Faint grain running with the machine direction, a cloudier
+  unevenness, and the page on the other side of the leaf showing through,
+  mirrored.
+
+Most of this lives in SVG filters, with every length in points, so the texture
+belongs to the paper and doesn't change as the page is zoomed. The filters do
+work at screen resolution, though, and detail finer than a pixel would only
+alias. So `render()` takes the number of device pixels per point the page will
+be shown at: at reading size the ink edge stays soft and the fine texture
+fades out; zoomed in, it all comes back. The demo works this out from the page
+size and the screen; the command line assumes 4 pixels per point. The
+settings are under `letterpress` in `src/style.js`; set it to `null` for
+clean digital type.
 
 ## The house style
 

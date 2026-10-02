@@ -30,9 +30,12 @@ export async function createTypesetter(loadFace, style = clarendon) {
       return { pages: buildPages(vlist, style), warnings: composer.warnings };
     },
     // Each call gets its own id prefix so several SVGs can share a document.
-    // `overrides` changes rendering-only settings such as inkSpread or paper.
-    render(page, overrides = {}) {
-      return renderPage(page, { ...style, ...overrides }, fonts, `t${(counter++).toString(36)}-`);
+    // Options: `style` overrides rendering-only settings (letterpress, paper,
+    // ink); `back` is the page on the other side of the leaf, which shows
+    // through faintly; `px` is how many device pixels a point will cover,
+    // which tunes the letterpress texture to the display (default 4).
+    render(page, { style: overrides = {}, back = null, px = 4 } = {}) {
+      return renderPage(page, { ...style, ...overrides }, fonts, `t${(counter++).toString(36)}-`, { back, px });
     },
   };
 }

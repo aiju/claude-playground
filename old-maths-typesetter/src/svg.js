@@ -1,7 +1,9 @@
 // Draw typeset pages as SVG. Every glyph is a path taken from the font data,
-// so the result looks the same everywhere and needs no web fonts.
+// so the result looks the same everywhere and needs no web fonts. With
+// style.letterpress set, the type is printed as described in letterpress.js.
 
 import { glueWidth, glyph, hbox, kern } from "./nodes.js";
+import { random, sortQuirks, encodeSort, inkFilter, paperFilter, throughFilter } from "./letterpress.js";
 
 const LETTERS = "ABCDEFGHIKLMNOPQRSTUXYZ"; // signatures skip J, V and W
 
@@ -11,10 +13,12 @@ const fmt = (v) => {
 };
 
 class Canvas {
-  constructor(style, prefix) {
+  // `quirks` gives each sort its ink and position (letterpress), or is null
+  constructor(style, prefix, defs = new Map(), quirks = null) {
     this.style = style;
     this.prefix = prefix;
-    this.defs = new Map();
+    this.defs = defs;
+    this.quirks = quirks;
     this.out = [];
   }
 
@@ -25,14 +29,19 @@ class Canvas {
     if (!this.defs.has(id)) this.defs.set(id, font.glyphs[gid].d);
     if (!font.glyphs[gid].d) return;
     const s = node.size / font.upm;
-    const ink = this.style.inkSpread;
-    const stroke = ink > 0 ? ` stroke-width="${fmt(ink / s)}"` : "";
-    this.out.push(`<use href="#${id}" transform="translate(${fmt(x)} ${fmt(y)}) scale(${s.toPrecision(4)} ${(-s).toPrecision(4)})"${stroke}/>`);
+    const scale = `scale(${s.toPrecision(4)} ${(-s).toPrecision(4)})`;
+    if (!this.quirks) {
+      this.out.push(`<use href="#${id}" transform="translate(${fmt(x)} ${fmt(y)}) ${scale}"/>`);
+      return;
+    }
+    const q = this.quirks();
+    const turn = Math.abs(q.rotate) > 0.005 ? ` rotate(${q.rotate.toFixed(2)})` : "";
+    this.out.push(`<use href="#${id}" transform="translate(${fmt(x + q.dx)} ${fmt(y + q.dy)})${turn} ${scale}" fill="${encodeSort(q)}"/>`);
   }
 
   rect(x, y, w, h) {
-    const e = this.style.inkSpread / 2;
-    this.out.push(`<rect x="${fmt(x - e)}" y="${fmt(y - e)}" width="${fmt(w + 2 * e)}" height="${fmt(h + 2 * e)}"/>`);
+    const fill = this.quirks ? ` fill="${encodeSort({ density: 0.97, height: 0.55 })}"` : "";
+    this.out.push(`<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}"${fill}/>`);
   }
 
   // draw an hbox with its baseline at y
@@ -103,14 +112,27 @@ class Canvas {
     }
   }
 
-  svg(width, height) {
+  // `back`: a canvas holding the other side of the leaf, for show-through
+  svg(width, height, back = null, px = 4) {
     const st = this.style;
-    const defs = [...this.defs].map(([id, d]) => `<path id="${id}" d="${d}"/>`).join("");
+    const lp = st.letterpress;
+    const p = this.prefix;
+    const defs = [...this.defs].map(([id, d]) => `<path id="${id}" d="${d}"/>`);
+    const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}pt" height="${height}pt">`;
+    if (!lp) {
+      return `${head}<defs>${defs.join("")}</defs><rect width="${width}" height="${height}" fill="${st.paper}"/><g fill="${st.ink}">${this.out.join("")}</g></svg>`;
+    }
+    defs.push(inkFilter(`${p}ink`, lp, st.ink, width, height, st.seed, px), paperFilter(`${p}paper`, lp, st.paper, width, height, st.seed));
+    let through = "";
+    if (back && lp.showThrough > 0) {
+      defs.push(throughFilter(`${p}through`, lp));
+      through = `<g transform="translate(${width} 0) scale(-1 1)" fill="${st.ink}" opacity="${lp.showThrough}" filter="url(#${p}through)">${back.out.join("")}</g>`;
+    }
     return (
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}pt" height="${height}pt">` +
-      `<defs>${defs}</defs>` +
-      `<rect width="${width}" height="${height}" fill="${st.paper}"/>` +
-      `<g fill="${st.ink}" stroke="${st.ink}" stroke-linejoin="round">${this.out.join("")}</g></svg>`
+      `${head}<defs>${defs.join("")}</defs>` +
+      `<rect width="${width}" height="${height}" fill="${st.paper}" filter="url(#${p}paper)"/>` +
+      through +
+      `<g filter="url(#${p}ink)">${this.out.join("")}</g></svg>`
     );
   }
 }
@@ -144,9 +166,9 @@ export function signatureLetter(page) {
   return LETTERS[k % LETTERS.length].repeat(Math.floor(k / LETTERS.length) + 1);
 }
 
-export function renderPage(page, style, fonts, prefix = "g") {
-  const { width, height } = style.page;
-  const c = new Canvas(style, prefix);
+// Draw one page's type: running head, text, footnotes, signature.
+function drawPage(c, page, style, fonts) {
+  const { width } = style.page;
   const recto = page.number % 2 === 1;
   const left = recto ? style.margins.inner : width - style.margins.inner - style.textWidth;
   const headY = style.margins.top;
@@ -186,5 +208,27 @@ export function renderPage(page, style, fonts, prefix = "g") {
     const b = textBox(sig, fonts.roman8, style.signature.size);
     c.hbox(b, left + (W - b.w) / 2, textTop + vsize + style.signature.drop);
   }
-  return c.svg(width, height);
+}
+
+// `back` is the page printed on the other side of the leaf, if known; `px`
+// the device pixels per point it will be shown at (see letterpress.js).
+export function renderPage(page, style, fonts, prefix = "g", { back = null, px = 4 } = {}) {
+  const { width, height } = style.page;
+  const lp = style.letterpress;
+  // the same page always prints the same way
+  const seed = (page.number * 7919 + 17) % 100000;
+  const quirks = lp
+    ? (() => {
+        const rand = random(seed);
+        return () => sortQuirks(rand, lp);
+      })()
+    : null;
+  const c = new Canvas({ ...style, seed }, prefix, new Map(), quirks);
+  drawPage(c, page, style, fonts);
+  let behind = null;
+  if (lp && back) {
+    behind = new Canvas(style, prefix, c.defs);
+    drawPage(behind, back, style, fonts);
+  }
+  return c.svg(width, height, behind, px);
 }
