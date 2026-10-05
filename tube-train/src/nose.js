@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { BODY, COLOURS } from './dims.js';
 import { profileAt, vAtY, PROFILE_LENGTH } from './profile.js';
 import { MeshBuilder, IntervalShape, meshPanel } from './geom.js';
+import { ledBitmap } from './ledfont.js';
 
 // The flat face: vertical sides at +-FACE_HALF, a flat top at FACE_TOP and
 // rounded corners between.
@@ -348,26 +349,24 @@ export function frontEmissive({ destination = 'Walthamstow Central', train = '21
   const [c, g] = frontCanvas();
   g.fillStyle = '#000';
   g.fillRect(FRONT_TEX.zMin, FRONT_TEX.yMin, FRONT_TEX.zMax - FRONT_TEX.zMin, FRONT_TEX.yMax - FRONT_TEX.yMin);
-  const dots = (text, z0, z1, y0, y1, cols, rows, font) => {
-    const s = document.createElement('canvas');
-    s.width = cols; s.height = rows;
-    const sg = s.getContext('2d', { willReadFrequently: true });
-    sg.fillStyle = '#000'; sg.fillRect(0, 0, cols, rows);
-    sg.fillStyle = '#fff'; sg.font = font; sg.textAlign = 'center'; sg.textBaseline = 'middle';
-    sg.fillText(text, cols / 2, rows / 2 + 1);
-    const px = sg.getImageData(0, 0, cols, rows).data;
+  const dots = (text, z0, z1, y0, y1, cols, rows, scale = 1) => {
+    const lit = ledBitmap(text, cols, rows, { scale });
     const dz = (z1 - z0) / cols, dy = (y1 - y0) / rows;
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const on = px[(j * cols + i) * 4] > 110;
+    for (const on of [0, 1]) {
       g.fillStyle = on ? '#ff8a1c' : '#0c0703';
       g.beginPath();
-      // canvas x runs from +z to -z
-      g.arc(z1 - (i + 0.5) * dz, y1 - (j + 0.5) * dy, Math.min(dz, dy) * 0.38, 0, Math.PI * 2);
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        if (lit[j * cols + i] !== on) continue;
+        // canvas x runs from +z to -z
+        const x = z1 - (i + 0.5) * dz, y = y1 - (j + 0.5) * dy, r = Math.min(dz, dy) * 0.4;
+        g.moveTo(x + r, y);
+        g.arc(x, y, r, 0, Math.PI * 2);
+      }
       g.fill();
     }
   };
-  dots(destination, -0.43, 0.43, 2.725, 2.845, 144, 16, 'bold 12px Arial, sans-serif');
-  dots(train, -0.13, 0.13, 1.09, 1.23, 28, 14, 'bold 12px Arial, sans-serif');
+  dots(destination, -0.43, 0.43, 2.725, 2.845, 116, 16);
+  dots(train, -0.13, 0.13, 1.09, 1.23, 28, 15, 2);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;

@@ -281,7 +281,7 @@ export function createMaterials() {
 }
 
 function sideDisplayTexture(text) {
-  return ledTexture(text, { cols: 96, rows: 12, font: 'bold 10px Arial, sans-serif', dot: 6 });
+  return ledTexture(text, { cols: 110, rows: 15, dot: 6 });
 }
 
 export function sideDisplayMaterial(text) {

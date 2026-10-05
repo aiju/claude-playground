@@ -86,7 +86,8 @@ photographs. `src/dims.js` has all the numbers.
   the windscreens wrap round the corners, and tight over the roof. Its paint
   scheme is a texture drawn on a canvas and projected from straight ahead,
   with holes where the glass is. The destination and train number displays
-  are drawn as dot-matrix LEDs.
+  are drawn as dot-matrix LEDs, in a font made dot by dot for them
+  (`ledfont.js`), as are the ones on the sides and in the station.
 - **Inside** (`interior.js`) are the longitudinal seats in each bay, blue grab
   poles and rails, draught screens by the doors and a simple cab. The saloon
   lights are two long strips along the ceiling. Rather than use dozens of

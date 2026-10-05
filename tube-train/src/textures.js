@@ -1,6 +1,7 @@
 // Textures drawn on canvases: the seat moquette, the floor, the LED displays.
 
 import * as THREE from 'three';
+import { ledBitmap } from './ledfont.js';
 
 // `read`: the pixels will be read back, so keep the canvas in ordinary
 // memory; reading one the GPU draws makes the page wait for the GPU
@@ -92,36 +93,27 @@ export function floorTexture() {
   return toTexture(c, { repeat: true });
 }
 
-// Dot-matrix text, drawn the way an LED display shows it: the text is
-// rendered small, then each pixel becomes a round dot. `text` can be several
-// lines, and a tab in a line pushes what follows it to the right.
-export function ledTexture(text, { cols = 128, rows = 16, colour = [255, 150, 30], font = 'bold 13px sans-serif', align = 'center', dot = 6 } = {}) {
-  const [small, sg] = canvas(cols, rows, true);
-  sg.fillStyle = '#000';
-  sg.fillRect(0, 0, cols, rows);
-  sg.fillStyle = '#fff';
-  sg.font = font;
-  sg.textBaseline = 'middle';
-  const lines = [].concat(text);
-  lines.forEach((line, i) => {
-    const y = rows * (i + 0.5) / lines.length + 1;
-    const [left, right] = line.split('\t');
-    sg.textAlign = right === undefined ? align : 'left';
-    sg.fillText(left, sg.textAlign === 'center' ? cols / 2 : sg.textAlign === 'right' ? cols - 1 : 1, y);
-    if (right !== undefined) { sg.textAlign = 'right'; sg.fillText(right, cols - 1, y); }
-  });
-  const px = sg.getImageData(0, 0, cols, rows).data;
+// Dot-matrix text, drawn the way an LED display shows it: each dot of the
+// grid is lit or not, in a font made for it (ledfont.js), and drawn as a
+// round dot. `text` can be several lines, and a tab in a line pushes what
+// follows it to the right.
+export function ledTexture(text, { cols = 128, rows = 16, colour = [255, 150, 30], align = 'center', dot = 6 } = {}) {
+  const lit = ledBitmap(text, cols, rows, { align });
   const [c, g] = canvas(cols * dot, rows * dot);
   g.fillStyle = '#050403';
   g.fillRect(0, 0, c.width, c.height);
-  for (let j = 0; j < rows; j++) {
-    for (let i = 0; i < cols; i++) {
-      const on = px[(j * cols + i) * 4] > 110;
-      g.fillStyle = on ? `rgb(${colour.join(',')})` : 'rgba(255,255,255,0.035)';
-      g.beginPath();
-      g.arc((i + 0.5) * dot, (j + 0.5) * dot, dot * 0.36, 0, Math.PI * 2);
-      g.fill();
+  for (const on of [0, 1]) {
+    g.fillStyle = on ? `rgb(${colour.join(',')})` : 'rgba(255,255,255,0.035)';
+    g.beginPath();
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        if (lit[j * cols + i] !== on) continue;
+        const x = (i + 0.5) * dot, y = (j + 0.5) * dot;
+        g.moveTo(x + dot * 0.36, y);
+        g.arc(x, y, dot * 0.36, 0, Math.PI * 2);
+      }
     }
+    g.fill();
   }
   return toTexture(c);
 }

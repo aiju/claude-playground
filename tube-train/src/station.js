@@ -472,7 +472,7 @@ function buildPlatform(ctx, { corridors = false } = {}) {
   }
 
   // ---- the train indicator, hanging over the platform, and way out signs
-  const indicatorMat = new THREE.MeshBasicMaterial({ map: ledTexture(['1 Walthamstow Central\t2 min', 'Stand behind the yellow line'], { cols: 160, rows: 22, font: 'bold 10px Arial, sans-serif', dot: 5 }), toneMapped: false });
+  const indicatorMat = new THREE.MeshBasicMaterial({ map: ledTexture(['1 Walthamstow Central\t2 min', 'Stand behind the yellow line'], { cols: 160, rows: 22, dot: 5 }), toneMapped: false });
   const hang = new MeshBuilder();
   for (const x of [LEN * 0.33, LEN * 0.66]) {
     box(hang, [0.14, 0.36, 1.8], [x, 3.2, 3.2]);
@@ -501,7 +501,7 @@ function buildPlatform(ctx, { corridors = false } = {}) {
     group,
     setIndicator(lines) {
       indicatorMat.map.dispose();
-      indicatorMat.map = ledTexture(lines, { cols: 160, rows: 22, font: 'bold 10px Arial, sans-serif', dot: 5 });
+      indicatorMat.map = ledTexture(lines, { cols: 160, rows: 22, dot: 5 });
     },
   };
 }
