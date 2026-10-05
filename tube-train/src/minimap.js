@@ -272,8 +272,10 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
       label(`height ×${Math.round(HEIGHT_PX / scale)}`, w - 10, bottom - 4, 'right', C.muted, 9);
       g.restore();
 
-      canvas.setAttribute('aria-label', nextStop === null ? 'Map of the line'
-        : `Map of the line. Next stop ${stationName(nextStop)}, ${Math.round(toNext)} metres.`);
+      // in tens of metres, so that it isn't rewritten every frame
+      const aria = nextStop === null ? 'Map of the line'
+        : `Map of the line. Next stop ${stationName(nextStop)}, ${Math.round(toNext / 10) * 10} metres.`;
+      if (aria !== canvas.getAttribute('aria-label')) canvas.setAttribute('aria-label', aria);
     },
   };
 }

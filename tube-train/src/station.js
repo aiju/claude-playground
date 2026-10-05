@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import { addLightTerms, stationTerm } from './materials.js';
-import { MeshBuilder, matrixFrom } from './geom.js';
+import { MeshBuilder, matrixFrom, mergeMeshes } from './geom.js';
 import { TUNNEL } from './tunnel.js';
 import { TRACK_SPACING } from './dims.js';
 import { rng, ledTexture } from './textures.js';
@@ -565,6 +565,8 @@ export function buildStation() {
   other.group.rotation.y = Math.PI;
   other.group.position.set(LEN, 0, TRACK_SPACING);
   group.add(ours.group, other.group);
+  // nothing in the station moves, so each material is drawn in one go
+  mergeMeshes(group);
 
   return {
     group,

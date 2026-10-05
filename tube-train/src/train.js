@@ -15,10 +15,12 @@ import { labelTexture } from './textures.js';
 import { addLightTerms, stationTerm } from './materials.js';
 import { profileAt, vAtY } from './profile.js';
 import { Frame } from './path.js';
+import { mergeSiblings } from './geom.js';
 
 export const CAR_GAP = 0.24;       // between the bodies of coupled cars
 
 // The car's number on each side, low down under a window near one end.
+const numberPlate = new THREE.PlaneGeometry(0.44, 0.11);
 function addNumbers(car, type, number, t) {
   const tex = labelTexture(number, { w: 256, h: 64, font: '600 44px "Helvetica Neue", Arial, sans-serif', colour: '#1c2a5a' });
   const mat = addLightTerms(new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 }), [stationTerm()]);
@@ -27,7 +29,7 @@ function addNumbers(car, type, number, t) {
   const x = L / 2 - (w[0] + w[1]) / 2;
   const z = profileAt(vAtY(1.36)).z + 0.002;
   for (const s of [1, -1]) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.11), mat);
+    const m = new THREE.Mesh(numberPlate, mat);
     m.position.set(x, 1.36, s * z);
     if (s < 0) m.rotation.y = Math.PI;
     car.add(m);
@@ -41,6 +43,9 @@ export function buildCarTypes(materials) {
     const type = buildCarType(t, materials);
     type.group.add(buildInterior(t, type.spec, materials));
     type.underframe = buildUnderframe(t, type.spec, materials);
+    // small parts side by side are drawn together
+    mergeSiblings(type.group);
+    mergeSiblings(type.underframe.group);
     types[t] = type;
   }
   return types;

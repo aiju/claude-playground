@@ -18,9 +18,10 @@ export const lighting = {
 
 // Adds extra light to a MeshStandardMaterial or MeshPhysicalMaterial. Each
 // term has GLSL declarations and a body that adds irradiance to `extraIrr`
-// from the world position `wp` and normal `wn` (or discards the fragment),
-// and can pass more from the vertex shader (`vdecl`, `vbody`). Terms
-// accumulate: a material can be given more of them later.
+// from the world position `wp` and normal `wn`, and can pass more from the
+// vertex shader (`vdecl`, `vbody`). An `early` term runs before any lighting
+// is worked out, with only `wp`, so that it can discard the fragment
+// cheaply. Terms accumulate: a material can be given more of them later.
 export function addLightTerms(material, terms) {
   const all = material.userData.lightTerms;
   if (all) {
@@ -59,12 +60,17 @@ export function addLightTerms(material, terms) {
         varying vec3 vXtObj;
         varying vec3 vXtObjN;
         ${[...new Set(list.flatMap(t => [].concat(t.decl)))].join('\n')}`)
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+        {
+          vec3 wp = vXtPos;
+          ${list.filter(t => t.early).map(t => `{ ${t.body} }`).join('\n')}
+        }`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         {
           vec3 wp = vXtPos;
           vec3 wn = normalize(vXtNormal) * (gl_FrontFacing ? 1.0 : -1.0);
           vec3 extraIrr = vec3(0.0);
-          ${list.map(t => `{ ${t.body} }`).join('\n')}
+          ${list.filter(t => !t.early).map(t => `{ ${t.body} }`).join('\n')}
           reflectedLight.indirectDiffuse += extraIrr * BRDF_Lambert(diffuseColor.rgb);
         }`);
   };
@@ -131,6 +137,7 @@ export function stationTerm() {
 export function clipTerm() {
   return {
     key: 'station-clip',
+    early: true,
     uniforms: station,
     decl: STATION_UNIFORMS,
     body: `{
@@ -184,6 +191,8 @@ function glass({ tint = 0x0a1418, opacity = 0.3, roughness = 0.04 } = {}) {
   m.blending = THREE.CustomBlending;
   m.blendSrc = THREE.OneFactor;
   m.blendDst = THREE.OneMinusSrcAlphaFactor;
+  // the panes are thin, so both their faces can be drawn in one go
+  m.forceSinglePass = true;
   return m;
 }
 

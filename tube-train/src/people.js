@@ -50,10 +50,10 @@ const flat = (g) => (g.index ? g.toNonIndexed() : g);
 
 // a tapered rounded limb from y = 0 down to y = -len
 function limb(len, r0, r1) {
-  const g = new THREE.CylinderGeometry(r0, r1, len, 8, 1, true);
+  const g = new THREE.CylinderGeometry(r0, r1, len, 6, 1, true);
   g.translate(0, -len / 2, 0);
-  const cap0 = new THREE.SphereGeometry(r0, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-  const cap1 = new THREE.SphereGeometry(r1, 8, 4, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2); cap1.translate(0, -len, 0);
+  const cap0 = new THREE.SphereGeometry(r0, 6, 2, 0, Math.PI * 2, 0, Math.PI / 2);
+  const cap1 = new THREE.SphereGeometry(r1, 6, 2, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2); cap1.translate(0, -len, 0);
   return mergeGeometries([g, cap0, cap1].map(flat));
 }
 
@@ -69,14 +69,14 @@ function tint(geo, hex) {
 
 function partGeometries() {
   const shin = tint(limb(B.shin - 0.05, 0.056, 0.046), '#ffffff');
-  const shoe = tint(flat(new RoundedBoxGeometry(0.1, 0.07, 0.25, 2, 0.03)).translate(0, -B.shin + 0.02, 0.045), '#2a2420');
-  const torso = new RoundedBoxGeometry(0.36, B.torso, 0.22, 2, 0.08);
+  const shoe = tint(flat(new RoundedBoxGeometry(0.1, 0.07, 0.25, 1, 0.03)).translate(0, -B.shin + 0.02, 0.045), '#2a2420');
+  const torso = new RoundedBoxGeometry(0.36, B.torso, 0.22, 1, 0.08);
   torso.translate(0, B.torso / 2, 0);
-  const capShort = flat(new THREE.SphereGeometry(B.head + 0.012, 12, 5, 0, Math.PI * 2, 0, Math.PI * 0.52));
+  const capShort = flat(new THREE.SphereGeometry(B.head + 0.012, 10, 4, 0, Math.PI * 2, 0, Math.PI * 0.52));
   capShort.rotateX(-0.25).translate(0, 0.01, -0.012);
-  const back = flat(new RoundedBoxGeometry(0.21, 0.27, 0.07, 2, 0.03)).translate(0, -0.06, -0.075);
+  const back = flat(new RoundedBoxGeometry(0.21, 0.27, 0.07, 1, 0.03)).translate(0, -0.06, -0.075);
   const capLong = mergeGeometries([capShort.clone(), back]);
-  const bag = new RoundedBoxGeometry(0.28, 0.34, 0.13, 2, 0.04);
+  const bag = new RoundedBoxGeometry(0.28, 0.34, 0.13, 1, 0.04);
   bag.translate(0, 0.32, -0.18);
   const phone = new THREE.BoxGeometry(0.07, 0.13, 0.012);
   return {
@@ -85,7 +85,7 @@ function partGeometries() {
     upper: limb(B.upper, 0.052, 0.046),
     fore: limb(B.fore, 0.045, 0.04),
     torso,
-    skin: new THREE.SphereGeometry(1, 12, 9),
+    skin: new THREE.SphereGeometry(1, 10, 7),
     hairShort: capShort,
     hairLong: capLong,
     bag,
@@ -107,10 +107,25 @@ function glowTerm() {
 
 // ---- poses ----
 
-const M = () => new THREE.Matrix4();
+// Matrices that can be moved along and turned about x in their own frame
+// (the same as multiplying by a translation or a rotation, with a fraction
+// of the arithmetic, which matters for a few hundred people a frame).
+function moveBy(x, y, z) {
+  const e = this.elements;
+  for (let i = 0; i < 4; i++) e[12 + i] += e[i] * x + e[4 + i] * y + e[8 + i] * z;
+  return this;
+}
+function turnX(a) {
+  const e = this.elements, c = Math.cos(a), s = Math.sin(a);
+  for (let i = 0; i < 4; i++) {
+    const y = e[4 + i], z = e[8 + i];
+    e[4 + i] = y * c + z * s;
+    e[8 + i] = z * c - y * s;
+  }
+  return this;
+}
+const M = () => Object.assign(new THREE.Matrix4(), { moveBy, turnX });
 const tmp = { a: M(), b: M(), c: M(), d: M(), root: M(), hip: M(), torso: M(), neck: M(), sh: M() };
-const rotX = (m, a) => m.makeRotationX(a);
-const trans = (m, x, y, z) => m.makeTranslation(x, y, z);
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
 export function createPeople({ trains, station }) {
@@ -118,6 +133,7 @@ export function createPeople({ trains, station }) {
   group.name = 'people';
   const geos = partGeometries();
   const counts = { thigh: 2, shin: 2, upper: 2, fore: 2, torso: 1, skin: 3, hairShort: 1, hairLong: 1, bag: 1, phone: 1 };
+  const parts = Object.entries(counts);
   const meshes = {}, glow = {};
   for (const [k, n] of Object.entries(counts)) {
     const mat = new THREE.MeshStandardMaterial({ roughness: k === 'skin' ? 0.6 : 0.85, vertexColors: k === 'shin', color: 0xffffff });
@@ -151,6 +167,7 @@ export function createPeople({ trains, station }) {
   const r = rng(20261001);
 
   // ---- spaces ----
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), seen = new THREE.Sphere(new THREE.Vector3(), 1.3);
   const spaceMatrix = (space) => (space === 'station' ? station.group.matrix : cars[space].car.group.matrix);
   const inv = M(), v = new THREE.Vector3(), dir = new THREE.Vector3();
   function moveTo(p, space) {
@@ -193,8 +210,13 @@ export function createPeople({ trains, station }) {
     for (const k of Object.keys(meshes)) meshes[k].instanceColor.needsUpdate = true;
   }
 
+  // takes someone out of the picture (they keep their slot)
+  function hide(p) {
+    for (const [k, n] of parts) for (let j = 0; j < n; j++) meshes[k].setMatrixAt(p.slot * n + j, ZERO);
+  }
+
   function remove(p) {
-    for (const [k, n] of Object.entries(counts)) for (let j = 0; j < n; j++) meshes[k].setMatrixAt(p.slot * n + j, ZERO);
+    hide(p);
     if (p.seat) { cars[p.seat.car].seatTaken[p.seat.i] = null; p.seat = null; }
     free.push(p.slot);
     people.splice(people.indexOf(p), 1);
@@ -502,7 +524,7 @@ export function createPeople({ trains, station }) {
     tmp.root.setPosition(p.pos.x, p.pos.y, p.pos.z);
     tmp.root.premultiply(sm);
     tmp.root.multiply(tmp.a.makeScale(sc, sc, sc));
-    if (sit > 0.01) tmp.root.multiply(trans(tmp.a, 0, 0, -0.08 * sit));
+    if (sit > 0.01) tmp.root.moveBy(0, 0, -0.08 * sit);
     const set = (k, j, m) => meshes[k].setMatrixAt(p.slot * counts[k] + j, m);
 
     // legs: thighs swing forward (positive) and fold up to sit; knees bend
@@ -512,21 +534,21 @@ export function createPeople({ trains, station }) {
       const knee = (0.06 + 0.8 * Math.max(0, Math.cos(ph)) ** 1.5) * walk;
       const thighA = swing * (1 - sit) + (Math.PI / 2) * sit;
       const kneeA = knee * (1 - sit) + (Math.PI / 2 - 0.05) * sit;
-      tmp.hip.copy(tmp.root).multiply(trans(tmp.a, side * B.hipX * p.wide, hipY, 0)).multiply(rotX(tmp.b, -thighA));
+      tmp.hip.copy(tmp.root).moveBy(side * B.hipX * p.wide, hipY, 0).turnX(-thighA);
       set('thigh', j, tmp.hip);
-      tmp.c.copy(tmp.hip).multiply(trans(tmp.a, 0, -B.thigh, 0)).multiply(rotX(tmp.b, kneeA));
+      tmp.c.copy(tmp.hip).moveBy(0, -B.thigh, 0).turnX(kneeA);
       set('shin', j, tmp.c);
     }
     // the body, leaning back a little when seated
     const lean = -0.12 * sit + idle + sway;
-    tmp.torso.copy(tmp.root).multiply(trans(tmp.a, 0, hipY - 0.06, 0)).multiply(rotX(tmp.b, lean))
+    tmp.torso.copy(tmp.root).moveBy(0, hipY - 0.06, 0).turnX(lean)
       .multiply(tmp.c.makeScale(p.wide, 1, 1));
     set('torso', 0, tmp.torso);
-    tmp.torso.copy(tmp.root).multiply(trans(tmp.a, 0, hipY - 0.06, 0)).multiply(rotX(tmp.b, lean));
+    tmp.torso.copy(tmp.root).moveBy(0, hipY - 0.06, 0).turnX(lean);
     // head, looking down at a phone
     const nod = 0.35 * p.phoneT;
-    tmp.neck.copy(tmp.torso).multiply(trans(tmp.a, 0, B.neck, 0)).multiply(rotX(tmp.b, nod));
-    tmp.c.copy(tmp.neck).multiply(trans(tmp.a, 0, B.head + 0.005, 0.01));
+    tmp.neck.copy(tmp.torso).moveBy(0, B.neck, 0).turnX(nod);
+    tmp.c.copy(tmp.neck).moveBy(0, B.head + 0.005, 0.01);
     set('skin', 0, tmp.d.copy(tmp.c).multiply(tmp.b.makeScale(B.head, B.head * 1.1, B.head)));
     set('hairShort', 0, p.hairStyle === 1 ? tmp.c : ZERO);
     set('hairLong', 0, p.hairStyle === 2 ? tmp.c : ZERO);
@@ -548,22 +570,22 @@ export function createPeople({ trains, station }) {
       out += (-0.18 - out) * p.phoneT * 0.6;
       upper += (0.5 - upper) * sit * (1 - p.phoneT);
       elbow += (0.9 - elbow) * sit * (1 - p.phoneT);
-      tmp.sh.copy(tmp.torso).multiply(trans(tmp.a, side * B.shoulderX * p.wide, B.shoulderY, 0))
-        .multiply(tmp.b.makeRotationZ(side * out)).multiply(rotX(tmp.c, -upper));
+      tmp.sh.copy(tmp.torso).moveBy(side * B.shoulderX * p.wide, B.shoulderY, 0)
+        .multiply(tmp.b.makeRotationZ(side * out)).turnX(-upper);
       set('upper', j, tmp.sh);
-      tmp.d.copy(tmp.sh).multiply(trans(tmp.a, 0, -B.upper, 0)).multiply(rotX(tmp.b, -elbow));
+      tmp.d.copy(tmp.sh).moveBy(0, -B.upper, 0).turnX(-elbow);
       set('fore', j, tmp.d);
-      tmp.c.copy(tmp.d).multiply(trans(tmp.a, 0, -B.fore - 0.02, 0)).multiply(tmp.b.makeScale(0.045, 0.05, 0.045));
+      tmp.c.copy(tmp.d).moveBy(0, -B.fore - 0.02, 0).multiply(tmp.b.makeScale(0.045, 0.05, 0.045));
       set('skin', 1 + j, tmp.c);
       if (j === 1) {
         if (p.phoneT > 0.3) {
-          tmp.c.copy(tmp.d).multiply(trans(tmp.a, -0.02 * side, -B.fore - 0.03, 0.04)).multiply(rotX(tmp.b, 1.2));
+          tmp.c.copy(tmp.d).moveBy(-0.02 * side, -B.fore - 0.03, 0.04).turnX(1.2);
           set('phone', 0, tmp.c);
         } else set('phone', 0, ZERO);
       }
     }
     const g = glowOf(p);
-    for (const [k, n] of Object.entries(counts)) for (let j = 0; j < n; j++) glow[k].array[p.slot * n + j] = g;
+    for (const [k, n] of parts) for (let j = 0; j < n; j++) glow[k].array[p.slot * n + j] = g;
   }
 
   return {
@@ -574,21 +596,38 @@ export function createPeople({ trains, station }) {
     doorsClosing,
     // dt: time step; doors: how open each train's doors are; busy: whether
     // each train is standing at its platform; accel: our train's
-    // acceleration
-    update(dt, { doors, busy, time, accel = 0 }) {
+    // acceleration. With `camera` (its matrices up to date), only the people
+    // in its view are posed, which is most of the work.
+    update(dt, { doors, busy, time, accel = 0, camera = null }) {
       arrivals(dt, busy);
       for (const p of [...people]) {
         step(p, dt, doors);
         settleStep(p, dt);
         if (p.gone) { remove(p); continue; }
       }
+      if (camera) frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
       let top = 0;
-      for (const p of people) { pose(p, time, accel); top = Math.max(top, p.slot + 1); }
+      for (const p of people) {
+        top = Math.max(top, p.slot + 1);
+        if (camera) {
+          seen.center.set(p.pos.x, p.pos.y + 0.9, p.pos.z).applyMatrix4(spaceMatrix(p.space));
+          if (!frustum.intersectsSphere(seen)) {
+            if (!p.hidden) hide(p);
+            p.hidden = true;
+            continue;
+          }
+        }
+        p.hidden = false;
+        pose(p, time, accel);
+      }
       // draw only up to the highest slot in use
-      for (const [k, n] of Object.entries(counts)) {
+      for (const [k, n] of parts) {
         meshes[k].count = top * n;
-        meshes[k].instanceMatrix.needsUpdate = true;
-        glow[k].needsUpdate = true;
+        for (const a of [meshes[k].instanceMatrix, glow[k]]) {
+          a.clearUpdateRanges();
+          a.addUpdateRange(0, top * n * a.itemSize);
+          a.needsUpdate = true;
+        }
       }
     },
     get count() { return people.length; },

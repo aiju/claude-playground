@@ -106,8 +106,9 @@ photographs. `src/dims.js` has all the numbers.
 - **The tunnel** (`tunnel.js`) is rings of cast-iron segments with their
   flanges facing in, set around a concrete invert with timber sleepers and
   both conductor rails. There are cable runs along the walls and a working
-  light every 15 m. It is built in 30 m pieces wherever the train and the
-  camera are, and taken down behind them. The rings, sleepers, insulators
+  light every 15 m. It is built in 61 m pieces wherever the train and the
+  camera are, a part at a time over several frames and well before it comes
+  into sight, and taken down behind them. The rings, sleepers, insulators
   and cables are instanced along the line; the rails and the invert are swept
   along it. The windows throw light on the walls: the tunnel's shaders read a
   strip of texture that marks where along the train the windows are, and
@@ -133,8 +134,8 @@ photographs. `src/dims.js` has all the numbers.
   near it and the outsides of the trains all add in their shaders, in the
   station's own coordinates. Only one station exists at a time: when the
   train has left, it moves on to the next stop along the line and takes the
-  next name. The running tunnels are cut away in the shader where the
-  station is.
+  next name. The running tunnels' rings and cables are left out where the
+  station is, and anything left over is cut away in the shader.
 - **The other track** (`path.js`, `other.js`) runs 13 m to the right of
   ours, in a tunnel of its own, with trains going to the other end of the
   line. On a curve the two tracks are different lengths, so the other one
@@ -163,6 +164,16 @@ photographs. `src/dims.js` has all the numbers.
   from the same path as the tunnel. It turns slowly so the stretch of line
   on it always runs left to right, and draws station names only where they
   have room.
+- **Keeping it smooth.** What costs most is the number of separate things
+  drawn each frame, so the trains' parts are drawn in batches (`batch.js`):
+  the parts every car shares (doors, bogies, seats and so on) are one
+  instanced mesh each across both trains, fed each frame with the places of
+  the ones in view. The station is merged into a mesh per material, and the
+  tunnel is drawn no further than the murk lets you see. All the shaders
+  are built while the page loads. The number of lights never changes, since
+  that would have every shader built again: a working light inside the
+  station is turned down rather than switched off. People out of view
+  aren't posed. If frames still come unevenly, the page draws fewer pixels.
 - **The sound** (`sound.js`) is synthesized: a rumble and a rush of air that
   grow with speed, motors that whine when the train pulls away or brakes, a
   click from each wheel as it crosses a rail joint, and the door beeps.

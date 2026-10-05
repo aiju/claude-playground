@@ -3,10 +3,12 @@
 // the walls and the odd working light.
 //
 // The tunnel follows the line's path (path.js), round its curves and down its
-// dips. It is built in pieces a couple of periods long, wherever the train
-// and the camera are, and taken down again behind them. The rings, sleepers
-// and cables are instanced along the path; the rails and the invert are swept
-// along it.
+// dips. It is built in pieces a few periods long, wherever the train and the
+// camera are, and taken down again behind them; a piece is built a little at
+// a time over several frames, well before it comes into sight. The rings,
+// sleepers and cables are instanced along the path; the rails and the invert
+// are swept along it. Where a station is, the rings and cables inside it are
+// left out (the station has walls of its own).
 //
 // Light from the train's windows falls on the walls: the tunnel's materials
 // add it in their shaders, from a strip of texture that marks where along the
@@ -28,7 +30,8 @@ export const TUNNEL = {
   ring: 0.508,           // 20 inches
 };
 export const PERIOD = 30 * TUNNEL.ring;     // a working light every period
-const CHUNK = 2 * PERIOD;                   // the tunnel is built in pieces this long
+const CHUNK = 4 * PERIOD;                   // the tunnel is built in pieces this long
+const SWEEP_STEP = CHUNK / 40;              // and the rails swept along it in steps this long
 const LAMP_PHASE = PERIOD / 2;
 const LAMP_Y = 2.25;
 
@@ -41,7 +44,7 @@ const at = (r, phi) => [r * Math.cos(phi), CY + r * Math.sin(phi)];  // (z, y)
 // One ring of segments, from x = 0 to W.
 function ringGeometry() {
   const iron = new MeshBuilder();
-  const N = 84;
+  const N = 48;
   const flangeT = 0.025, longT = 0.02;
   // skin between the flanges, facing the axis
   for (let i = 0; i < N; i++) {
@@ -81,16 +84,22 @@ function ringGeometry() {
     // bolts along the joint
     for (const bx of [0.12, 0.25, 0.38]) {
       const [zb, yb] = at(R + 0.005, phi);
-      iron.addGeometry(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 6), matrixFrom([bx, yb, zb], [phi - Math.PI / 2, 0, 0]));
+      iron.addGeometry(new THREE.BoxGeometry(0.03, 0.02, 0.03), matrixFrom([bx, yb, zb], [phi - Math.PI / 2, 0, 0]));
     }
   }
   return iron.geometry();
 }
 
-// A cable run: a few cables sagging between brackets PERIOD / 10 apart.
-function cableSpanGeometry(heights, side) {
-  const span = PERIOD / 10;
+// The cable runs: a few cables on each wall, sagging between brackets
+// PERIOD / 10 apart; one span of all of them.
+function cableSpanGeometry(runs) {
   const b = new MeshBuilder();
+  for (const [heights, side] of runs) cableSpan(b, heights, side);
+  return b.geometry();
+}
+
+function cableSpan(b, heights, side) {
+  const span = PERIOD / 10;
   heights.forEach((y, i) => {
     const r = 0.011 + (i % 3) * 0.004;
     const z = side * (Math.sqrt(R * R - (y - CY) ** 2) - 0.1 - (i % 2) * 0.02);
@@ -99,14 +108,13 @@ function cableSpanGeometry(heights, side) {
       const t = k / 8;
       pts.push(new THREE.Vector3(t * span, y - 0.035 * 4 * t * (1 - t), z));
     }
-    b.addGeometry(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, r, 6, false));
+    b.addGeometry(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 6, r, 5, false));
   });
   // the bracket
   const top = Math.max(...heights), bottom = Math.min(...heights);
   const zb = side * (Math.sqrt(R * R - ((top + bottom) / 2 - CY) ** 2) - 0.07);
   b.addGeometry(new THREE.BoxGeometry(0.03, top - bottom + 0.1, 0.03), matrixFrom([0, (top + bottom) / 2, zb]));
   for (const y of heights) b.addGeometry(new THREE.BoxGeometry(0.025, 0.012, 0.16), matrixFrom([0, y - 0.022, zb - side * 0.05]));
-  return b.geometry();
 }
 
 // The light that the train's windows throw on to the tunnel. The tunnel's
@@ -163,14 +171,19 @@ function windowTerm(u) {
   };
 }
 
-// Geometry swept along the path: a cross-section (in z, y) carried through
+// Geometry swept along the path: cross-sections (in z, y) carried through
 // frames, with each vertex's place along the line and its normal in the
-// line's frame as attributes for the shaders.
+// line's frame as attributes for the shaders. Each edge of a section is a
+// strip of quads with its own normal, so the edges stay sharp.
 class Sweep {
-  constructor() { this.pos = []; this.nrm = []; this.pc = []; this.pn = []; }
-  // `frames` are [s, Frame] pairs; `pts` the section; `ref` a point the
-  // faces should look towards
-  add(frames, pts, { closed = false, ref = [0, 1.25], origin }) {
+  // `frames` are [s, Frame] pairs, and positions are made relative to `origin`
+  constructor(frames, origin) {
+    this.frames = frames; this.origin = origin;
+    this.pos = []; this.nrm = []; this.pc = []; this.pn = []; this.index = [];
+  }
+  // `pts` is the section; `ref` a point the faces should look towards
+  add(pts, { closed = false, ref = [0, 1.25] }) {
+    const { frames, origin } = this;
     const n = pts.length, edges = closed ? n : n - 1;
     for (let e = 0; e < edges; e++) {
       const [za, ya] = pts[e], [zb, yb] = pts[(e + 1) % n];
@@ -179,21 +192,25 @@ class Sweep {
       let ny = (zb - za) / len, nz = -(yb - ya) / len;
       const mz = (za + zb) / 2, my = (ya + yb) / 2;
       if (nz * (ref[0] - mz) + ny * (ref[1] - my) < 0) { ny = -ny; nz = -nz; }
-      for (let i = 0; i < frames.length - 1; i++) {
-        const [s0, f0] = frames[i], [s1, f1] = frames[i + 1];
-        const P = (f, z, y) => f.apply(0, y, z).sub(origin);
-        const quad = [[f0, s0, za, ya], [f1, s1, za, ya], [f1, s1, zb, yb], [f0, s0, zb, yb]];
-        const v = quad.map(([f, , z, y]) => P(f, z, y));
-        const N = quad.map(([f]) => new THREE.Vector3().copy(f.u).multiplyScalar(ny).addScaledVector(f.r, nz));
-        // wind the two triangles to face the way the normal points
-        const face = new THREE.Vector3().subVectors(v[1], v[0]).cross(new THREE.Vector3().subVectors(v[2], v[0]));
-        const order = face.dot(N[0]) >= 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
-        for (const k of order) {
-          this.pos.push(v[k].x, v[k].y, v[k].z);
-          this.nrm.push(N[k].x, N[k].y, N[k].z);
-          this.pc.push(quad[k][1], quad[k][3], quad[k][2]);
+      const base = this.pos.length / 3;
+      for (const [s, f] of frames) {
+        const { pos: o, u, r } = f;
+        for (const [z, y] of [[za, ya], [zb, yb]]) {
+          this.pos.push(o.x + u.x * y + r.x * z - origin.x, o.y + u.y * y + r.y * z - origin.y, o.z + u.z * y + r.z * z - origin.z);
+          this.nrm.push(u.x * ny + r.x * nz, u.y * ny + r.y * nz, u.z * ny + r.z * nz);
+          this.pc.push(s, y, z);
           this.pn.push(0, ny, nz);
         }
+      }
+      // wind the triangles to face the way the normal points, judged from
+      // the first quad: a0, b0 at the first frame, a1, b1 at the next
+      const P = (i) => new THREE.Vector3().fromArray(this.pos, 3 * (base + i));
+      const face = new THREE.Vector3().subVectors(P(2), P(0)).cross(new THREE.Vector3().subVectors(P(3), P(0)));
+      const flip = face.dot(new THREE.Vector3().fromArray(this.nrm, 3 * base)) < 0;
+      for (let i = 0; i < frames.length - 1; i++) {
+        const a0 = base + 2 * i, b0 = a0 + 1, a1 = a0 + 2, b1 = a0 + 3;
+        if (flip) this.index.push(a0, b1, a1, a0, b0, b1);
+        else this.index.push(a0, a1, b1, a0, b1, b0);
       }
     }
   }
@@ -203,6 +220,7 @@ class Sweep {
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
     g.setAttribute('pathCoord', new THREE.Float32BufferAttribute(this.pc, 3));
     g.setAttribute('pathNormal', new THREE.Float32BufferAttribute(this.pn, 3));
+    g.setIndex(this.index);
     g.computeBoundingSphere();
     return g;
   }
@@ -237,7 +255,10 @@ function windowPattern(train) {
 
 // `lights`: give the working lights nearest the camera real light, and fill
 // the tunnel with a faint ambient light (only one tunnel needs either).
-export function buildTunnel(train, path, { lights = true } = {}) {
+// `stations` says where the stations are along the line ({ line, start(k),
+// length, spacing }), so that the rings inside one can be left out while it
+// is there.
+export function buildTunnel(train, path, { lights = true, stations = null } = {}) {
   const group = new THREE.Group();
   group.name = 'tunnel';
 
@@ -263,64 +284,104 @@ export function buildTunnel(train, path, { lights = true } = {}) {
 
   // the pieces every stretch of tunnel is made of, in the line's frame
   const lampZ = -(Math.sqrt(R * R - (LAMP_Y - CY) ** 2) - 0.08);
+  const insulator = new MeshBuilder();
+  for (const [z, top] of [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]]) {
+    const h = top - 0.065 + 0.17;
+    insulator.addGeometry(new THREE.CylinderGeometry(0.045, 0.06, h, 10), matrixFrom([0, top - 0.065 - h / 2, z]));
+  }
   const base = {
     ring: ringGeometry(),
     sleeper: new THREE.BoxGeometry(0.25, 0.14, 2.45).translate(0, -TRACK.railHeight - 0.07, 0),
     lampBody: new THREE.BoxGeometry(0.34, 0.12, 0.12).translate(0, LAMP_Y, lampZ),
     lampGlow: new THREE.BoxGeometry(0.26, 0.06, 0.02).translate(0, LAMP_Y - 0.02, lampZ + 0.065),
-    insulators: [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]].map(([z, top]) => {
-      const h = top - 0.065 + 0.17;
-      return new THREE.CylinderGeometry(0.045, 0.06, h, 16).translate(0, top - 0.065 - h / 2, z);
-    }),
-    cables: [[[0.95, 1.01, 1.07, 1.13, 1.19], 1], [[1.38, 1.44, 1.5], -1], [[2.35, 2.41], 1]].map(([h, side]) => cableSpanGeometry(h, side)),
+    insulators: insulator.geometry(),
+    cables: cableSpanGeometry([[[0.95, 1.01, 1.07, 1.13, 1.19], 1], [[1.38, 1.44, 1.5], -1], [[2.35, 2.41], 1]]),
   };
+  for (const g of Object.values(base)) g.computeBoundingBox();
   const zEdge = Math.sqrt(RS * RS - (BED - CY) ** 2) + 0.02;
   const BED_PROFILE = [[-zEdge, BED], [-0.18, BED], [-0.16, BED - 0.16], [0.16, BED - 0.16], [0.18, BED], [zEdge, BED]];
   const railHalf = TRACK.gauge / 2 + TRACK.railHead / 2;
   const shift = (pts, dz, dy) => pts.map(([z, y]) => [z + dz, y + dy]);
 
-  const f = new Frame(), m = new THREE.Matrix4(), colour = new THREE.Color();
+  const f = new Frame(), m = new THREE.Matrix4(), colour = new THREE.Color(), pa = new THREE.Vector3();
   const chunks = new Map();
+  let building = null;                // the piece being built: { c, gen }
 
-  // an instanced mesh of `geo` at each distance in `ss`, in a piece whose
-  // origin is `origin`
-  function instanced(geo, mat, ss, origin, tint) {
-    const g = new THREE.BufferGeometry();
-    for (const [k, a] of Object.entries(geo.attributes)) g.setAttribute(k, a);
-    if (geo.index) g.setIndex(geo.index);
-    const inst = new Float32Array(ss.length);
-    const mesh = new THREE.InstancedMesh(g, mat, ss.length);
-    ss.forEach((s, i) => {
-      path.frame(s, f).matrix(m);
-      m.setPosition(f.pos.x - origin.x, f.pos.y - origin.y, f.pos.z - origin.z);
-      mesh.setMatrixAt(i, m);
-      inst[i] = s;
-      if (tint) mesh.setColorAt(i, tint(s, colour));
-    });
-    g.setAttribute('instS', new THREE.InstancedBufferAttribute(inst, 1));
-    mesh.computeBoundingSphere();
-    mesh.receiveShadow = true;
-    return mesh;
+  // the station whose place a stretch of path from a to b runs into, if any
+  function stationAt(a, b) {
+    if (!stations) return null;
+    const la = path.lineS(a), lb = path.lineS(b), lo = Math.min(la, lb), hi = Math.max(la, lb);
+    const k = Math.round(((lo + hi) / 2 - stations.start(0) - stations.length / 2) / stations.spacing);
+    const st = stations.start(k);
+    return k >= 0 && hi > st && lo < st + stations.length ? k : null;
   }
 
-  // a stretch of tunnel from c * CHUNK to (c + 1) * CHUNK
-  function buildChunk(c) {
+  // A stretch of tunnel from c * CHUNK to (c + 1) * CHUNK, built a part at a
+  // time: it yields after each part, and returns the piece.
+  function* buildChunk(c) {
     const s0 = c * CHUNK, s1 = s0 + CHUNK;
     const g = new THREE.Group();
     const origin = path.frame(s0).pos.clone();
     g.position.copy(origin);
+    // the station this stretch runs into, and the inverse of its frame
+    const k = stationAt(s0, s1);
+    const stInv = k === null ? null : stations.line.frame(stations.start(k), new Frame()).matrix().invert();
+    const parts = [];
     const every = (step, phase = 0) => { const out = []; for (let s = s0 + phase; s < s1 - 1e-6; s += step) out.push(s); return out; };
+
+    // whether the whole of something at s, reaching from x0 to x1 along the
+    // path, is inside the station
+    const inside = (s, x0, x1) => [x0, x1].every(x => {
+      path.frame(s + x, f).apply(0, 0, 0, pa).applyMatrix4(stInv);
+      return pa.x > 0.05 && pa.x < stations.length - 0.05;
+    });
+
+    // an instanced mesh of `geo` at each distance in `ss`. If `cut`, the
+    // station's walls take its place inside a station: the ones inside go
+    // last, so that they can be left out by drawing fewer.
+    function instanced(geo, mat, ss, { cut = false, tint } = {}) {
+      let shown = ss.length;
+      if (cut && k !== null) {
+        const box = geo.boundingBox;
+        const out = ss.filter(s => !inside(s, box.min.x, box.max.x));
+        shown = out.length;
+        ss = out.concat(ss.filter(s => !out.includes(s)));
+      }
+      const geom = new THREE.BufferGeometry();
+      for (const [key, a] of Object.entries(geo.attributes)) geom.setAttribute(key, a);
+      if (geo.index) geom.setIndex(geo.index);
+      const inst = new Float32Array(ss.length);
+      const mesh = new THREE.InstancedMesh(geom, mat, ss.length);
+      ss.forEach((s, i) => {
+        path.frame(s, f).matrix(m);
+        m.setPosition(f.pos.x - origin.x, f.pos.y - origin.y, f.pos.z - origin.z);
+        mesh.setMatrixAt(i, m);
+        inst[i] = s;
+        if (tint) mesh.setColorAt(i, tint(s, colour));
+      });
+      geom.setAttribute('instS', new THREE.InstancedBufferAttribute(inst, 1));
+      mesh.computeBoundingSphere();
+      if (shown < ss.length) parts.push({ mesh, all: ss.length, shown });
+      g.add(mesh);
+    }
+
     // rings, each a slightly different shade of grime
-    g.add(instanced(base.ring, ironMat, every(W), origin, (s, col) => {
-      const k = Math.round(s / W);
-      const shade = 0.75 + 0.35 * ((k * 7919) % 30) / 30 + 0.05 * Math.sin(k);
-      return col.setRGB(shade, shade * (0.97 + 0.03 * Math.sin(k * 3)), shade * 0.94);
-    }));
-    g.add(instanced(base.sleeper, tm.timber, every(PERIOD / 24, PERIOD / 48), origin));
-    for (const geo of base.insulators) g.add(instanced(geo, tm.insulator, every(PERIOD / 5, PERIOD / 10), origin));
-    for (const geo of base.cables) g.add(instanced(geo, cableMat, every(PERIOD / 10), origin));
+    instanced(base.ring, ironMat, every(W), {
+      cut: true,
+      tint: (s, col) => {
+        const n = Math.round(s / W);
+        const shade = 0.75 + 0.35 * ((n * 7919) % 30) / 30 + 0.05 * Math.sin(n);
+        return col.setRGB(shade, shade * (0.97 + 0.03 * Math.sin(n * 3)), shade * 0.94);
+      },
+    });
+    yield;
+    instanced(base.sleeper, tm.timber, every(PERIOD / 24, PERIOD / 48));
+    instanced(base.insulators, tm.insulator, every(PERIOD / 5, PERIOD / 10));
+    instanced(base.cables, cableMat, every(PERIOD / 10), { cut: true });
+    yield;
     const lamps = every(PERIOD, LAMP_PHASE);
-    g.add(instanced(base.lampBody, cableMat, lamps, origin), instanced(base.lampGlow, glowMat, lamps, origin));
+    instanced(base.lampBody, cableMat, lamps, { cut: true });
+    instanced(base.lampGlow, glowMat, lamps, { cut: true });
     const glows = lamps.map(s => {
       const sprite = new THREE.Sprite(train.materials.lampGlow);
       sprite.scale.setScalar(0.9);
@@ -328,25 +389,32 @@ export function buildTunnel(train, path, { lights = true } = {}) {
       g.add(sprite);
       return sprite;
     });
+    yield;
     // the swept parts: rails, conductor rails and the invert
     const frames = [];
-    for (let i = 0; i <= 60; i++) { const s = s0 + CHUNK * i / 60; frames.push([s, path.frame(s)]); }
-    const sweeps = { rail: new Sweep(), railTop: new Sweep(), conductor: new Sweep(), bed: new Sweep() };
+    const steps = Math.ceil(CHUNK / SWEEP_STEP);
+    for (let i = 0; i <= steps; i++) { const s = s0 + CHUNK * i / steps; frames.push([s, path.frame(s)]); }
+    const sweeps = { rail: new Sweep(frames, origin), railTop: new Sweep(frames, origin), conductor: new Sweep(frames, origin), bed: new Sweep(frames, origin) };
     for (const side of [1, -1]) {
-      sweeps.rail.add(frames, shift(RAIL_PROFILE, side * railHalf, 0), { closed: true, ref: [side * railHalf, -0.07], origin });
-      sweeps.railTop.add(frames, [[side * railHalf - 0.029, 0.0006], [side * railHalf + 0.029, 0.0006]], { ref: [side * railHalf, 1], origin });
+      sweeps.rail.add(shift(RAIL_PROFILE, side * railHalf, 0), { closed: true, ref: [side * railHalf, -0.07] });
+      sweeps.railTop.add([[side * railHalf - 0.029, 0.0006], [side * railHalf + 0.029, 0.0006]], { ref: [side * railHalf, 1] });
     }
+    yield;
     for (const [z, top] of [[TRACK.positiveZ, TRACK.positiveTop], [0, TRACK.negativeTop]]) {
-      sweeps.conductor.add(frames, shift(BAR_PROFILE, z, top), { closed: true, ref: [z, top - 0.03], origin });
+      sweeps.conductor.add(shift(BAR_PROFILE, z, top), { closed: true, ref: [z, top - 0.03] });
     }
-    sweeps.bed.add(frames, BED_PROFILE, { ref: [0, BED + 1], origin });
-    for (const [k, mat] of [['rail', tm.rail], ['railTop', tm.railTop], ['conductor', tm.conductor], ['bed', bedMat]]) {
-      const mesh = new THREE.Mesh(sweeps[k].geometry(), mat);
-      mesh.receiveShadow = true;
-      g.add(mesh);
+    sweeps.bed.add(BED_PROFILE, { ref: [0, BED + 1] });
+    for (const [key, mat] of [['rail', tm.rail], ['railTop', tm.railTop], ['conductor', tm.conductor], ['bed', bedMat]]) {
+      g.add(new THREE.Mesh(sweeps[key].geometry(), mat));
     }
     group.add(g);
-    return { group: g, glows };
+    return { group: g, glows, k, parts };
+  }
+
+  function finish(c, gen) {
+    let r;
+    do r = gen.next(); while (!r.done);
+    chunks.set(c, r.value);
   }
 
   // Takes a piece down. Its instanced meshes share their shapes with every
@@ -367,11 +435,14 @@ export function buildTunnel(train, path, { lights = true } = {}) {
     chunks.delete(c);
   }
 
-  // the working lights nearest the camera get real lights
+  // The working lights nearest the camera get real lights. Ones that fall
+  // in a station are turned down rather than hidden: a change in the number
+  // of lights would have every material's shader built again.
   const lampLights = [];
+  const LAMP = 2.2;
   if (lights) {
     for (let i = 0; i < 4; i++) {
-      const l = new THREE.PointLight(0xffd4a0, 2.2, 14, 1.6);
+      const l = new THREE.PointLight(0xffd4a0, LAMP, 14, 1.6);
       group.add(l);
       lampLights.push(l);
     }
@@ -390,29 +461,43 @@ export function buildTunnel(train, path, { lights = true } = {}) {
     exposure: 1.25,
     winUniforms,
     // Builds the tunnel round the train and the camera (focusS is the
-    // camera's distance along the line), takes it down elsewhere, and moves
-    // the real lights to the lamps nearest the camera. Builds at most
-    // `budget` pieces at a time, so a long jump doesn't stall a frame.
-    // `range`, if given, is the stretch to build instead.
-    update(trainS, focusS, budget = 3, range = null) {
+    // camera's distance along the path), takes it down elsewhere, and moves
+    // the real lights to the lamps nearest the camera. Pieces the camera
+    // could see are built straight away; the rest a part at a time, for up
+    // to `ms` milliseconds a frame, so that the train never waits for them.
+    // `range`, if given, is the stretch to build instead; `shown` is the
+    // station that is there now. Returns how many pieces are still to build.
+    update(trainS, focusS, { range = null, ms = 2, shown = null } = {}) {
       winUniforms.uTrainS.value = trainS;
       const lo = Math.floor((range ? range[0] : Math.min(focusS, trainS - train.length) - 190) / CHUNK);
       const hi = Math.floor((range ? range[1] : Math.max(focusS, trainS) + 230) / CHUNK);
       for (const c of [...chunks.keys()]) if (c < lo - 1 || c > hi + 1) dropChunk(c);
+      if (building && (building.c < lo - 1 || building.c > hi + 1)) building = null;
       // nearest the camera first
       const want = [];
-      for (let c = lo; c <= hi; c++) if (!chunks.has(c)) want.push(c);
+      for (let c = lo; c <= hi; c++) if (!chunks.has(c) && building?.c !== c) want.push(c);
       want.sort((a, b) => Math.abs(a * CHUNK - focusS) - Math.abs(b * CHUNK - focusS));
-      for (const c of want.slice(0, budget)) chunks.set(c, buildChunk(c));
-      const left = Math.max(0, want.length - budget);
-      for (const ch of chunks.values()) for (const s of ch.glows) s.visible = !inStation(world.copy(s.position).add(ch.group.position));
+      const sight = (c) => (c + 1) * CHUNK > focusS - 120 && c * CHUNK < focusS + 120;
+      if (building && sight(building.c)) { finish(building.c, building.gen); building = null; }
+      while (want.length && sight(want[0])) { const c = want.shift(); finish(c, buildChunk(c)); }
+      const until = performance.now() + ms;
+      while (performance.now() < until && (building || want.length)) {
+        if (!building) { const c = want.shift(); building = { c, gen: buildChunk(c) }; }
+        const r = building.gen.next();
+        if (r.done) { chunks.set(building.c, r.value); building = null; }
+      }
+      const on = station.uStOn.value > 0.5;
+      for (const ch of chunks.values()) {
+        for (const p of ch.parts) { p.mesh.count = on && ch.k === shown ? p.shown : p.all; p.mesh.visible = p.mesh.count > 0; }
+        for (const s of ch.glows) s.visible = !inStation(world.copy(s.position).add(ch.group.position));
+      }
       const k0 = Math.round((focusS - LAMP_PHASE) / PERIOD);
       lampLights.forEach((l, i) => {
         const k = k0 + [0, 1, -1, 2][i];
         path.frame(k * PERIOD + LAMP_PHASE, f).apply(0, LAMP_Y - 0.12, lampZ + 0.2, l.position);
-        l.visible = !inStation(l.position);
+        l.intensity = inStation(l.position) ? 0 : LAMP;
       });
-      return left;
+      return want.length + (building ? 1 : 0);
     },
   };
 }

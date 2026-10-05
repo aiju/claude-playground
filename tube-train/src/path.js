@@ -159,6 +159,9 @@ export class LinePath {
     return out.set(p.x, p.y, p.z, p.h, p.g);
   }
 
+  // the distance along the line itself (see OtherTrack)
+  lineS(s) { return s; }
+
   // the distance along the path nearest to a point, starting from a guess
   nearest(p, guess) {
     const f = new Frame(), d = new THREE.Vector3();
@@ -188,6 +191,7 @@ export class OtherTrack {
   }
 
   betaAt(s) { return this.D * this.line.heading(s) - s; }
+  lineS(beta) { return this.sAt(beta); }
 
   // the distance along the line beside β (a contraction, since the curves
   // are much wider than the offset)

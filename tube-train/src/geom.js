@@ -7,6 +7,7 @@
 // general triangulator.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { surfacePoint } from './profile.js';
 
 const EPS = 1e-7;
@@ -234,4 +235,51 @@ export function matrixFrom(position, rotation = [0, 0, 0], scale = [1, 1, 1]) {
   const m = new THREE.Matrix4();
   m.compose(new THREE.Vector3(...position), new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)), new THREE.Vector3(...scale));
   return m;
+}
+
+// Merges the meshes under `root` that share a material into one mesh each,
+// in root's own coordinates, so that each material is one draw. Only for
+// things whose parts never move apart and never change material.
+export function mergeMeshes(root) {
+  root.updateMatrixWorld(true);
+  const inv = root.matrixWorld.clone().invert();
+  const list = [];
+  root.traverse(o => { if (o.isMesh) list.push([o, new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)]); });
+  mergeInto(root, list);
+}
+
+// The same for something with moving parts: only meshes side by side in
+// one group are merged, and only nameless ones, as named ones may be looked
+// for later.
+export function mergeSiblings(root) {
+  const groups = [];
+  root.traverse(o => { if (o.children.length > 1) groups.push(o); });
+  for (const g of groups) {
+    const list = g.children.filter(o => o.isMesh && !o.name && !o.children.length && !Object.keys(o.userData).length);
+    for (const o of list) o.updateMatrix();
+    mergeInto(g, list.map(o => [o, o.matrix.clone()]));
+  }
+}
+
+// merges meshes, each with its matrix relative to `parent`, by material
+function mergeInto(parent, list) {
+  const sets = new Map();
+  for (const [o, m] of list) {
+    if (o.isInstancedMesh || Array.isArray(o.material)) continue;
+    if (m.determinant() < 0) continue;        // mirrored: its faces would turn inside out
+    const key = [o.material.uuid, o.castShadow, o.receiveShadow, o.renderOrder, Object.keys(o.geometry.attributes).sort()].join(' ');
+    if (!sets.has(key)) sets.set(key, []);
+    sets.get(key).push([o, m]);
+  }
+  for (const set of sets.values()) {
+    if (set.length < 2) continue;
+    const geometry = mergeGeometries(set.map(([o, m]) => (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(m)));
+    const [first] = set[0];
+    const mesh = new THREE.Mesh(geometry, first.material);
+    mesh.castShadow = first.castShadow;
+    mesh.receiveShadow = first.receiveShadow;
+    mesh.renderOrder = first.renderOrder;
+    for (const [o] of set) o.removeFromParent();
+    parent.add(mesh);
+  }
 }

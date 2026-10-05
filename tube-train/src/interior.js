@@ -55,8 +55,8 @@ export function buildInterior(type, spec, materials) {
   const X = (d) => L / 2 - d;
   const B = new Builders();
   const { zWall, railZ, railY } = seatLayout(spec);
-  const cushion = (w) => new RoundedBoxGeometry(w, 0.1, 0.46, 3, 0.04);
-  const back = (w) => new RoundedBoxGeometry(w, 0.52, 0.09, 3, 0.04);
+  const cushion = (w) => new RoundedBoxGeometry(w, 0.1, 0.46, 2, 0.04);
+  const back = (w) => new RoundedBoxGeometry(w, 0.52, 0.09, 2, 0.04);
 
   for (const [d0, d1] of spec.seatBays) {
     const x0 = X(d1), x1 = X(d0);

@@ -25,6 +25,7 @@ import { VIEWS, DEFAULT_VIEW } from './views.js';
 import { buildUI } from './ui.js';
 import { createMinimap } from './minimap.js';
 import { createPeople } from './people.js';
+import { batchMeshes } from './batch.js';
 
 const params = new URLSearchParams(location.search);
 const still = params.has('still');
@@ -55,9 +56,11 @@ scene.add(train.group);
 const depotPath = new StraightPath();
 const line = new LinePath({ stationStart, stationLength: STATION.length, spacing: SPACING });
 
+// where the stations are, for the tunnels to leave their walls out there
+const stations = { line, start: stationStart, length: STATION.length, spacing: SPACING };
 const scenes = {
   depot: buildDepot(trackMaterials(), train.length),
-  tunnel: buildTunnel(train, line),
+  tunnel: buildTunnel(train, line, { stations }),
 };
 for (const s of Object.values(scenes)) scene.add(s.group);
 // one station, moved along to wherever the train is going next
@@ -74,13 +77,19 @@ const otherSide = sideDisplayMaterial('Brixton');
 const trainB = buildTrain(materials, { types: train.types, units: [63, 64], sideDisplay: otherSide, headlights: false });
 trainB.group.visible = false;
 scenes.tunnel.group.add(trainB.group);
-const tunnelB = buildTunnel(trainB, otherTrack, { lights: false });
+const tunnelB = buildTunnel(trainB, otherTrack, { lights: false, stations });
 scenes.tunnel.group.add(tunnelB.group);
 const other = createOtherService({ track: otherTrack, trainLength: trainB.length });
 
 // passengers: on the platforms and in both trains, underground only
 const people = createPeople({ trains: [train, trainB], station });
 scenes.tunnel.group.add(people.group);
+
+// the parts of the cars, drawn in batches (see batch.js)
+const batches = batchMeshes([train.group, trainB.group]);
+scene.add(batches.group);
+// the world matrices are brought up to date once a frame, in draw()
+scene.matrixWorldAutoUpdate = false;
 
 const sound = createSound(train.wheelXs);
 
@@ -104,6 +113,9 @@ const state = {
   indicator: '',
   tween: null,
 };
+// the gaps between recent frames, for pacing()
+const pace = { gaps: [], floor: window.devicePixelRatio > 1 ? 1.25 : 1 };
+
 // the other train goes back to where ours came from
 const otherDestination = () => route(state.destination)[0];
 setFrontDisplays(materials, { destination: state.destination });
@@ -137,6 +149,9 @@ function setScene(name) {
   renderer.toneMappingExposure = s.exposure;
   // the depot has a key light with shadows; the tunnel only its own lights
   renderer.shadowMap.enabled = name === 'depot';
+  // nothing in the depot is further off than its haze; underground the
+  // murk sets how far the camera sees (see simulate)
+  if (name === 'depot') { camera.far = 250; camera.updateProjectionMatrix(); }
   for (const l of train.headlights) l.visible = name === 'tunnel';
   // headlight glare shows in the dark, much less in a lit shed
   materials.headGlow.opacity = name === 'tunnel' ? 0.9 : 0.25;
@@ -181,6 +196,7 @@ function anchorMatrix(a) {
 }
 
 function setView(name, animate = !still) {
+  pace.gaps.length = 0;
   const v = VIEWS[name] || VIEWS.front;
   const from = VIEWS[state.view];
   const sceneChange = v.scene !== state.scene;
@@ -449,15 +465,20 @@ function simulate(dt, time) {
   }
   controls.update();
   if (state.scene === 'tunnel') {
+    camera.updateMatrixWorld();
     people.update(dt, {
-      doors: [state.doors, state.doorsB], busy: [service.phase === 'dwell', other.phase === 'dwell'], time, accel: state.accel,
+      doors: [state.doors, state.doorsB], busy: [service.phase === 'dwell', other.phase === 'dwell'], time, accel: state.accel, camera,
     });
     state.focusS = line.nearest(camera.position, state.focusS);
-    scenes.tunnel.update(frontS(), state.focusS, still ? 999 : 3);
-    // the other tunnel, round the station: built a few pieces at a time,
-    // and only drawn when the camera is near enough to see into it
+    const left = scenes.tunnel.update(frontS(), state.focusS, { ms: still ? Infinity : 2, shown: state.stationIndex });
+    // the other tunnel, only round the station, and only drawn when the
+    // camera is near enough to see into it; built in the frames when ours
+    // has nothing left to build
     const s0 = stationStart(state.stationIndex);
-    tunnelB.update(other.beta, 0, still ? 999 : 2, [otherTrack.betaAt(s0 + STATION.length) - 220, otherTrack.betaAt(s0) + 220]);
+    tunnelB.update(other.beta, otherTrack.betaAt(state.focusS), {
+      ms: still ? Infinity : left ? 0 : 2, shown: state.stationIndex,
+      range: [otherTrack.betaAt(s0 + STATION.length) - 150, otherTrack.betaAt(s0) + 150],
+    });
     stationLocal.copy(camera.position).applyMatrix4(stationLight.uStInv.value);
     tunnelB.group.visible = stationLocal.x > -60 && stationLocal.x < STATION.length + 60 && stationLocal.z > -8 && stationLocal.z < TRACK_SPACING + 8;
     // brighter, and less murky, in the station
@@ -465,6 +486,9 @@ function simulate(dt, time) {
       * (inStationLocal({ x: Math.min(Math.max(stationLocal.x, 1), STATION.length - 1), z: stationLocal.z }) ? 1 : 0);
     scene.environmentIntensity = scenes.tunnel.envIntensity + 0.45 * inside;
     scene.fog.density = 0.018 - 0.013 * inside;
+    // and nothing beyond where the murk hides it all is drawn
+    const far = Math.min(Math.max(2.6 / scene.fog.density, 150), 600);
+    if (Math.abs(camera.far - far) > 2) { camera.far = far; camera.updateProjectionMatrix(); }
     const text = [...indicatorText(), ...otherIndicatorText()];
     if (text.join('|') !== state.indicator) {
       state.indicator = text.join('|');
@@ -476,8 +500,36 @@ function simulate(dt, time) {
   }
 }
 
+function draw() {
+  scene.updateMatrixWorld();
+  camera.updateMatrixWorld();
+  // with shadows, parts out of view can still cast them into it
+  batches.update(renderer.shadowMap.enabled ? null : camera);
+  renderer.render(scene, camera);
+}
+
+// If frames keep coming unevenly (more than a fifth of them late, over a
+// couple of seconds), draw fewer pixels: the pixel ratio goes down a step,
+// as far as 1.25 on a high-density screen. A steady rate, even a low one,
+// is left alone, and so is anything round a jump to another view.
+function pacing(ms) {
+  const gaps = pace.gaps;
+  if (ms > 250) { gaps.length = 0; return; }
+  gaps.push(ms);
+  if (gaps.length < 150) return;
+  const usual = [...gaps].sort((a, b) => a - b)[15];
+  const late = gaps.filter(g => g > usual * 1.5).length / gaps.length;
+  gaps.length = 0;
+  const ratio = renderer.getPixelRatio();
+  if (late > 0.2 && ratio > pace.floor) {
+    renderer.setPixelRatio(Math.max(pace.floor, ratio - 0.25));
+    resize();
+  }
+}
+
 function frame(time) {
   const dt = lastTime === null ? 1 / 60 : Math.min(Math.max((time - lastTime) / 1000, 0), 0.1);
+  if (lastTime !== null && !still) pacing(time - lastTime);
   lastTime = time;
   simulate(dt, time / 1000);
   sound.update({ speed: state.speed, accel: state.accel, distance: state.distance, listener: state.scene === 'tunnel' ? state.focusS - frontS() : camera.position.x, tunnel: state.scene === 'tunnel' });
@@ -486,7 +538,7 @@ function frame(time) {
     const k = service.nextStop(state.distance);
     minimap.draw({ s: state.distance, camera, nextStop: k, toNext: service.phase === 'dwell' ? 0 : stopAt(k) - state.distance, dt, otherBeta: other.visible ? other.beta : null });
   }
-  renderer.render(scene, camera);
+  draw();
   frames++;
   if (still && frames === 3) window.tubeTrain.stillReady = true;
   if (!still || frames < 3) requestAnimationFrame(frame);
@@ -514,6 +566,36 @@ function fastForward(seconds, step = 0.05) {
   for (let t = 0; t < seconds; t += step) simulate(step, (clock += step));
 }
 
-window.tubeTrain = { stillReady: false, app, state, service, other, line, otherTrack, train, trainB, people, materials, lighting, scene, camera, renderer, fastForward };
+// Builds the shaders both places need and uploads the textures before the
+// first frame, rather than stalling the first time each comes into view.
+// (Not for stills, which only need what's in them.)
+async function prepare() {
+  // a piece of each tunnel, for its materials
+  scenes.tunnel.update(0, 0, { range: [0, 1], ms: Infinity });
+  tunnelB.update(0, 0, { range: [0, 1], ms: Infinity });
+  scenes.depot.follow(new THREE.Vector3());
+  for (const name of ['tunnel', 'depot']) {
+    setScene(name);
+    await batches.without(() => renderer.compileAsync(scene, camera));
+  }
+  // and frames going from one place to the other, for the shaders that draw
+  // the shadows, which three builds for the lights of the frame before
+  for (const name of ['tunnel', 'depot', 'depot']) {
+    setScene(name);
+    placeTrain();
+    draw();
+  }
+  const textures = new Set();
+  scene.traverse(o => {
+    for (const m of [].concat(o.material || [])) for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
+  });
+  for (const t of textures) renderer.initTexture(t);
+  // back to the view it opened on
+  state.scene = null;
+  setView(state.view, false);
+}
+
+window.tubeTrain = { stillReady: false, app, state, service, other, line, otherTrack, train, trainB, people, materials, lighting, scene, camera, renderer, fastForward, draw, batches, minimap };
+if (!still) await prepare();
 document.getElementById('status')?.remove();
 requestAnimationFrame(frame);
