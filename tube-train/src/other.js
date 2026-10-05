@@ -24,6 +24,7 @@ export function createOtherService({ track, trainLength }) {
 
   return {
     get phase() { return s.phase; },
+    get dwellTime() { return s.phase === 'dwell' ? s.timer : 0; },
     get beta() { return s.beta; },
     get speed() { return s.speed; },
     get visible() { return s.phase === 'in' || s.phase === 'dwell' || s.phase === 'out'; },

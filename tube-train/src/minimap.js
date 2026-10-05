@@ -1,5 +1,5 @@
 // The minimap: the line from above round the train, turned so that the train
-// runs left to right across it, with the stations, the train, the camera and
+// runs left to right across it, with the stations, the signals, the train, the camera and
 // what it sees, a scale bar, and under it a strip with the line's height
 // (stretched, so the dips between the stations show; it says how much).
 //
@@ -22,14 +22,17 @@ const C = {
   train: '#e8352c',
   trainB: '#b0453d',
   front: '#fff4d6',
+  red: '#ff4a3a',
+  green: '#3ddc84',
   ink: '#eceae4',
   muted: '#a9adb3',
   camera: 'rgba(255, 255, 255, 0.9)',
   cone: 'rgba(255, 255, 255, 0.16)',
 };
 
-// `other` is the other track ({ track, offset, train }), drawn beside ours.
-export function createMinimap({ canvas, line, train, stationStart, stationLength, stationName, other = null }) {
+// `other` is the other track ({ track, offset, train }), drawn beside ours;
+// `signals` (signals.js) are drawn as dots on the driver's side of each.
+export function createMinimap({ canvas, line, train, stationStart, stationLength, stationName, other = null, signals = null }) {
   const g = canvas.getContext('2d');
   let zoom = 0;
   let angle = null;                    // the plan's rotation, eased
@@ -174,6 +177,21 @@ export function createMinimap({ canvas, line, train, stationStart, stationLength
           g.stroke();
           g.strokeStyle = C.blue;
           g.lineWidth = 3;
+          g.stroke();
+        }
+      }
+
+      // the signals, red or green
+      if (signals) {
+        const r = zoom === ZOOMS.length - 1 ? 1.6 : 2.4, out = 5 / scale;
+        g.lineWidth = 1;
+        g.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        for (const sg of signals.forMap(s0, s1)) {
+          const [x, y] = toPx(sg.x - sg.rx * out, sg.z - sg.rz * out);
+          g.fillStyle = sg.red ? C.red : C.green;
+          g.beginPath();
+          g.arc(x, y, r, 0, Math.PI * 2);
+          g.fill();
           g.stroke();
         }
       }

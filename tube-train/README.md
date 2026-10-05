@@ -7,7 +7,8 @@ You can look round it in the depot, open its doors and sit in the saloon, then
 send it off through a tube tunnel: ride in the cab, watch it from alongside,
 or stand at the trackside as it comes round a bend out of the dark.
 Underground it runs in service along a winding line, in one of a pair of
-twin tunnels, calling at a station every half kilometre. There you can wait
+twin tunnels, past red and green signals, calling at a station every half
+kilometre. There you can wait
 on the platform with the other passengers, watch it pull in and see people
 get off and on, and look through the arches to the other platform, where
 trains going the other way stop.
@@ -24,7 +25,7 @@ Any static file server will do. It needs a browser with WebGL and an internet
 connection, because three.js comes from a CDN.
 
 Underground, a map in the corner shows the line round the train from above:
-the bends, both tunnels, the stations with their names, both trains, where
+the bends, both tunnels, the stations with their names, the signals, both trains, where
 the camera is and which way it looks, and under it the line's height, stretched so the dips
 show. Click it to zoom out and in.
 
@@ -36,7 +37,7 @@ sound on and off. Keys:
 
 | Key | |
 | --- | --- |
-| 1–6 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside, Inside; at the station Platform, Arriving, Doors, Across, Platform 2) |
+| 1–6 | the views of where you are (in the depot Front, Side, Along, Bogie, Inside; in the tunnel Chase, Cab, Alongside, Window, Trackside, Inside; at the station Platform, Arriving, Doors, Across, Platform 2, Signal) |
 | D | open or close the doors (in the depot) |
 | ↑ ↓ | speed up or slow down (underground) |
 | L | saloon lights |
@@ -145,6 +146,17 @@ photographs. `src/dims.js` has all the numbers.
   be seen from. There is one other train, which waits out of sight and is
   sent in to arrive at about the same time as ours, a little before or
   after; it stops, opens its doors on its platform and leaves again.
+- **The signals** (`signals.js`) are two-aspect colour lights, red over
+  green, on the tunnel wall on the driver's side, each with a train stop
+  beside the right-hand rail. They work as automatic signals do: a signal
+  guards the line as far as the next one and a little beyond, and shows red
+  while any part of a train is in that stretch, its train stop raised to trip
+  a train that ran past. So each turns red as the train goes by and green
+  again once it's clear of the next. Each station has a home signal before it
+  and a starting signal just past the end of the platform, which is held at
+  red while a train runs in and stands, and clears just before it is due to
+  leave. Both trains wait for them. A lit lamp throws a little red or green
+  on the wall, and the map shows every signal.
 - **The service** (`service.js`) drives the train underground. It pulls
   away at 1.1 m/s², cruises at the speed you set, and brakes to stop with
   its front 3 m short of the end of the platform. It opens the doors on the

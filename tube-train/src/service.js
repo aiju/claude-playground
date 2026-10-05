@@ -1,5 +1,6 @@
 // The train in service: it runs through the tunnel, brakes into each
-// station, stands with its doors open, and pulls away for the next one.
+// station, stands with its doors open, and pulls away for the next one. It
+// stops short of any red signal (signals.js) and waits for it to clear.
 //
 // Distances are along the line, in metres: `distance` is how far the train
 // has come. Station k's platform tunnel starts at stationStart(k); the train
@@ -12,6 +13,7 @@ const FIRST = 380;                       // where the first one starts
 export const ACCEL = 1.1, BRAKE = 1.05;  // m/s²
 export const OVERRUN = 3;                // stop this far short of the end wall
 export const DWELL = { open: 1.2, close: 15, leave: 18.5 };   // seconds after stopping
+export const STOP_SHORT = 5;             // stand this far short of a red signal
 
 // The Victoria line, north to south
 export const LINE = [
@@ -43,6 +45,8 @@ export function createService(trainLength) {
 
   return {
     get phase() { return s.phase; },
+    // how long it has stood at the station (0 when it isn't)
+    get dwellTime() { return s.phase === 'dwell' ? s.timer : 0; },
     shownStation,
     // which stop comes next (or is where the train stands)
     nextStop(distance) {
@@ -63,9 +67,9 @@ export function createService(trainLength) {
       state.speed = 0;
       s.phase = 'dwell'; s.timer = DWELL.open + 0.5; s.stop = k; s.next = k + 1;
     },
-    // Moves the train on by dt. Returns 'open' or 'close' when the doors
-    // should move.
-    update(state, dt, stops) {
+    // Moves the train on by dt. `redAhead` is where the first red signal
+    // ahead is. Returns 'open' or 'close' when the doors should move.
+    update(state, dt, stops, redAhead = Infinity) {
       let event = null;
       if (s.phase === 'dwell') {
         const before = s.timer;
@@ -77,10 +81,13 @@ export function createService(trainLength) {
         return event;
       }
       const k = this.nextStop(state.distance);
-      const toGo = stopAt(k) - state.distance;
+      // the station, or a red signal if that comes first
+      const toStation = stops ? stopAt(k) - state.distance : Infinity;
+      const toSignal = redAhead - STOP_SHORT - state.distance;
+      const toGo = Math.min(toStation, toSignal);
       const v = state.speed;
       let a;
-      if (stops && toGo < v * v / (2 * BRAKE) + 1 + v * dt) {
+      if (toGo < v * v / (2 * BRAKE) + 1 + v * dt) {
         // brake to stop on the mark
         a = -Math.min(v * v / (2 * Math.max(toGo, 0.02)), 2.0);
       } else {
@@ -89,10 +96,11 @@ export function createService(trainLength) {
       }
       state.speed = Math.max(0, v + a * dt);
       let step = state.speed * dt;
-      if (stops && (step >= toGo || (toGo < 0.05 && state.speed < 0.3))) {
+      if (step >= toGo || (toGo < 0.05 && state.speed < 0.3)) {
         step = Math.max(0, toGo);
         state.speed = 0;
-        s.phase = 'dwell'; s.timer = 0; s.stop = k; s.next = k + 1;
+        // at a signal it just stands until it clears
+        if (toStation <= toSignal) { s.phase = 'dwell'; s.timer = 0; s.stop = k; s.next = k + 1; }
       }
       state.distance += step;
       return event;

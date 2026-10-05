@@ -27,7 +27,7 @@ const gpu = args.includes('--gpu');
 const sizeArg = args.find(a => a.startsWith('--size='));
 const [width, height] = sizeArg ? sizeArg.slice(7).split('x').map(Number) : [1600, 900];
 const views = args.filter(a => !a.startsWith('--'));
-if (!views.length) views.push('front', 'side', 'along', 'bogie', 'saloon', 'cab', 'tunnel', 'trackside', 'platform:stopped', 'doorway:stopped', 'across:stopped', 'other:stopped');
+if (!views.length) views.push('front', 'side', 'along', 'bogie', 'saloon', 'cab', 'tunnel', 'trackside', 'platform:stopped', 'doorway:stopped', 'across:stopped', 'other:stopped', 'signal:stopped');
 
 await mkdir(OUT, { recursive: true });
 const port = 8000 + Math.floor(Math.random() * 1000);

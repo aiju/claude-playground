@@ -26,6 +26,7 @@ import { buildUI } from './ui.js';
 import { createMinimap } from './minimap.js';
 import { createPeople } from './people.js';
 import { batchMeshes } from './batch.js';
+import { createSignals } from './signals.js';
 
 const params = new URLSearchParams(location.search);
 const still = params.has('still');
@@ -80,6 +81,10 @@ scenes.tunnel.group.add(trainB.group);
 const tunnelB = buildTunnel(trainB, otherTrack, { lights: false, stations });
 scenes.tunnel.group.add(tunnelB.group);
 const other = createOtherService({ track: otherTrack, trainLength: trainB.length });
+
+// signals on both tracks, which the trains obey
+const signals = createSignals({ line, otherTrack, trainLength: train.length, materials });
+scenes.tunnel.group.add(signals.group);
 
 // passengers: on the platforms and in both trains, underground only
 const people = createPeople({ trains: [train, trainB], station });
@@ -380,7 +385,7 @@ const app = {
 const ui = still ? null : buildUI(app);
 const minimap = still ? null : createMinimap({
   canvas: document.getElementById('minimap'), line, train, stationStart, stationLength: STATION.length, stationName,
-  other: { track: otherTrack, offset: TRACK_SPACING, train: trainB },
+  other: { track: otherTrack, offset: TRACK_SPACING, train: trainB }, signals,
 });
 // for stills: ?stopped stands the train at the first station
 if (params.has('stopped')) { service.standAt(state, 0); state.doors = state.doorTarget = 1; }
@@ -414,7 +419,7 @@ function simulate(dt, time) {
   // underground, the train runs its service; in the depot it stands
   const before = state.speed;
   if (state.scene === 'tunnel') {
-    const event = service.update(state, dt, state.stops);
+    const event = service.update(state, dt, state.stops, signals.redAhead(state.distance));
     if (event) {
       state.doorTarget = event === 'open' ? 1 : 0;
       sound.doors(event === 'open');
@@ -481,6 +486,13 @@ function simulate(dt, time) {
     });
     stationLocal.copy(camera.position).applyMatrix4(stationLight.uStInv.value);
     tunnelB.group.visible = stationLocal.x > -60 && stationLocal.x < STATION.length + 60 && stationLocal.z > -8 && stationLocal.z < TRACK_SPACING + 8;
+    // the signals, from where both trains are and where they are stopping
+    signals.groupB.visible = tunnelB.group.visible;
+    signals.update({
+      ours: { front: state.distance, stopping: state.stops ? service.nextStop(state.distance) : null, dwell: service.phase === 'dwell' ? service.dwellTime : null },
+      other: { front: other.beta, stopping: other.phase === 'in' || other.phase === 'dwell' ? state.stationIndex : null, dwell: other.phase === 'dwell' ? other.dwellTime : null },
+      station: state.stationIndex, camera, dt,
+    });
     // brighter, and less murky, in the station
     const inside = smooth(-25, 5, stationLocal.x) * (1 - smooth(STATION.length - 5, STATION.length + 25, stationLocal.x))
       * (inStationLocal({ x: Math.min(Math.max(stationLocal.x, 1), STATION.length - 1), z: stationLocal.z }) ? 1 : 0);
@@ -595,7 +607,7 @@ async function prepare() {
   setView(state.view, false);
 }
 
-window.tubeTrain = { stillReady: false, app, state, service, other, line, otherTrack, train, trainB, people, materials, lighting, scene, camera, renderer, fastForward, draw, batches, minimap };
+window.tubeTrain = { stillReady: false, app, state, service, other, line, otherTrack, train, trainB, people, materials, lighting, scene, camera, renderer, fastForward, draw, batches, minimap, signals };
 if (!still) await prepare();
 document.getElementById('status')?.remove();
 requestAnimationFrame(frame);

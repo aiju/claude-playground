@@ -28,6 +28,7 @@ export const VIEWS = {
   doorway:   { group: 'station', label: 'Doors',     pos: [116.6, 2.25, 3.9],   target: [114.3, 1.45, 1.0], anchor: 'station' },
   across:    { group: 'station', label: 'Across',    pos: [70, 1.65, 2.4],      target: [70, 1.5, 12.5], fov: 62, anchor: 'station' },
   other:     { group: 'station', label: 'Platform 2', pos: [56, 2.35, 9.5],     target: [105, 1.5, 12.4], anchor: 'station' },
+  signal:    { group: 'station', label: 'Signal',    pos: [130, 2.0, 3.3],      target: [147.4, 1.75, -1.5], fov: 24, anchor: 'station' },
 };
 
 for (const v of Object.values(VIEWS)) v.scene = v.group === 'depot' ? 'depot' : 'tunnel';
