@@ -150,7 +150,7 @@ export const DEPARTMENTS = [
       ['Wrapper (girl)', 2, 'wrapping-', 2, F, [14, 16]],
       ['Warehouseman', 6, 'warehouse-', 7, M, [22, 58]],
       ['Packer', 4, 'warehouse-', 6.5, M, [20, 55]],
-      ['Carman', 3, 'stable-room', 6.5, M, [24, 60], { roam: true, base: 'N1' }],
+      ['Carman', 3, 'stable-room', 6.5, M, [24, 60], { roam: true, base: 'N1', timetable: 'carmen' }],
     ],
   },
   {

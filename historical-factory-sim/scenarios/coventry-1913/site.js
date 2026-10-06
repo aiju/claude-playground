@@ -187,7 +187,6 @@ export const fixedSpots = [
   { id: 'bought-ledger', room: 'general-office', x: -196, z: 150, type: 'sloping-desk', facing: 0, label: 'Bought ledger' },
   { id: 'buyer', room: 'general-office', x: -186, z: 166, type: 'desk', facing: Math.PI, label: "Buyer's desk" },
   { id: 'buyer-clerk', room: 'general-office', x: -196, z: 166, type: 'sloping-desk', facing: Math.PI, label: "Buyer's clerk" },
-  { id: 'despatch-clerk', room: 'general-office', x: -176, z: 150, type: 'sloping-desk', facing: 0, label: 'Despatch clerk' },
   { id: 'office-boys', room: 'general-office', x: -224, z: 166, type: 'bench', facing: Math.PI, label: "Office boys' bench" },
   { id: 'cashier-desk', room: 'cashier', x: -160, z: 152, type: 'desk', facing: 0, label: "Cashier's desk" },
   { id: 'cashier-safe', room: 'cashier', x: -160, z: 168, type: 'safe', facing: Math.PI, label: 'Safe' },
@@ -216,6 +215,7 @@ export const fixedSpots = [
   { id: 'storekeeper', room: 'rough-stores', x: -22, z: 45, type: 'desk', facing: Math.PI, label: "Storekeeper's desk" },
   { id: 'receiving-clerk', room: 'rough-stores', x: -10, z: 45, type: 'sloping-desk', facing: Math.PI, label: 'Receiving clerk' },
   { id: 'stores-counter', room: 'rough-stores', x: -24, z: 68, type: 'counter', facing: 0, label: 'Stores issue counter' },
+  { id: 'despatch-clerk', room: 'warehouse', x: -176, z: 40, type: 'sloping-desk', facing: Math.PI, label: "Despatch clerk's desk" },
   { id: 'view-counter', room: 'view-room', x: -40, z: 68, type: 'counter', facing: 0, label: 'Finished stores counter' },
   // Engine and boilers
   { id: 'engine-driver', room: 'engine-room', x: 18, z: 72, type: 'engine-driver', facing: Math.PI, label: "Engine driver's place" },

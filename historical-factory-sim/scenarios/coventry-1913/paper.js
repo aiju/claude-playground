@@ -25,6 +25,7 @@ import { d, s, lsd, toHalfpenny, fmt, split } from '../../engine/sim/money.js';
 import { DEPARTMENTS } from './staff.js';
 import { GROUPS } from './works.js';
 import { defineForms } from './forms.js';
+import { receiveRemittances, bankTrip, commercePapersForPlace, commercePapersForLot } from './commerce.js';
 
 // Who is paid how. Coventry moved fast to piecework, "often gang piece-work";
 // setters and toolmakers stayed on time rates (Carr 1978). The machine and
@@ -156,8 +157,11 @@ function syntheticDay(world, p, card, day) {
   }
 }
 
+// Packers and warehousemen work to the orders as they come, on day work.
+const DAY_TRADES = new Set(['Packer', 'Warehouseman']);
+
 function pieceOrBonus(p) {
-  const inGroup = GROUPS[p.trade] || p.trade === 'Enameller';
+  const inGroup = (GROUPS[p.trade] || p.trade === 'Enameller') && !DAY_TRADES.has(p.trade);
   return p.role === 'hand' && inGroup && (PIECE_DEPTS.has(p.dept) || BONUS_DEPTS.has(p.dept)) && p.trade !== 'Chief viewer';
 }
 
@@ -306,7 +310,14 @@ export function wagesDays(world, ending) {
   while (!working(pay)) pay += 1440;
   if (pay < calc) pay = calc;
   const spells = tt.spellsOn(pay);
-  return { calcDay: calc, payDay: pay, payTime: spells[spells.length - 1][1] };
+  // The window stays open until the last hands are off (the carmen, back
+  // from the goods yard).
+  let payEnd = spells[spells.length - 1][1];
+  for (const t of new Set(world.people.filter((p) => p.role === 'hand').map((p) => p.timetable))) {
+    const s2 = t.spellsOn(pay);
+    if (s2.length) payEnd = Math.max(payEnd, s2[s2.length - 1][1]);
+  }
+  return { calcDay: calc, payDay: pay, payTime: spells[spells.length - 1][1], payEnd };
 }
 
 // Paid hours on a card, clipped to the timetable, losing a quarter of an
@@ -356,8 +367,8 @@ export function computeWages(world, p, week, timetable) {
   const paper = world.paper;
   const card = week.cards.find((c) => c.fields.worksNo === p.worksNo);
   // Foremen don't clock; they're paid the full week.
-  // The engine-house crew are paid for their own longer hours.
-  const tt = p.timetable === p.timetables.engine ? p.timetable : timetable;
+  // The engine-house crew and the carmen are paid for their own longer hours.
+  const tt = p.role === 'hand' ? p.timetable : timetable;
   const minutes = !clocks(p) ? 53 * 60 : card ? paidMinutes(card, tt) : 0;
   const hours = minutes / 60;
   let timeWages;
@@ -489,7 +500,7 @@ export function* wagesClerk(world, p, { half, partner, timetable }) {
       paper.enter('stamp-book', { ending: wk.ending, cards: n, by: p.name });
       continue;
     }
-    if (wk && wk.tinsReady && today === wk.payDay && now >= wk.payTime && now < wk.payTime + 75) {
+    if (wk && wk.tinsReady && today === wk.payDay && now >= wk.payTime && now < Math.max(wk.payTime + 75, wk.payEnd + 25)) {
       yield* work(world, p, 5, half === 0 ? 'paying out at the pay window' : 'cancelling pay cards with a crayon mark');
       yield* unclaimedCheck(world, p);
       continue;
@@ -522,6 +533,8 @@ function* abstractAndCoinList(world, p, week) {
     for (const [k, n] of Object.entries(coinsFor(r.net))) coins[k] = (coins[k] || 0) + n;
   }
   week.total = total;
+  week.health = health;
+  week.unemployment = unemployment;
   week.employerNI = employerNI;
   week.stampsNeeded = health + unemployment + employerNI;
   const abstract = paper.create('wages-abstract', { ending: week.ending, rows: [...byDept.values()], total, health, unemployment, employerNI }, { at: 'wages-files' });
@@ -554,6 +567,7 @@ export function* cashier(world, p) {
         signatories: ['Charles Hartwell, Director', world.people.find((q) => q.title === 'Secretary and Accountant')?.name + ', Secretary'],
       }, { by: p });
       wk.cheque = cheque;
+      world.ledger?.post(now, `Wages, week ending ${cal.docDate(wk.ending)} (net)`, [['wages', wk.total, 0], ['bank', 0, wk.total]], { ref: cheque.id });
       world.log(`The Cashier drew a cheque on Lloyds Bank for the wages, ${fmt(wk.total)}, and set off for the bank.`, { kind: 'paper' });
       const trip = function* (who, label) {
         yield* walk(world, who, 'S_OF', { activity: label });
@@ -573,6 +587,16 @@ export function* cashier(world, p) {
       yield* work(world, p, 5, 'handing over the cash bags to the wages clerks');
       yield* walk(world, p, p.spot, { activity: 'going back to the Cashier’s office' });
       continue;
+    }
+    // Agents' cheques, as the post brings them; the bank before noon.
+    if (world.commerce) {
+      if (yield* receiveRemittances(world, p)) continue;
+      const mod = cal.minuteOfDay(now);
+      if (mod >= 11 * 60 + 15 && mod < 12 * 60 && p.banked !== cal.dayStart(now)) {
+        p.banked = cal.dayStart(now);
+        yield* bankTrip(world, p);
+        continue;
+      }
     }
     yield* work(world, p, 15, 'writing up the Cash Book');
   }
@@ -596,6 +620,9 @@ export function* stampErrand(world, p) {
   p.onSite = true;
   yield* walk(world, p, 'S_OF', { activity: 'coming back with the insurance stamps' });
   yield* walk(world, p, 'wages-2', { activity: 'taking the insurance stamps to the Wages Office' });
+  world.ledger?.post(world.sim.now, `Insurance stamps, week ending ${cal.docDate(wk.ending)}`, [
+    ['wages', wk.health + wk.unemployment, 0], ['ni', wk.employerNI, 0], ['petty', 0, wk.stampsNeeded],
+  ]);
   world.log(`An office boy brought ${fmt(wk.stampsNeeded)} of health and unemployment insurance stamps from the Post Office.`, { kind: 'paper' });
   yield* walk(world, p, p.spot, { activity: 'going back to the General Office' });
 }
@@ -626,7 +653,7 @@ function* unclaimedCheck(world, p) {
   const cal = world.cal;
   const W = world.wages;
   const wk = W.weeks.at(-1);
-  if (wk && wk.tinsReady && !wk.unclaimedDone && world.sim.now >= wk.payTime + 60) {
+  if (wk && wk.tinsReady && !wk.unclaimedDone && world.sim.now >= Math.max(wk.payTime + 60, wk.payEnd + 10)) {
     wk.unclaimedDone = true;
     const left = wk.results.filter((r) => !r.paid);
     yield* work(world, p, 10, 'making out the unclaimed pay report');
@@ -657,7 +684,7 @@ export function makePaperView(world, FORMS, amountInWords) {
       if (!r) return null;
       const punches = card.fields.punches.filter((x) => x.t >= day && x.t < day + 1440);
       const p = r.p;
-      const tt = p.timetable === p.timetables.engine ? p.timetable : p.timetables.works;
+      const tt = p.role === 'hand' ? p.timetable : p.timetables.works;
       return paidMinutes({ fields: { punches } }, tt) / 60;
     },
     foremanInitials(deptName) {
@@ -688,7 +715,7 @@ export function makePaperView(world, FORMS, amountInWords) {
       return out;
     },
     papersForLot(lot) {
-      return lot.tally ? [{ label: 'Work tally', doc: lot.tally }] : [];
+      return [...(lot.tally ? [{ label: 'Work tally', doc: lot.tally }] : []), ...commercePapersForLot(world, lot)];
     },
     papersForPlace(id) {
       const out = [];
@@ -701,13 +728,14 @@ export function makePaperView(world, FORMS, amountInWords) {
         if (wk.coinList) out.push({ label: 'Coin list for the wages', doc: wk.coinList });
         if (wk.cheque) out.push({ label: 'Wages cheque', doc: wk.cheque });
       }
+      out.push(...commercePapersForPlace(world, id));
       for (const c of paper.containers.values()) {
         if (c.node === id || (world.site.nodes.get(c.node)?.room === id && c.docs.size)) {
           const docs = [...c.docs].slice(-3).reverse();
           for (const d of docs) out.push({ label: `${FORMS[d.type]?.title || d.type} in ${c.name} (${c.docs.size} there)`, doc: d });
         }
       }
-      return out.slice(0, 10);
+      return out.slice(0, 14);
     },
   };
 }

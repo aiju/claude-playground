@@ -73,10 +73,11 @@ export const machinery = {
 };
 
 export const cameraPresets = {
-  overview: { target: [-50, 10, 30], position: [330, 360, 610], cut: Infinity },
-  gate: { target: [-75, 3, 178], position: [55, 85, 70], cut: Infinity },
-  'main-block': { target: [-110, 14, 58], position: [-40, 150, 260], cut: 1 },
-  'engine-house': { target: [24, 6, 60], position: [60, 70, 125], cut: 'open' },
-  'machine-shop': { target: [150, 4, 40], position: [200, 110, 210], cut: 'open' },
-  offices: { target: [-190, 6, 158], position: [-120, 80, 300], cut: 0 },
+  overview: { label: 'Overview', target: [-50, 10, 30], position: [330, 360, 610], cut: Infinity },
+  gate: { label: 'Gate', target: [-75, 3, 178], position: [55, 85, 70], cut: Infinity },
+  'main-block': { label: 'Main block', target: [-110, 14, 58], position: [-40, 150, 260], cut: 1 },
+  'engine-house': { label: 'Engine house', target: [24, 6, 60], position: [60, 70, 125], cut: 'open' },
+  'machine-shop': { label: 'Machine shop', target: [150, 4, 40], position: [200, 110, 210], cut: 'open' },
+  offices: { label: 'Offices', target: [-190, 6, 158], position: [-120, 80, 300], cut: 0 },
+  'despatch-dock': { label: 'Despatch dock', target: [-200, 4, 90], position: [-130, 70, 175], cut: 0 },
 };

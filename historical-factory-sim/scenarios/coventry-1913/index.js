@@ -18,6 +18,10 @@ import { palette, scenery, machinery, cameraPresets } from './look.js';
 import { setupPaper, timekeeper, wagesClerk, cashier, worksPost, stampErrand, clocks, makePaperView } from './paper.js';
 import { FORMS, amountInWords } from './forms.js';
 import { MODELS, PATTERNS } from './catalogue.js';
+import {
+  setupCommerce, postOffice, postBoy, secretary, orderClerk, salesLedgerClerk, warehouseForeman, despatchClerk,
+  carpenter, makeLorry, carman, weeklyDespatchTally, commerceSummary,
+} from './commerce.js';
 import { price as fmtPrice } from '../../engine/sim/money.js';
 
 export const meta = {
@@ -110,20 +114,32 @@ export function createScenario({ seed = 1913, start } = {}) {
     for (const r of p.record) p.card.fields.punches.push({ t: r.t, kind: r.kind, late: r.late });
     world.paper.put(p.card, p.record.at(-1).kind === 'in' ? 'rack-in' : 'rack-out', false);
   }
+  // The commercial side, with last winter's machines in the Stock Room
+  // (numbered before this season's, so before the opening batches).
+  const commerce = setupCommerce(world, production);
+  // Lorry rounds (est.): the big lorry three times a day, the second twice.
+  commerce.lorries.push(
+    makeLorry('lorry-1', 'the big lorry', [9 * 60 + 30, 13 * 60 + 45, 16 * 60 + 15]),
+    makeLorry('lorry-2', 'the second lorry', [11 * 60, 15 * 60]),
+  );
   seedWorks(world, production);
-  const roles = { postBoy: null, errandBoy: null, clerks: 0 };
+  const roles = { postBoy: null, errandBoy: null, officePostBoy: null, clerks: 0 };
   for (const p of world.people) sim.spawn(processFor(world, p, roles), p.name);
 
   sim.spawn(worksManagerProgramme(world, production, timetables.worksStaff), 'works manager programme');
   sim.spawn(storekeeperRounds(world, production, timetables.works), 'storekeeper rounds');
   sim.spawn(standingDeliveries(world, production, timetables.works), 'standing deliveries');
   sim.spawn(weeklyTally(world, timetables.works), 'weekly tally');
+  sim.spawn(postOffice(world), 'post office');
+  sim.spawn(weeklyDespatchTally(world), 'weekly despatch tally');
 
   const works = timetables.works;
   return {
     production,
     wages,
     paperView: makePaperView(world, FORMS, amountInWords),
+    vehicles: commerce.lorries,
+    commerceSummary: () => commerceSummary(world),
     machinesInProgress: () => machinesInProgress(world),
     catalogue: {
       MODELS,
@@ -186,6 +202,22 @@ function processFor(world, p, roles) {
     p.activity = 'the works post boy';
     return worksPost(world, p);
   }
+  switch (p.trade) {
+    case 'Secretary and Accountant': return secretary(world, p);
+    case 'Order and Invoice Clerk': return orderClerk(world, p);
+    case 'Sales Ledger Clerk': return salesLedgerClerk(world, p);
+    case 'Despatch Clerk': return despatchClerk(world, p);
+    case 'Carpenter':
+    case 'Carpenter’s boy':
+      return carpenter(world, p);
+    default:
+  }
+  if (p.trade === 'Office boy' && roles.errandBoy && !roles.officePostBoy) {
+    roles.officePostBoy = p;
+    return postBoy(world, p);
+  }
+  if (p.role === 'foreman' && p.dept === 'warehouse') return warehouseForeman(world, p, production);
+  if (p.trade === 'Carman') return carman(world, p);
   const g = groupFor(p);
   if (g) return production.worker(p, [g[0]], { efficiency: g[1] * world.rng.uniform(0.92, 1.08), describe: describeJob });
   if (p.trade === 'Messenger boy' || (p.trade === 'Labourer' && p.dept === 'stores')) {
@@ -238,14 +270,6 @@ function processFor(world, p, roles) {
         dwell: [5, 20],
         goingTo: (place) => `going to the ${place.toLowerCase()}`,
         at: () => 'sweeping and tidying the yard',
-      });
-    case 'Carman':
-      return roaming(world, p, {
-        places: ['N1', 'DOCK', 'Y1'],
-        between: [20, 50],
-        dwell: [5, 15],
-        goingTo: () => 'going to the despatch dock',
-        at: () => 'seeing to the horses and the dray',
       });
     case 'Office boy':
       if (!roles.errandBoy) roles.errandBoy = p;

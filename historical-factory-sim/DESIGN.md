@@ -440,6 +440,48 @@ All are Elbourne's unless marked otherwise. The research notes catalogue about 8
 - the register of members;
 - the annual return.
 
+### The commercial routine as built (milestone 4)
+
+This is the routine as the simulation runs it. Figures marked (est.) are estimates.
+
+- **The post:**
+  - Orders arrive at about 19 a day, for about 245 machines a week (est.).
+  - About two-thirds come in the morning bag, which the second office boy fetches from the Head Post Office at nine. The rest come with the postman after dinner.
+  - The Secretary stamps each letter "received", numbers it, enters it in the Inwards Correspondence Register, and passes it to the order clerk or, with its cheque, to the Cashier.
+- **Office orders:**
+  - The order clerk looks up the account and types the six-copy office order.
+  - The copies go to the invoice clerk's open-order file, the Works Manager's tray (his copy and the estimator's), the Works Office file (the drawing office's and the works office's), and the warehouse foreman.
+  - What the Works Manager has read is filed in the Works Office.
+  - A slow payer whose statement has gone three weeks unpaid has the order held until a cheque comes.
+- **Allocation:**
+  - The warehouse foreman allocates machines by model, pattern and frame size, and writes the frame numbers on his copy.
+  - An order is sent complete if it can be. After three days what can be sent goes, "balance to follow", and the copy goes back on the file.
+- **Despatch:**
+  - Warehousemen get the machines down from the Stock Room, packers crate them one to a crate, and warehousemen weigh and stencil the crates.
+  - The despatch clerk, at a desk in the warehouse, writes the packing slip and the advice of despatch, each in triplicate, plus the railway's consignment note.
+  - The customer's copy of the advice goes by post, the office copies of both go to the General Office, and the warehouse copy waits on the dock with the crates.
+- **Cartage:**
+  - Two pair-horse lorries go to Warwick Road at set times when there are crates waiting (est.): the big lorry at 9.30, 1.45 and 4.15, the second at 11 and 3. Whichever of the three carmen is free takes one.
+  - A round takes about two hours: 35 minutes each way at a walk, plus unloading.
+  - The consignment note stays with the railway, and the packing slip goes on with the goods. The checker signs the warehouse copy of the advice, which comes back to the despatch clerk.
+  - Carriage on "Paid" consignments is posted to the L. & N.W.R. account at 2s. 6d. a crate (est.).
+  - The carmen work longer hours than the shops, to 6.30 p.m. (est.), and are paid for them. The pay window stays open until they're off.
+- **Invoices and ledger:**
+  - The office copy of the advice is invoiced the same day and entered in the Sales Day Book.
+  - The carbon goes to the sales ledger clerk, who posts it to the agent's account.
+  - Statements go out in the first week of each month.
+  - Agents pay 4–9, 11–20 or 24–40 days after the statement, by standing (est.). Those who pay by the 10th take 2½%.
+- **Cash:**
+  - The Cashier enters each cheque in the Cash Book and sends a receipt, with a penny stamp if it's for £2 or more.
+  - He pays in at Lloyds at a quarter past eleven, and tops up the petty cash there when it runs low.
+- **Wages and stamps in the ledger:**
+  - The wages cheque is posted to Wages.
+  - The insurance stamps come out of petty cash: the men's share to Wages, the employer's to National Insurance.
+- **Stock and the programme:**
+  - The Stock Room opens with 450 machines from the winter (est.).
+  - The Works Manager still follows the season's programme cycle, but puts first any model the agents are waiting for that isn't covered by stock and work in hand.
+- **Not yet built:** credit notes, telegrams, the letter book, export, the B/C/D order series, and the goods yard diorama (milestone 5).
+
 ### Facsimiles
 
 Clicking a document opens a facsimile: an HTML/CSS rendering of the printed form, set in a period-style serif.
@@ -569,7 +611,7 @@ Each milestone runs on its own and ends with the invariant tests passing.
 1. **Skeleton.** The kernel, calendar, money and seeded random numbers; the site as plain blocks with floors and the navigation graph; 430 people who walk in, clock on, go to their places, break and go home; the clock and speed controls; the inspector for people.
 2. **Production.** The catalogue, bills of materials and routings; stores; batches flowing through the shops with stoves and hearths as capacities; frame numbers; finished stock.
 3. **Works paper.** Work tallies, stage tickets, job tickets, time cards, the wages week through to Friday's pay tins, National Insurance stamps and lateness fines.
-4. **Commercial paper.** The post bag, agents' orders, the six-copy office order, despatch, consignment notes, the dray to Warwick Road, invoices, day books, ledgers, statements, cheques and the bank.
+4. **Commercial paper.** The post bag, agents' orders, the six-copy office order, despatch, consignment notes, the dray to Warwick Road, invoices, day books, ledgers, statements, cheques and the bank. *(Built; see "The commercial routine as built" in §7.)*
 5. **Purchasing and logistics.** Requisitions, purchase orders, goods received notes, invoice matching and supplier payment; LNWR cartage; the canal coal boat; the goods yard diorama.
 6. **The year.** Seasonality, the show, the month-end routine, the cost abstract, stocktaking and the 31 August year end, the audit and the AGM, plus the inspector's visits and accidents.
 7. **Polish.** Full facsimiles, follow mode, lighting and the tilt-shift look, and the surroundings (terraces, tram, pub).

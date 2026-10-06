@@ -20,6 +20,14 @@ export const MODELS = {
 
 export const PATTERNS = { gent: "gent's", lady: "lady's", boy: "boy's", girl: "girl's" };
 
+// Frame sizes (inches, seat tube) and how often each is made and asked for (est.).
+export const FRAME_SIZES = {
+  gent: [[22, 1], [24, 3], [26, 1]],
+  lady: [[20, 1], [22, 3], [24, 1]],
+  boy: [[18, 1]],
+  girl: [[18, 1]],
+};
+
 export function modelName(model, pattern) {
   return `${MODELS[model].name}, ${PATTERNS[pattern]}`;
 }

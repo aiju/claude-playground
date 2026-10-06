@@ -194,3 +194,26 @@ button.on { background: var(--green); color: var(--green-ink); border-color: var
 .fax.ni .nistamp.seven { background: #7a4a7e; }
 .fax.ni .nistamp.six { background: #3f6e4a; }
 .fax.ni .nistamp.ui { background: #8a5a2e; }
+
+/* The office's forms */
+.fax .typed, .fax td.typed { font-family: 'Special Elite', 'Courier New', monospace; color: #2b2a33; font-size: 0.95em; }
+.fax .copy-name { margin-top: 10px; text-align: center; font-size: 10px; letter-spacing: 0.16em; border-top: 1px solid rgba(60,45,30,0.4); padding-top: 3px; }
+.fax.letter { width: 480px; background: #fdfbf4; }
+.fax.letter p { margin: 6px 0; }
+.fax.letter ul.items { margin: 4px 0 4px 18px; padding: 0; }
+.fax .letterhead { text-align: center; border-bottom: 1px solid rgba(60,45,30,0.5); padding-bottom: 4px; margin-bottom: 8px; }
+.fax .letterhead .lh-name { font-size: 17px; font-weight: 700; letter-spacing: 0.06em; }
+.fax .letterhead .lh-trade { font-size: 11px; font-style: italic; }
+.fax .letterhead .lh-addr { font-size: 11px; }
+.fax .stamp.recd { position: absolute; right: 22px; top: 118px; text-align: center; color: #3a3f9a; border-color: #3a3f9a; font-size: 10px; line-height: 1.2; padding: 2px 6px; }
+.fax.postcard { width: 420px; background: #f3ead2; }
+.fax.postcard p { margin: 5px 0; }
+.fax .halfd { border: 1px solid #8a2a2a; color: #8a2a2a; padding: 4px 6px; font-size: 11px; }
+.fax.invoice { width: 560px; }
+.fax.receipt .amount { border: 1px solid rgba(60,45,30,0.6); padding: 3px 8px; }
+.fax .rstamp { display: inline-block; text-align: center; font-size: 8px; background: #b5473a; color: #fff; padding: 3px 5px; line-height: 1.2; }
+.fax .rstamp .hand { color: #fff; font-size: 10px; }
+.fax .bank { font-size: 18px; letter-spacing: 0.14em; font-weight: 700; color: #233a2a; text-align: center; }
+.fax .stamp { margin-top: 6px; }
+.fax.book { width: 760px; }
+.fax table.ledger td { font-size: 12px; }
