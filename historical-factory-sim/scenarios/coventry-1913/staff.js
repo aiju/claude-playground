@@ -2,7 +2,10 @@
 //
 // Department sizes follow the research report's estimated allocation for a
 // firm of about 400 hands (itself an estimate: no departmental headcount for a
-// British cycle works of 1910–14 survives). Trades follow Carter's 1912 list
+// British cycle works of 1910–14 survives), trimmed in the wheel shop and
+// wrapping room where it left people with too little to do once times per
+// operation were set (Carter's piece rate gives about 75 minutes to true a
+// pair of wheels). Trades follow Carter's 1912 list
 // of jobs in Coventry cycle works. Hourly rates follow the Coventry Trades
 // Council's 1913 figures (Carr 1978) and Carter's cycle-trade weekly averages,
 // divided by 53 hours; women's, youths' and staff pay are estimates.
@@ -110,10 +113,9 @@ export const DEPARTMENTS = [
     foreman: { weekly: 52 },
     hands: [
       ['Spoke-machine minder', 4, 'spoke-machine-', 3, M, [15, 18]],
-      ['Lacer (youth)', 6, 'lacing-', 3, M, [15, 18]],
-      ['Lacer', 6, 'lacing-', 2.75, F, [15, 22]],
+      ['Lacer (youth)', 5, 'lacing-', 3, M, [15, 18]],
+      ['Lacer', 5, 'lacing-', 2.75, F, [15, 22]],
       ['Wheel truer', 8, 'truing-', 8.25, M, [22, 55]],
-      ['Wheel builder', 6, 'truing-', 7.5, M, [20, 55]],
     ],
   },
   {
@@ -144,9 +146,10 @@ export const DEPARTMENTS = [
     id: 'warehouse', name: 'Warehouse, Wrapping and Despatch', room: 'warehouse', worksNos: 800,
     foreman: { weekly: 48 },
     hands: [
-      ['Wrapper', 10, 'wrapping-', 3, F, [17, 35]],
-      ['Wrapper (girl)', 5, 'wrapping-', 2, F, [14, 16]],
+      ['Wrapper', 4, 'wrapping-', 3, F, [17, 35]],
+      ['Wrapper (girl)', 2, 'wrapping-', 2, F, [14, 16]],
       ['Warehouseman', 6, 'warehouse-', 7, M, [22, 58]],
+      ['Packer', 4, 'warehouse-', 6.5, M, [20, 55]],
       ['Carman', 3, 'stable-room', 6.5, M, [24, 60], { roam: true, base: 'N1' }],
     ],
   },

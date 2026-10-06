@@ -6,6 +6,7 @@ import { buildBuildings, buildRoomLabels } from './buildings.js';
 import { buildScenery } from './scenery.js';
 import { PropsLayer } from './props.js';
 import { FiguresLayer } from './figures.js';
+import { LotsLayer } from './lots.js';
 import { MillEngine, RopeDrive, lancashireBoiler, Smoke } from './machinery.js';
 import { sunPosition, sunDirection, lighting } from './sky.js';
 
@@ -73,6 +74,23 @@ export class View {
     scene.add(this.props.group);
     this.figures = new FiguresLayer(scenario.world);
     scene.add(this.figures.group);
+    if (scenario.production) {
+      this.lots = new LotsLayer(scenario);
+      scene.add(this.lots.group);
+      // A glow at the door of each stove while it's loaded.
+      this.stoveGlows = [];
+      for (const unit of scenario.production.equipment.get('stove') || []) {
+        const spot = site.spots.get(unit.spot);
+        if (!spot) continue;
+        const glow = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.5, 0.2), new THREE.MeshStandardMaterial({ color: '#ff9a4a', emissive: new THREE.Color('#ff7a2a'), emissiveIntensity: 1.5 }));
+        const dir = new THREE.Vector3(Math.sin(spot.facing), 0, Math.cos(spot.facing));
+        glow.position.set(spot.x + dir.x * 0.5, spot.y + 0.6, spot.z + dir.z * 0.5);
+        glow.rotation.y = spot.facing;
+        glow.visible = false;
+        scene.add(glow);
+        this.stoveGlows.push({ unit, spot, glow });
+      }
+    }
 
     // The engine house and boiler house.
     const mc = scenario.machinery;
@@ -170,9 +188,23 @@ export class View {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hitsP = this.raycaster.intersectObjects(this.figures.pickables(), false);
     const hit = hitsP.find((h) => this.figures.visible[h.instanceId]);
-    if (hit) {
+    const hitsL = this.lots ? this.raycaster.intersectObjects(this.lots.pickables(), false) : [];
+    const lotHit = hitsL.find((h) => h.instanceId < h.object.count);
+    if (hit && (!lotHit || hit.distance <= lotHit.distance + 1)) {
       this.select(hit.instanceId);
       this.onPick?.({ kind: 'person', person: this.scenario.world.people[hit.instanceId] });
+      return;
+    }
+    if (lotHit) {
+      const id = lotHit.object.userData.ids[lotHit.instanceId];
+      this.select(-1);
+      if (id && id.startsWith('bike:')) {
+        const frameNo = Number(id.slice(5));
+        this.onPick?.({ kind: 'bike', machine: this.scenario.world.works.register.find((m) => m.frameNo === frameNo) });
+      } else if (id && id !== 'showroom') {
+        const lot = this.scenario.production.lots.find((l) => l.id === id);
+        if (lot) this.onPick?.({ kind: 'lot', lot });
+      }
       return;
     }
     const visibleObjects = [];
@@ -255,6 +287,13 @@ export class View {
     this.smoke?.update(dt, 0.35 + 0.65 * sp2);
 
     this.figures.update(t, realTime, this.isVisible);
+    if (this.lots) {
+      this.lots.update(t, this.figures, this.isVisible);
+      for (const { unit, spot, glow } of this.stoveGlows) {
+        glow.visible = !!unit.load && this.isVisible(spot.building, spot.floor);
+        glow.material.emissiveIntensity = 1.2 + 0.3 * Math.sin(realTime * 2 + spot.x);
+      }
+    }
     if (this.follow && this.figures.selected >= 0 && this.figures.visible[this.figures.selected]) {
       const v = this.figures.positions[this.figures.selected];
       const delta = v.clone().sub(this.controls.target).multiplyScalar(Math.min(1, dt * 4));
