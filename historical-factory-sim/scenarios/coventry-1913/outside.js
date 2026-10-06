@@ -100,3 +100,29 @@ export function orderLetterBody(rng, agent, lines) {
   ]);
   return { opening, items, close };
 }
+
+// The works' suppliers: who sends what, how, and how long they take between
+// getting an order and sending the goods (working days, est.). Real firms
+// are named where the research found them supplying the cycle trade; the
+// spoke maker, the bar-steel merchant, the transfer printer and the basket
+// maker are invented. Carriers: the railway's own carts deliver from Warwick
+// Road the morning after the goods train; Coventry firms send their own
+// carts; transfers come by parcel post.
+export const SUPPLIERS = [
+  { id: 'accles', name: 'Accles & Pollock Ltd.', address: 'Oldbury, near Birmingham', items: ['tube-set', 'fork-blades', 'handlebar-tube'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'bsa', name: 'The Birmingham Small Arms Co. Ltd.', address: 'Small Heath, Birmingham', items: ['lug-set', 'pedal-pair', 'fixed-sprocket'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'hartley', name: 'J. Hartley & Sons', address: 'Attercliffe, Sheffield', items: ['bar-steel'], carrier: 'Midland Railway', days: [3, 6] },
+  { id: 'westwood', name: 'The Westwood Rim Co.', address: 'Bordesley, Birmingham', items: ['rim'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'hadley', name: 'Hadley & Sons, Spoke Makers', address: 'Lancaster Street, Birmingham', items: ['spoke', 'nipple'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'hoffmann', name: 'The Hoffmann Manufacturing Co. Ltd.', address: 'Chelmsford', items: ['ball'], carrier: 'L. & N.W.R.', days: [3, 6] },
+  { id: 'coventry-chain', name: 'The Coventry Chain Co. Ltd.', address: 'Spon End, Coventry', items: ['chain'], carrier: 'own cart', days: [1, 3] },
+  { id: 'eadie', name: 'The Eadie Manufacturing Co. Ltd.', address: 'Redditch', items: ['freewheel', 'coaster-hub'], carrier: 'Midland Railway', days: [2, 5] },
+  { id: 'sturmey', name: 'Sturmey-Archer Gears Ltd.', address: 'Nottingham', items: ['three-speed'], carrier: 'Midland Railway', days: [3, 5] },
+  { id: 'middlemore', name: 'Middlemore & Lamplugh Ltd.', address: 'Coventry', items: ['saddle'], carrier: 'own cart', days: [1, 3] },
+  { id: 'dunlop', name: 'The Dunlop Rubber Co. Ltd.', address: 'Birmingham', items: ['tyre-set'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'bluemel', name: 'Bluemel Bros. Ltd.', address: 'Wolston, near Coventry', items: ['mudguards'], carrier: 'own cart', days: [2, 4] },
+  { id: 'brooks', name: 'J. B. Brooks & Co. Ltd.', address: 'Great Charles Street, Birmingham', items: ['toolbag'], carrier: 'L. & N.W.R.', days: [2, 4] },
+  { id: 'richmond', name: 'The Richmond Gear Case Co.', address: 'Croft Road, Coventry', items: ['gear-case', 'oil-bath-case'], carrier: 'own cart', days: [1, 3] },
+  { id: 'shilton', name: 'T. Shilton, Basket Maker', address: 'Gosford Street, Coventry', items: ['basket'], carrier: 'own cart', days: [2, 5] },
+  { id: 'midland-transfer', name: 'The Midland Transfer Printing Co.', address: 'Hockley, Birmingham', items: ['transfers'], carrier: 'parcel post', days: [2, 4] },
+];

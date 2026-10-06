@@ -12,7 +12,7 @@ import { offDuty, steadyWork, roaming, commuteMinutes } from './routines.js';
 import { Production } from '../../engine/sim/production.js';
 import {
   groupFor, setupWorks, seedWorks, onStep, onDone, worksManagerProgramme, storekeeperRounds,
-  standingDeliveries, weeklyTally, machinesInProgress,
+  weeklyTally, machinesInProgress,
 } from './works.js';
 import { palette, scenery, machinery, cameraPresets } from './look.js';
 import { setupPaper, timekeeper, wagesClerk, cashier, worksPost, stampErrand, clocks, makePaperView } from './paper.js';
@@ -22,6 +22,10 @@ import {
   setupCommerce, postOffice, postBoy, secretary, orderClerk, salesLedgerClerk, warehouseForeman, despatchClerk,
   carpenter, makeLorry, carman, weeklyDespatchTally, commerceSummary,
 } from './commerce.js';
+import {
+  setupPurchasing, storekeeper, worksManagerDesk, buyer, buyersClerk, suppliersAtWork, railwayCartage, supplierCarts,
+  parcelPost, receivingClerk, invoiceMatcher, boughtLedgerClerk, secretaryPayments, makeVan, purchasingSummary,
+} from './purchasing.js';
 import { price as fmtPrice } from '../../engine/sim/money.js';
 
 export const meta = {
@@ -122,13 +126,24 @@ export function createScenario({ seed = 1913, start } = {}) {
     makeLorry('lorry-1', 'the big lorry', [9 * 60 + 30, 13 * 60 + 45, 16 * 60 + 15]),
     makeLorry('lorry-2', 'the second lorry', [11 * 60, 15 * 60]),
   );
+  // Buying in, with the stock in the Rough Stores on 1 March and the orders
+  // already out for what was running low.
+  const purchasing = setupPurchasing(world, production, timetables);
+  purchasing.vehicles.push(
+    makeVan('lnwr-van', 'the L. & N.W.R. van', { carrier: 'L. & N.W.R.', colour: '#3b3f45', driverName: 'an L. & N.W.R. carman' }),
+    makeVan('mr-van', 'the Midland Railway van', { carrier: 'Midland Railway', colour: '#6b2a26', driverName: 'a Midland Railway carman' }),
+    makeVan('cart-1', 'a supplier\u2019s cart', { kind: 'cart', colour: '#55603f', home: 'HOME_W' }),
+    makeVan('cart-2', 'a supplier\u2019s cart', { kind: 'cart', colour: '#5d4a33', home: 'HOME_E' }),
+  );
   seedWorks(world, production);
   const roles = { postBoy: null, errandBoy: null, officePostBoy: null, clerks: 0 };
   for (const p of world.people) sim.spawn(processFor(world, p, roles), p.name);
 
   sim.spawn(worksManagerProgramme(world, production, timetables.worksStaff), 'works manager programme');
   sim.spawn(storekeeperRounds(world, production, timetables.works), 'storekeeper rounds');
-  sim.spawn(standingDeliveries(world, production, timetables.works), 'standing deliveries');
+  sim.spawn(suppliersAtWork(world), 'suppliers');
+  sim.spawn(parcelPost(world), 'parcel post');
+  for (const v of purchasing.vehicles) sim.spawn(v.kind === 'cart' ? supplierCarts(world, v) : railwayCartage(world, v), v.name);
   sim.spawn(weeklyTally(world, timetables.works), 'weekly tally');
   sim.spawn(postOffice(world), 'post office');
   sim.spawn(weeklyDespatchTally(world), 'weekly despatch tally');
@@ -138,7 +153,8 @@ export function createScenario({ seed = 1913, start } = {}) {
     production,
     wages,
     paperView: makePaperView(world, FORMS, amountInWords),
-    vehicles: commerce.lorries,
+    vehicles: [...commerce.lorries, ...purchasing.vehicles],
+    purchasingSummary: () => purchasingSummary(world),
     commerceSummary: () => commerceSummary(world),
     machinesInProgress: () => machinesInProgress(world),
     catalogue: {
@@ -203,7 +219,19 @@ function processFor(world, p, roles) {
     return worksPost(world, p);
   }
   switch (p.trade) {
-    case 'Secretary and Accountant': return secretary(world, p);
+    case 'Secretary and Accountant': return secretary(world, p, { extra: [secretaryPayments] });
+    case 'Storekeeper': return storekeeper(world, p);
+    case 'Works Manager': return worksManagerDesk(world, p);
+    case 'Buyer': return buyer(world, p);
+    case "Buyer's Clerk": return buyersClerk(world, p);
+    case 'Receiving Clerk': return receivingClerk(world, p);
+    case 'Bought Ledger Clerk': return boughtLedgerClerk(world, p);
+    case 'Cost Clerk':
+      if (!roles.matcher) {
+        roles.matcher = p;
+        return invoiceMatcher(world, p);
+      }
+      break;
     case 'Order and Invoice Clerk': return orderClerk(world, p);
     case 'Sales Ledger Clerk': return salesLedgerClerk(world, p);
     case 'Despatch Clerk': return despatchClerk(world, p);

@@ -233,8 +233,6 @@ function* distribute(world, p, docs, fallback) {
   for (const [dest, list] of byDest) {
     const c = paper.container(dest);
     if (c.node) yield* walk(world, p, c.node, { activity: `taking papers to ${c.name}` });
-    // What the Works Manager has read goes to the Works Office file.
-    if (dest === 'works-manager-tray') for (const dd of [...c.docs]) paper.put(dd, 'works-office', 'read by the Works Manager; filed in the Works Office');
     for (const dd of list) {
       dd.destination = null;
       paper.put(dd, dest);
@@ -242,9 +240,45 @@ function* distribute(world, p, docs, fallback) {
   }
 }
 
+// The office boy's round of the works: the warehouse, the Works Office and
+// the Rough Stores, delivering what's for each and collecting its out-tray.
+const ROUND = [
+  { name: 'the warehouse', node: 'despatch-clerk', room: 'warehouse', collect: ['despatch-out'] },
+  { name: 'the Works Office', node: 'works-manager', room: 'works-office', collect: ['works-out'] },
+  { name: 'the Rough Stores', node: 'storekeeper', room: 'rough-stores', collect: ['stores-out'] },
+];
+
+function* round(world, p) {
+  const paper = world.paper;
+  const site = world.site;
+  const roomOf = (containerId) => {
+    const c = paper.containers.get(containerId);
+    return c?.node ? site.roomAt(c.node)?.id ?? site.nodes.get(c.node)?.room : null;
+  };
+  const stopFor = (dd) => ROUND.find((st) => st.room === roomOf(dd.destination));
+  paper.collect('office-out', p);
+  for (let pass = 0; pass < 2; pass++) {
+    for (const st of ROUND) {
+      const here = [...(p.papers || [])].filter((dd) => dd.destination && stopFor(dd) === st);
+      const out = st.collect.filter((c) => paper.containers.has(c) && paper.container(c).docs.size);
+      if (!here.length && !out.length) continue;
+      yield* walk(world, p, st.node, { activity: `on the round: going to ${st.name}` });
+      if (here.length) yield* distribute(world, p, here);
+      for (const c of out) paper.collect(c, p);
+      yield* work(world, p, 0.5, `on the round: at ${st.name}`);
+    }
+    if (![...(p.papers || [])].some((dd) => dd.destination && stopFor(dd))) break;
+  }
+  const rest = [...(p.papers || [])].filter((dd) => !stopFor(dd));
+  if (rest.length) yield* distribute(world, p, rest, 'files');
+  yield* walk(world, p, p.spot, { activity: 'going back to the office bench' });
+}
+
 // The second office boy fetches the locked bag from the Head Post Office
-// first thing, carries papers between the General Office, the Works Office
-// and the warehouse, and takes the day's letters to the post in the evening.
+// first thing, goes round the works with papers four times a day, and takes
+// the day's letters to the post in the evening.
+const ROUND_TIMES = [9 * 60 + 45, 11 * 60 + 30, 15 * 60, 16 * 60 + 45];
+
 export function* postBoy(world, p) {
   const paper = world.paper;
   const cal = world.cal;
@@ -268,7 +302,7 @@ export function* postBoy(world, p) {
         paper.collect('counter', p);
       }
       yield* walk(world, p, 'secretary-desk', { activity: 'taking the post bag to the Secretary' });
-      const got = paper.deliver(p, 'secretary-tray');
+      const got = paper.deliver(p, 'secretary-tray', (dd) => !dd.destination);
       world.log(`The morning post: ${got.length} letters in the bag.`, { kind: 'commerce' });
       yield* walk(world, p, p.spot, { activity: 'going back to the office bench' });
       continue;
@@ -277,33 +311,14 @@ export function* postBoy(world, p) {
     if (paper.container('counter').docs.size && mod >= 14 * 60) {
       paper.collect('counter', p);
       yield* walk(world, p, 'secretary-desk', { activity: 'taking the afternoon post to the Secretary' });
-      paper.deliver(p, 'secretary-tray');
+      paper.deliver(p, 'secretary-tray', (dd) => !dd.destination);
       yield* walk(world, p, p.spot, { activity: 'going back to the office bench' });
       continue;
     }
-    // Copies of office orders for the works.
-    const out = paper.container('office-out');
-    if (out.docs.size) {
-      const docs = paper.collect('office-out', p);
-      yield* distribute(world, p, docs, 'files');
-      // On the way back, anything waiting in the despatch clerk's out-tray.
-      const back = paper.container('despatch-out');
-      if (back.docs.size) {
-        yield* walk(world, p, 'despatch-clerk', { activity: "calling at the despatch clerk's desk" });
-        yield* distribute(world, p, paper.collect('despatch-out', p), 'files');
-      }
-      yield* walk(world, p, p.spot, { activity: 'going back to the office bench' });
-      continue;
-    }
-    // Rounds to the warehouse at eleven, three and five for advices of despatch.
-    const round = [11 * 60, 15 * 60, 17 * 60].find((t) => mod >= t && mod < t + 60 && p.round !== today + t);
-    if (round !== undefined) {
-      p.round = today + round;
-      if (paper.container('despatch-out').docs.size) {
-        yield* walk(world, p, 'despatch-clerk', { activity: 'going to the warehouse for the advices of despatch' });
-        yield* distribute(world, p, paper.collect('despatch-out', p), 'files');
-        yield* walk(world, p, p.spot, { activity: 'going back to the office bench' });
-      }
+    const due = ROUND_TIMES.find((t) => mod >= t && mod < t + 45 && p.round !== today + t);
+    if (due !== undefined) {
+      p.round = today + due;
+      yield* round(world, p);
       continue;
     }
     // The evening post.
@@ -313,13 +328,13 @@ export function* postBoy(world, p) {
       if (letters.length) {
         yield* walk(world, p, 'S_OF', { activity: `taking ${letters.length} letters to the post` });
         yield* walk(world, p, 'HOME_S', { activity: `taking ${letters.length} letters to the post` });
-        for (const l of letters) paper.put(l, 'customers', 'posted');
+        for (const l of letters) paper.put(l, l.type === 'purchase-order' || l.type === 'cheque-receipt' ? 'suppliers' : 'customers', 'posted');
         p.onSite = false;
         yield wait(5);
         p.onSite = true;
         yield* walk(world, p, 'S_OF', { activity: 'coming back from the post' });
         yield* walk(world, p, p.spot, { activity: 'coming back from the post' });
-        world.log(`${letters.length} letters, invoices and postcards went to the evening post.`, { kind: 'commerce' });
+        world.log(`${letters.length} letters, invoices, orders and cheques went to the evening post.`, { kind: 'commerce' });
       }
       continue;
     }
@@ -329,30 +344,61 @@ export function* postBoy(world, p) {
 
 // --- The Secretary opens the post -------------------------------------------------
 
-export function* secretary(world, p) {
+// Where each kind of post goes, and how it's entered in the register.
+function routeLetter(letter) {
+  const f = letter.fields;
+  switch (letter.type) {
+    case 'advice-note':
+      return { from: f.supplierName, subject: `Advice of despatch, order ${f.poNo}`, to: 'Stores', dest: 'receiving-tray' };
+    case 'supplier-invoice':
+      return { from: f.supplierName, subject: `Invoice No. ${f.no}, ${fmt(f.total)}`, to: 'Works Accounts Office', dest: 'invoice-match' };
+    case 'supplier-statement':
+    case 'railway-account':
+      return { from: f.fromName, subject: `Statement, ${fmt(f.balance)}`, to: 'Bought Ledger', dest: 'bought-tray' };
+    case 'cheque-receipt':
+      return { from: f.payee, subject: `Receipt for ${fmt(f.amount)}`, to: 'Bought Ledger', dest: 'bought-tray' };
+    default:
+      return f.kind === 'remittance'
+        ? { from: f.fromName, subject: `Remittance, ${fmt(f.amount)}`, to: 'Cashier', put: 'cashier' }
+        : { from: f.fromName, subject: 'Order', to: 'Order Dept.', put: 'order-tray' };
+  }
+}
+
+// `extra` are other duties of the Secretary's, each a generator that
+// returns true if it did something.
+export function* secretary(world, p, { extra = [] } = {}) {
   const paper = world.paper;
   const C = world.commerce;
   for (;;) {
-    const letter = [...paper.container('secretary-tray').docs][0];
+    let busy = false;
+    for (const duty of extra) {
+      if (yield* duty(world, p)) {
+        busy = true;
+        break;
+      }
+    }
+    if (busy) continue;
+    const letter = [...paper.container('secretary-tray').docs].find((x) => x.type !== 'payments-list');
     if (!letter) {
       yield* work(world, p, 10, 'going through the correspondence');
       continue;
     }
     paper.hold(letter, p);
-    yield* work(world, p, 1.2, `opening the post: a letter from ${letter.fields.fromName}`);
+    const route = routeLetter(letter);
+    yield* work(world, p, 1.2, `opening the post: a letter from ${route.from}`);
     const no = C.letterNo++;
     letter.no = no;
     letter.fields.received = world.sim.now;
     paper.mark(letter, 'received', `stamped received and numbered ${no}`);
-    const remittance = letter.fields.kind === 'remittance';
-    paper.enter('correspondence-register', {
-      no, from: letter.fields.fromName, subject: remittance ? `Remittance, ${fmt(letter.fields.amount)}` : 'Order', passedTo: remittance ? 'Cashier' : 'Order Dept.',
-    }, { from: letter, by: p });
-    if (remittance) {
+    paper.enter('correspondence-register', { no, from: route.from, subject: route.subject, passedTo: route.to }, { from: letter, by: p });
+    if (route.put === 'cashier') {
       yield* work(world, p, 0.5);
       paper.put(letter, 'cashier', 'passed to the Cashier with the cheque');
+    } else if (route.put) {
+      paper.put(letter, route.put, `passed to the ${route.to === 'Order Dept.' ? 'order clerk' : route.to}`);
     } else {
-      paper.put(letter, 'order-tray', 'passed to the order clerk');
+      letter.destination = route.dest;
+      paper.put(letter, 'office-out', `for the ${route.to}`);
     }
   }
 }

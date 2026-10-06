@@ -26,6 +26,7 @@ import { DEPARTMENTS } from './staff.js';
 import { GROUPS } from './works.js';
 import { defineForms, PAPER_KINDS } from './forms.js';
 import { receiveRemittances, bankTrip, commercePapersForPlace, commercePapersForLot, ledgerViews } from './commerce.js';
+import { cashierPayments } from './purchasing.js';
 
 // Who is paid how. Coventry moved fast to piecework, "often gang piece-work";
 // setters and toolmakers stayed on time rates (Carr 1978). The machine and
@@ -612,6 +613,8 @@ export function* cashier(world, p) {
       yield* walk(world, p, p.spot, { activity: 'going back to the Cashier’s office' });
       continue;
     }
+    // The suppliers' cheques on pay day.
+    if (yield* cashierPayments(world, p)) continue;
     // Agents' cheques, as the post brings them; the bank before noon.
     if (world.commerce) {
       if (yield* receiveRemittances(world, p)) continue;

@@ -190,7 +190,7 @@ export function setupWorks(world, production) {
   return works;
 }
 
-function usePerMachine() {
+export function usePerMachine() {
   const use = {};
   const add = (list, k = 1) => { for (const [item, n] of list) use[item] = (use[item] || 0) + n * k; };
   add(frameIssue());
