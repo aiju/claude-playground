@@ -76,6 +76,13 @@ export class LotsLayer {
     const stack = new THREE.CylinderGeometry(1.17, 1.17, 1, 18);
     stack.translate(0, 0.5, 0);
     this.meshes = { frames: make(rack), bright: make(crate), parts: make(crate.clone()), wheels: make(stack) };
+    // Cycle crates, about 72 × 40 × 12 in., stood on edge (est.).
+    const cycleCrate = new THREE.BoxGeometry(6, 3.33, 1);
+    cycleCrate.translate(0, 1.67, 0);
+    this.crates = make(cycleCrate);
+    this.crates.material.color.set('#c9ad7c');
+    this.crates.material.metalness = 0;
+    this.crates.material.roughness = 0.95;
     const [frame, wheels, saddle] = bicycleGeometries();
     this.bikes = {
       frame: make(frame),
@@ -124,9 +131,15 @@ export class LotsLayer {
     const stoves = new Set();
 
     const machineLots = [];
+    const crated = [];
     for (const lot of this.production.active) {
       if (lot.state === 'equip') continue;
       if (lot.kind === 'machines') { machineLots.push(lot); continue; }
+      if (lot.kind === 'despatch') {
+        if (lot.stage === 'crated') crated.push(lot);
+        else machineLots.push(lot);
+        continue;
+      }
       const im = this.meshes[lot.kind];
       if (!im) continue;
       let visible = true;
@@ -176,11 +189,13 @@ export class LotsLayer {
       const k = perRoom.get(lot.room) || 0;
       perRoom.set(lot.room, k + 1);
       const shown = Math.min(5, lot.qty);
+      const colour = lot.kind === 'despatch' ? STAGE_COLOURS.machines.wrapped : STAGE_COLOURS.machines[lot.stage] || '#1a1a1a';
       for (let j = 0; j < shown; j++) {
-        bikes.push({ x: node.x + ((k % 3) - 1) * 9 + (j - 2) * 1.6, y: node.y, z: node.z + 0.8, colour: STAGE_COLOURS.machines[lot.stage] || '#1a1a1a', id: lot.id, yaw: Math.PI / 2 });
+        bikes.push({ x: node.x + ((k % 3) - 1) * 9 + (j - 2) * 1.6, y: node.y, z: node.z + 0.8, colour, id: lot.id, yaw: Math.PI / 2 });
       }
     }
-    const stock = this.sc.world.works?.finishedStock || [];
+    this.updateCrates(crated, perRoom, isVisible);
+    const stock = (this.sc.world.works?.finishedStock || []).filter((mc) => !mc.allocated);
     const stockVisible = (() => {
       const r = this.site.rooms.get('stock-room');
       return r && isVisible(r.building, r.floor);
@@ -216,7 +231,48 @@ export class LotsLayer {
     }
   }
 
+  // Crated consignments: in the warehouse while they're weighed and
+  // stencilled, then on the despatch dock until a lorry takes them.
+  updateCrates(crated, perRoom, isVisible) {
+    const m = new THREE.Matrix4();
+    const rot = new THREE.Matrix4().makeRotationY(Math.PI / 2);
+    const im = this.crates;
+    im.userData.ids = [];
+    let n = 0;
+    const put = (x, y, z, id, across) => {
+      if (n >= MAX) return;
+      m.makeTranslation(x, y, z);
+      if (across) m.multiply(rot);
+      im.setMatrixAt(n, m);
+      im.userData.ids[n] = id;
+      n++;
+    };
+    for (const lot of crated) {
+      const node = this.site.nodes.get(`wip-${lot.room}`);
+      if (!node || !isVisible(node.building, node.floor)) continue;
+      const k = perRoom.get(lot.room) || 0;
+      perRoom.set(lot.room, k + 1);
+      for (let j = 0; j < Math.min(lot.qty, 8); j++) put(node.x + ((k % 3) - 1) * 9 + j * 1.15 - 4, node.y, node.z + 1.5, lot.id, true);
+    }
+    const C = this.sc.world.commerce;
+    const dock = this.site.nodes.get('DOCK');
+    if (C && dock) {
+      // In rows along the warehouse wall, a consignment together.
+      let i = 0;
+      for (const dd of C.despatches) {
+        if (dd.gone || dd.onLorry) continue;
+        for (let j = 0; j < dd.crates && i < 48; j++, i++) {
+          const k = i % 24;
+          const row = Math.floor(i / 24);
+          put(dock.x - 14 + k * 1.15, 0, dock.z - 8 + row * 6.4, dd.lot.id, true);
+        }
+      }
+    }
+    im.count = n;
+    im.instanceMatrix.needsUpdate = true;
+  }
+
   pickables() {
-    return [...Object.values(this.meshes), this.bikes.frame, this.bikes.wheels];
+    return [...Object.values(this.meshes), this.crates, this.bikes.frame, this.bikes.wheels];
   }
 }

@@ -40,11 +40,12 @@ export function makeTimetables(cal) {
     },
     holidays: HOLIDAYS,
   });
-  // The wages clerks stay on on Friday to pay out.
+  // The wages clerks stay on on Friday to pay out, and on Thursday, which is
+  // pay day in a week with a Good Friday in it.
   const wages = new Timetable(cal, {
     days: {
       1: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]], 2: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]],
-      3: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]], 4: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]],
+      3: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]], 4: [[hm(8), hm(12, 30)], [hm(13, 30), hm(18, 45)]],
       5: [[hm(8), hm(12, 30)], [hm(13, 30), hm(18, 45)]],
       6: [[hm(8), hm(12, 30)]],
     },
@@ -67,5 +68,14 @@ export function makeTimetables(cal) {
     },
     holidays: HOLIDAYS,
   });
-  return { works, office, worksStaff, wages, engine, gate };
+  // Carmen: the horses are fed and harnessed before the works starts, and
+  // the last lorry gets back from the goods yard after it stops (est.).
+  const carmen = new Timetable(cal, {
+    days: {
+      ...weekdays([[hm(6), hm(8)], [hm(8, 30), hm(12, 30)], [hm(13, 30), hm(18, 30)]]),
+      6: [[hm(6), hm(8)], [hm(8, 30), hm(13)]],
+    },
+    holidays: HOLIDAYS,
+  });
+  return { works, office, worksStaff, wages, engine, gate, carmen };
 }

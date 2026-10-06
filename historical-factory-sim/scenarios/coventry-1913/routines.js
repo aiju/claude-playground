@@ -111,6 +111,12 @@ export function* offDuty(world, p) {
   }
   const gap = spell[0] - sim.now;
   const back = p.node;
+  if (gap <= BREAKFAST_MAX && world.cal.minuteOfDay(sim.now) >= 10 * 60) {
+    // Back late from a job off the premises: a bite to eat before the bell.
+    p.activity = 'eating a late dinner';
+    yield until(spell[0]);
+    return;
+  }
   if (gap <= BREAKFAST_MAX) {
     if (p.breakfastInMess) {
       yield* walk(world, p, p.messSeat, { activity: 'going to the mess room for breakfast' });

@@ -4,23 +4,9 @@
 // sources had no images of the forms, so the ruling is reconstructed, and
 // the colours of carbon copies are a choice: Elbourne says only "distinctive
 // colours", with the top copy white.
-import { fmt, columns, short } from '../../engine/sim/money.js';
-
-const FIRM = 'THE SHERBOURNE CYCLE COMPANY LIMITED';
-const FIRM_SHORT = 'The Sherbourne Cycle Co. Ltd.';
-
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const hand = (s) => `<span class="hand">${esc(s)}</span>`;
-const lsdCells = (f, cls = 'hand') => {
-  const c = columns(f);
-  return `<td class="l ${cls}">${c.l}</td><td class="s ${cls}">${c.s}</td><td class="d ${cls}">${c.d}</td>`;
-};
-const hours = (h) => {
-  const q = Math.round(h * 4) / 4;
-  const whole = Math.floor(q);
-  const frac = ['', '¼', '½', '¾'][Math.round((q - whole) * 4)];
-  return `${whole || (frac ? '' : '0')}${frac}`;
-};
+import { fmt, short } from '../../engine/sim/money.js';
+import { FIRM, FIRM_SHORT, esc, hand, lsdCells, hours } from './formkit.js';
+import { COMMERCE_FORMS } from './forms-commerce.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const RECORDER_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -287,6 +273,8 @@ export function amountInWords(f) {
   if (pence) out += ` and ${pence === Math.floor(pence) ? words(pence) : `${words(Math.floor(pence))}${pence % 1 ? ' halfpenny' : ''}`} pence`;
   return out;
 }
+
+Object.assign(FORMS, COMMERCE_FORMS);
 
 export function defineForms(paper) {
   for (const [id, f] of Object.entries(FORMS)) {

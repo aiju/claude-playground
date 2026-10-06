@@ -8,6 +8,7 @@ import { PropsLayer } from './props.js';
 import { FiguresLayer } from './figures.js';
 import { LotsLayer } from './lots.js';
 import { PaperLayer } from './paper.js';
+import { VehiclesLayer } from './vehicles.js';
 import { MillEngine, RopeDrive, lancashireBoiler, Smoke } from './machinery.js';
 import { sunPosition, sunDirection, lighting } from './sky.js';
 
@@ -95,6 +96,11 @@ export class View {
         scene.add(glow);
         this.stoveGlows.push({ unit, spot, glow });
       }
+    }
+
+    if (scenario.vehicles?.length) {
+      this.vehicles = new VehiclesLayer(scenario);
+      scene.add(this.vehicles.group);
     }
 
     // The engine house and boiler house.
@@ -200,6 +206,13 @@ export class View {
       this.onPick?.({ kind: 'person', person: this.scenario.world.people[hit.instanceId] });
       return;
     }
+    const hitsV = this.vehicles ? this.raycaster.intersectObjects(this.vehicles.pickables(), false) : [];
+    const vHit = hitsV.find((h) => h.object.visible && h.object.parent?.visible);
+    if (vHit && (!lotHit || vHit.distance < lotHit.distance)) {
+      this.select(-1);
+      this.onPick?.({ kind: 'vehicle', vehicle: this.vehicles.vehicleFor(vHit.object) });
+      return;
+    }
     if (lotHit) {
       const id = lotHit.object.userData.ids[lotHit.instanceId];
       this.select(-1);
@@ -292,6 +305,7 @@ export class View {
     this.smoke?.update(dt, 0.35 + 0.65 * sp2);
 
     this.figures.update(t, realTime, this.isVisible);
+    this.vehicles?.update(t);
     this.paperLayer?.update(this.figures, this.isVisible);
     if (this.lots) {
       this.lots.update(t, this.figures, this.isVisible);

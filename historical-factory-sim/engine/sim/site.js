@@ -162,6 +162,7 @@ export class Site {
     const cached = this.pathCache.get(key);
     if (cached) return cached;
     const forbid = mode === 'person' ? 'hoist' : 'stairs';
+    const vehicle = mode === 'vehicle';
     const dist = new Map([[from, 0]]);
     const prev = new Map();
     const heap = [[0, from]];
@@ -173,6 +174,7 @@ export class Site {
       if (u === to) break;
       for (const e of this.adj.get(u)) {
         if (e.kind === forbid) continue;
+        if (vehicle && this.nodes.get(e.to).building !== undefined) continue;
         const nd = dcur + e.cost;
         if (nd < (dist.get(e.to) ?? Infinity)) {
           dist.set(e.to, nd);

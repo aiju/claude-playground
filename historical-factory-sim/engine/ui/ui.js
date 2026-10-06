@@ -77,9 +77,8 @@ export class UI {
 
     const placeRow = el('div', 'row');
     placeRow.appendChild(el('span', 'label', 'Go to'));
-    const names = { overview: 'Overview', gate: 'Gate', offices: 'Offices', 'main-block': 'Main block', 'engine-house': 'Engine house', 'machine-shop': 'Machine shop' };
-    for (const key of Object.keys(scenario.cameraPresets || {})) {
-      const b = el('button', '', names[key] || key);
+    for (const [key, preset] of Object.entries(scenario.cameraPresets || {})) {
+      const b = el('button', '', preset.label || key);
       b.onclick = () => { view.setPreset(key); this.refreshButtons(); };
       placeRow.appendChild(b);
     }
@@ -131,6 +130,8 @@ export class UI {
       const w = sc.world.works;
       prod = ` ${w.finishedThisWeek} machines finished this week; ${sc.machinesInProgress()} in the shops; ${w.finishedStock.length} in the Stock Room.`;
     }
+    const cs = sc.commerceSummary?.();
+    if (cs) prod += ` ${cs.ordersWaiting} order${cs.ordersWaiting === 1 ? '' : 's'} on the warehouse file; ${cs.onDock} crate${cs.onDock === 1 ? '' : 's'} on the dock; ${cs.despatchedThisWeek} machine${cs.despatchedThisWeek === 1 ? '' : 's'} despatched this week.`;
     status.textContent = `${state}; ${engine}; ${onSite} on the premises.${prod}`;
 
     if (this.logDirty) {
@@ -168,11 +169,12 @@ export class UI {
     else if (sel.kind === 'building') html += this.buildingHtml(sel);
     else if (sel.kind === 'lot') html += this.lotHtml(sel.lot);
     else if (sel.kind === 'bike') html += this.bikeHtml(sel.machine);
+    else if (sel.kind === 'vehicle') html += this.vehicleHtml(sel.vehicle);
     html += this.papersHtml(sel);
     box.innerHTML = html;
     box.querySelector('.close').onclick = () => this.show({ kind: 'none' });
     for (const b of box.querySelectorAll('[data-doc]')) {
-      b.onclick = () => this.facsimile.open(this.sc.world.paper.docs.get(b.dataset.doc));
+      b.onclick = () => this.facsimile.open(this.paperList[Number(b.dataset.doc)]);
     }
     const follow = box.querySelector('[data-act=follow]');
     if (follow) {
@@ -254,8 +256,10 @@ export class UI {
     else if (sel.kind === 'lot') list = pv.papersForLot(sel.lot);
     else if (sel.kind === 'spot') list = pv.papersForPlace(sel.spot.id);
     else if (sel.kind === 'building' && sel.room) list = pv.papersForPlace(sel.room.id);
+    else if (sel.kind === 'vehicle' && sel.vehicle?.driver) list = pv.papersFor(sel.vehicle.driver).filter((x) => x.label.startsWith('Carrying'));
+    this.paperList = list.map((x) => x.doc);
     if (!list.length) return '';
-    return `<div class="papers"><div class="label">Papers</div>${list.map((x) => `<button data-doc="${x.doc.id}">${esc(x.label)}</button>`).join('')}</div>`;
+    return `<div class="papers"><div class="label">Papers</div>${list.map((x, i) => `<button data-doc="${i}">${esc(x.label)}</button>`).join('')}</div>`;
   }
 
   lotHtml(lot) {
@@ -279,6 +283,11 @@ export class UI {
     html += `<div class="now">${esc(now)}</div><dl>`;
     if (room) html += `<dt>In</dt><dd>${esc(room.name)}</dd>`;
     html += `<dt>Quantity</dt><dd>${lot.qty} ${esc(lot.unit)}${lot.qty === 1 ? '' : 's'}</dd>`;
+    if (lot.kind === 'despatch' && lot.agent) {
+      html += `<dt>For</dt><dd>${esc(lot.agent.name)}, ${esc(lot.agent.town)}</dd>`;
+      html += `<dt>To</dt><dd>${esc(lot.agent.station)}, carriage ${esc(lot.agent.carriage.toLowerCase())}</dd>`;
+      html += `<dt>Frame nos.</dt><dd>${esc((lot.frameNos || []).map((n) => n.toLocaleString('en-GB')).join(', '))}</dd>`;
+    }
     if (batch) {
       html += `<dt>Sub-order</dt><dd>${esc(batch.id)}: ${batch.qty} ${esc(batch.name)}</dd>`;
       html += `<dt>Put through</dt><dd>${esc(cal.dayName(batch.launched))} ${esc(cal.docDate(batch.launched))}</dd>`;
@@ -298,13 +307,23 @@ export class UI {
     return html;
   }
 
+  vehicleHtml(v) {
+    if (!v) return '';
+    let html = `<h2>${esc(capitalise(v.name))}</h2><div class="sub">Pair-horse lorry</div>`;
+    html += `<div class="now">${esc(capitalise(v.activity))}</div><dl>`;
+    if (v.driver) html += `<dt>Carman</dt><dd>${esc(v.driver.name)}</dd>`;
+    html += `<dt>Load</dt><dd>${v.load ? `${v.load} crate${v.load > 1 ? 's' : ''}` : 'Empty'}</dd>`;
+    html += '</dl>';
+    return html;
+  }
+
   bikeHtml(m) {
     if (!m) return '<h2>A machine in stock</h2>';
     const cal = this.sc.cal;
     const model = this.sc.catalogue?.MODELS?.[m.model];
-    let html = `<h2>Frame No. ${m.frameNo.toLocaleString('en-GB')}</h2><div class="sub">${esc(model ? model.name : m.model)}, ${esc(m.pattern)}'s pattern</div>`;
-    html += `<div class="now">Wrapped, in the Stock Room</div><dl>`;
-    html += `<dt>Sub-order</dt><dd>${esc(m.batch)}</dd>`;
+    let html = `<h2>Frame No. ${m.frameNo.toLocaleString('en-GB')}</h2><div class="sub">${esc(model ? model.name : m.model)}, ${esc(m.pattern)}'s pattern${m.frameSize ? `, ${m.frameSize} in. frame` : ''}</div>`;
+    html += `<div class="now">${m.allocated ? `Wrapped, in the Stock Room; allocated to order ${esc(m.allocated)}` : 'Wrapped, in the Stock Room'}</div><dl>`;
+    html += `<dt>Sub-order</dt><dd>${esc(m.batch === 'stock' ? 'last season’s stock' : m.batch)}</dd>`;
     html += `<dt>Finished</dt><dd>${esc(cal.dayName(m.finished))} ${esc(cal.docDate(m.finished))}, ${esc(cal.clockTime(m.finished))}</dd>`;
     if (model) html += `<dt>List price</dt><dd>${esc(this.sc.catalogue.price(m.model, m.pattern))}</dd>`;
     html += '</dl>';

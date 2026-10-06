@@ -15,9 +15,10 @@ import { Store } from '../../engine/sim/production.js';
 import { work } from '../../engine/sim/world.js';
 import { wait, until } from '../../engine/sim/kernel.js';
 import {
-  MODELS, BOUGHT, MADE, PROGRAMME_CYCLE, WEEKLY_MACHINES, modelName,
+  MODELS, BOUGHT, MADE, PROGRAMME_CYCLE, WEEKLY_MACHINES, FRAME_SIZES, modelName,
   frameIssue, brightIssue, wheelRoughIssue, wheelFinishedIssue, finishingIssue, finishingMadeIssue,
 } from './catalogue.js';
+import { onDespatchStep, onDespatchReady, machinesWanted } from './commerce.js';
 
 // Which production group each trade works in, and how fast (learners and
 // youths are slower).
@@ -39,6 +40,7 @@ export const GROUPS = {
   'Chief viewer': ['viewer', 1], Viewer: ['viewer', 1], 'Cycle tester': ['tester', 1],
   Wrapper: ['wrapper', 1], 'Wrapper (girl)': ['wrapper', 0.6],
   Storeman: ['storeman', 1], 'Finished-stores man': ['finished-storeman', 1],
+  Packer: ['packer', 1], Warehouseman: ['warehouseman', 1],
 };
 
 // Enamellers at the dipping tanks dip; the rest rub down.
@@ -297,6 +299,7 @@ export function trayFrameNos(batch, tray) {
 
 // Called by the production engine as each step finishes.
 export function onStep(world, production, lot, step) {
+  if (lot.kind === 'despatch') return onDespatchStep(world, lot, step);
   const batch = lot.batch;
   if (step.stamp && batch) {
     const fresh = !batch.frameNos;
@@ -309,6 +312,7 @@ export function onStep(world, production, lot, step) {
 export function onDone(world, production, lot) {
   const works = world.works;
   const batch = lot.batch;
+  if (lot.kind === 'despatch') return onDespatchReady(world, lot);
   if (lot.kind === 'parts') {
     production.stores.get('finished').put(lot.item, lot.qty, world.sim.now, lot.label);
     works.stockLots.delete(lot.item);
@@ -319,7 +323,8 @@ export function onDone(world, production, lot) {
     const t = world.sim.now;
     const [a, b] = trayFrameNos(batch, lot.tray);
     for (let n = a; n <= b; n++) {
-      const m = { frameNo: n, model: batch.model, pattern: batch.pattern, batch: batch.id, finished: t };
+      // Frame sizes are made in proportion to what agents ask for.
+      const m = { frameNo: n, model: batch.model, pattern: batch.pattern, frameSize: world.rng.weighted(FRAME_SIZES[batch.pattern]), batch: batch.id, finished: t };
       works.register.push(m);
       works.finishedStock.push(m);
     }
@@ -343,6 +348,31 @@ export function machinesInProgress(world) {
   return Math.max(0, n);
 }
 
+// What to put through next. The season's programme was laid down from the
+// travellers' estimates, and the Works Manager follows it, except that a
+// model the agents are waiting for, with not enough in stock or in the
+// shops to fill their orders, goes in first.
+function nextEntry(world) {
+  const works = world.works;
+  const want = machinesWanted(world);
+  if (want.size) {
+    const have = new Map();
+    const add = (k, n) => have.set(k, (have.get(k) || 0) + n);
+    for (const m of works.finishedStock) if (!m.allocated) add(`${m.model}/${m.pattern}`, 1);
+    for (const b of works.batches) if (!b.finished) add(`${b.model}/${b.pattern}`, b.qty - b.traysDone * TRAY);
+    let best = null;
+    for (const [k, n] of want) {
+      const short = n - (have.get(k) || 0);
+      if (short > 0 && (!best || short > best[1])) best = [k, short];
+    }
+    if (best) {
+      const entry = PROGRAMME_CYCLE.find(([m, p]) => `${m}/${p}` === best[0]);
+      if (entry) return entry;
+    }
+  }
+  return PROGRAMME_CYCLE[works.cycle++ % PROGRAMME_CYCLE.length];
+}
+
 // The Works Manager's programme: keep about two weeks' work in the shops.
 export function* worksManagerProgramme(world, production, timetable) {
   const TARGET_WIP = 640;
@@ -351,8 +381,7 @@ export function* worksManagerProgramme(world, production, timetable) {
     yield until(spell[0] + 35);
     let n = 0;
     while (machinesInProgress(world) < TARGET_WIP && n < 4) {
-      const entry = PROGRAMME_CYCLE[world.works.cycle++ % PROGRAMME_CYCLE.length];
-      launchBatch(world, production, entry);
+      launchBatch(world, production, nextEntry(world));
       n++;
     }
     yield until(timetable.lastSpellOfDay(world.sim.now)[1] + 1);
