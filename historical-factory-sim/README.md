@@ -2,19 +2,23 @@
 
 A stylised 3D simulation of a pre-computer factory, accurate to its time in the paperwork, logistics and bureaucracy. The first scenario is the Sherbourne Cycle Company Limited: a fictional, mid-sized Coventry cycle works in 1913, with about 400 hands, card time recorders, six-copy office orders, pay tins on Friday night and horse drays to the LNWR goods yard.
 
-**Status:** milestone 2 of 7 (see [DESIGN.md](DESIGN.md) §11).
+**Status:** milestone 3 of 7 (see [DESIGN.md](DESIGN.md) §11).
 
-The works stands, with its steam engine, shafting and about 400 people. They clock on at the time office, take breakfast and dinner, and go home. Some are late, some are shut out until after breakfast.
-
-Production runs:
-- The Works Manager puts batches through.
-- Frames go through building, brazing, pickling, filing, numbering, polishing, three coats of stoved enamel and lining.
+The works stands, with its steam engine, shafting and about 400 people. Production runs:
+- Frames go through building, brazing, filing, numbering, polishing, three coats of stoved enamel and lining.
 - Bright parts are polished, plated and fitted, and wheels are laced and trued.
-- Everything meets in the Finishing Shop.
-- The machines are tested, viewed, wrapped and taken up to the Stock Room.
-- The machine and press shops make parts for stock whenever the Storekeeper's cards fall below their ordering levels.
+- Everything meets in the Finishing Shop, and the machines are tested, wrapped and taken up to the Stock Room.
 
-The works' paperwork and accounts come in the next milestones.
+The works' own paper runs, following Elbourne's *Factory Administration and Accounts* (1914):
+- Time cards are punched at the recorders, with late times in red.
+- Daily time slips are collected by the works post.
+- A work tally rides with every tray.
+- On Wednesday night the timekeeper takes the week's cards to the Wages Office.
+- On Thursday the wages clerks work out piecework, premium bonus and National Insurance, and write the wages sheets, the wages abstract and the coin list.
+- On Friday the Cashier draws the coin at Lloyds, and the hands are paid from numbered pay tins at the pay window.
+- The insurance cards are stamped each week.
+
+Click anyone, any tray of work, or the Wages Office to see their papers as facsimiles of the period forms. The commercial side (orders, invoices, the railway, the ledgers) comes in the next milestones.
 
 - [DESIGN.md](DESIGN.md): what we're building and how, including the split between a period-independent engine and the 1913 scenario.
 - [Research report](research/reports/Coventry%20cycle%20works%201913.md): the sourced findings behind the design, with about 150 linked sources.

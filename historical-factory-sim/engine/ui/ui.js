@@ -1,5 +1,6 @@
 // The overlay: clock, speed and view controls, the inspector and the log.
 import { fmt } from '../sim/money.js';
+import { Facsimile } from './facsimile.js';
 
 const SPEEDS = [
   { label: '1×', v: 1, title: 'Real time' },
@@ -66,6 +67,12 @@ export class UI {
       cutRow.appendChild(b);
       return { b, v: c.v };
     });
+    if (view.paperLayer) {
+      this.paperBtn = el('button', '', 'Paper');
+      this.paperBtn.title = 'Make the paper stand out: cards, slips, tins and papers in hand';
+      this.paperBtn.onclick = () => { view.paperLayer.setEmphasis(!view.paperLayer.emphasis); this.refreshButtons(); };
+      cutRow.appendChild(this.paperBtn);
+    }
     controls.appendChild(cutRow);
 
     const placeRow = el('div', 'row');
@@ -85,6 +92,7 @@ export class UI {
     root.appendChild(this.logPanel);
     root.appendChild(el('div', 'hint', 'Drag to turn · right-drag to pan · scroll to zoom · click anyone'));
 
+    this.facsimile = scenario.paperView ? new Facsimile(root, scenario) : null;
     scenario.world.logListeners.push(() => { this.logDirty = true; });
     view.onPick = (sel) => this.show(sel);
     this.selection = null;
@@ -96,6 +104,7 @@ export class UI {
     this.pauseBtn.classList.toggle('on', this.clock.paused);
     for (const { b, v } of this.speedBtns) b.classList.toggle('on', !this.clock.paused && this.clock.speed === v);
     for (const { b, v } of this.cutBtns) b.classList.toggle('on', this.view.cut.level === v);
+    if (this.paperBtn) this.paperBtn.classList.toggle('on', this.view.paperLayer.emphasis);
   }
 
   update(t, realNow) {
@@ -130,7 +139,7 @@ export class UI {
       this.logPanel.innerHTML = entries.map((e) => `<div class="entry ${e.kind}"><span class="t">${esc(cal.dayName(e.t).slice(0, 3))} ${esc(cal.clockTime(e.t))}</span>${esc(e.text)}</div>`).join('');
       this.logPanel.scrollTop = this.logPanel.scrollHeight;
     }
-    if (this.selection && realNow - this.lastInspect > 400) {
+    if (this.selection && realNow - this.lastInspect > 400 && !(this.facsimile && this.facsimile.doc)) {
       this.lastInspect = realNow;
       this.render();
     }
@@ -159,8 +168,12 @@ export class UI {
     else if (sel.kind === 'building') html += this.buildingHtml(sel);
     else if (sel.kind === 'lot') html += this.lotHtml(sel.lot);
     else if (sel.kind === 'bike') html += this.bikeHtml(sel.machine);
+    html += this.papersHtml(sel);
     box.innerHTML = html;
     box.querySelector('.close').onclick = () => this.show({ kind: 'none' });
+    for (const b of box.querySelectorAll('[data-doc]')) {
+      b.onclick = () => this.facsimile.open(this.sc.world.paper.docs.get(b.dataset.doc));
+    }
     const follow = box.querySelector('[data-act=follow]');
     if (follow) {
       follow.classList.toggle('on', this.view.follow);
@@ -231,6 +244,18 @@ export class UI {
       html += '</dl>';
     }
     return html;
+  }
+
+  papersHtml(sel) {
+    const pv = this.sc.paperView;
+    if (!pv) return '';
+    let list = [];
+    if (sel.kind === 'person') list = pv.papersFor(sel.person);
+    else if (sel.kind === 'lot') list = pv.papersForLot(sel.lot);
+    else if (sel.kind === 'spot') list = pv.papersForPlace(sel.spot.id);
+    else if (sel.kind === 'building' && sel.room) list = pv.papersForPlace(sel.room.id);
+    if (!list.length) return '';
+    return `<div class="papers"><div class="label">Papers</div>${list.map((x) => `<button data-doc="${x.doc.id}">${esc(x.label)}</button>`).join('')}</div>`;
   }
 
   lotHtml(lot) {

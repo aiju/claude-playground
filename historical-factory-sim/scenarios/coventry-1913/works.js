@@ -229,6 +229,7 @@ export function launchBatch(world, production, [model, pattern, qty], { fraction
     });
     lot.tray = tray;
     if (f > 0 && routing[step].op) lot.left = Math.max(1, Math.round(lot.left * world.rng.uniform(0.3, 1)));
+    if (f > 0 && lot.tally) backdateTally(world, lot, f);
     if (f > 0 && step > 6 && key === '1') assignFrameNumbers(world, batch);
     batch.streams[key].push(lot);
     return lot;
@@ -244,6 +245,15 @@ export function launchBatch(world, production, [model, pattern, qty], { fraction
   return batch;
 }
 
+// In the opening state the tallies of batches already in the shops were
+// issued days ago, and their coupons have been cut.
+function backdateTally(world, lot, f) {
+  const issued = world.sim.now - Math.round(f * 16) * 1440;
+  lot.tally.fields.issued = world.cal.dayStart(issued) + 6 * 60 + 30;
+  lot.tally.history = [{ t: lot.tally.fields.issued, text: 'issued by the Work Depot' }];
+  if (lot.step > 0) lot.tally.marks.push({ t: lot.tally.fields.issued + 20, mark: 'coupon cut' });
+}
+
 function launchErecting(world, production, batch, tray, { step = 0, left } = {}) {
   const n = Math.min(TRAY, batch.qty - tray * TRAY);
   const fin = production.launch({
@@ -252,6 +262,7 @@ function launchErecting(world, production, batch, tray, { step = 0, left } = {})
   });
   fin.tray = tray;
   if (left !== undefined) fin.left = left;
+  if (step > 0 && fin.tally) backdateTally(world, fin, 0.2);
   batch.streams['4'].push(fin);
   return fin;
 }
@@ -334,7 +345,7 @@ export function machinesInProgress(world) {
 
 // The Works Manager's programme: keep about two weeks' work in the shops.
 export function* worksManagerProgramme(world, production, timetable) {
-  const TARGET_WIP = 560;
+  const TARGET_WIP = 640;
   for (;;) {
     const spell = timetable.nextSpell(world.sim.now + 1);
     yield until(spell[0] + 35);
