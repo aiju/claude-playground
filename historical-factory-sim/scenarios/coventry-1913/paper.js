@@ -662,17 +662,24 @@ export function* collectPay(world, p) {
   if (!wk || !wk.tinsReady || world.cal.dayStart(world.sim.now) !== wk.payDay) return;
   const r = wk.results.find((x) => x.p === p);
   if (!r || r.paid) return;
+  // Back too late (a carman held up at the goods yard, say): the window has
+  // shut and the tin is locked up with the unclaimed pay.
+  if (wk.unclaimedDone) return;
   yield* walk(world, p, 'pay-window', { activity: 'queueing at the pay window' });
   p.activity = 'queueing at the pay window';
   yield W.payStations.request();
   yield wait(0.3);
   W.payStations.release();
+  if (wk.unclaimedDone) {
+    p.activity = `told to see the Cashier on Monday for ${p.sex === 'F' ? 'her' : 'his'} pay`;
+    return;
+  }
   r.paid = world.sim.now;
   world.paper.hold(r.paySlip, p);
   world.paper.mark(r.paySlip, 'paid', `pay tin No. ${p.worksNo} handed over at the pay window`);
   if (r.card) world.paper.mark(r.card, 'cancelled', 'pay card cancelled with a crayon mark across the corner');
   p.lastPay = r;
-  p.activity = `counting his pay: ${fmt(r.net, { shillings: true })}`;
+  p.activity = `counting ${p.sex === 'F' ? 'her' : 'his'} pay: ${fmt(r.net, { shillings: true })}`;
 }
 
 // Unclaimed tins go back to the Cashier with a report.

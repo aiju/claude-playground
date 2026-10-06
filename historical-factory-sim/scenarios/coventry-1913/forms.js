@@ -315,7 +315,7 @@ export const PAPER_KINDS = [
   { group: 'National Insurance', types: ['ni-card', 'unemployment-book'] },
   { group: 'The post', types: ['letter', 'postcard'] },
   { group: 'Orders and despatch', types: ['office-order', 'packing-slip', 'advice-of-despatch', 'consignment-note'] },
-  { group: 'Stores and purchasing', types: ['stock-card', 'purchase-requisition', 'purchase-order', 'advice-note', 'delivery-sheet', 'goods-received-note'] },
+  { group: 'Stores and purchasing', types: ['stock-card', 'purchase-requisition', 'purchase-order', 'advice-note', 'delivery-sheet', 'coal-ticket', 'goods-received-note'] },
   { group: 'Accounts', types: ['invoice', 'statement', 'receipt', 'paying-in-slip', 'supplier-invoice', 'supplier-statement', 'railway-account', 'payments-list', 'cheque-receipt'] },
 ];
 

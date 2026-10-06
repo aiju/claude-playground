@@ -802,7 +802,7 @@ export function* carpenter(world, p) {
 // A lorry and the times it goes to the goods yard when there are crates
 // on the dock (est.).
 export function makeLorry(id, name, times) {
-  return { id, name, times, done: new Set(), node: 'N1', motion: null, onSite: false, activity: 'in the cart shed', load: 0, driver: null, kind: 'lorry' };
+  return { id, name, times, done: new Set(), node: 'N1', motion: null, onSite: false, activity: 'in the cart shed', load: 0, driver: null, kind: 'lorry', parked: true };
 }
 
 // The carmen take whichever lorry is due out. A pair-horse lorry goes to
@@ -849,6 +849,7 @@ function* lorryRound(world, carman, lorry) {
   yield* walk(world, carman, 'N1', { activity: 'going to harness the horses' });
   yield* work(world, carman, 10, `harnessing the horses to ${lorry.name}`);
   lorry.node = 'N1';
+  lorry.parked = false;
   lorry.onSite = true;
   carman.onSite = false;
   carman.riding = lorry;
@@ -871,11 +872,28 @@ function* lorryRound(world, carman, lorry) {
   yield* walk(world, lorry, 'HOME_S', { mode: 'vehicle', speed: 260 });
   lorry.onSite = false;
   lorry.activity = 'on the road to Warwick Road goods yard';
-  yield wait(35);
+  yield wait(30);
   lorry.activity = 'unloading at the L. & N.W.R. goods shed, Warwick Road';
   carman.activity = lorry.activity;
-  yield wait(10 + crates * 1.2);
-  const checker = C.rng.pick(['W. Hollis', 'A. Dunn', 'G. Price', 'T. Bray']);
+  let checked = null;
+  const R = world.railway;
+  if (R) {
+    // Back up to a bay; the crates go onto the platform for the porters,
+    // and the checker checks them against the consignment notes.
+    checked = yield* R.atTheYard(world, lorry, {
+      notes: load.map((dd) => dd.note), holder: carman, items: crates,
+      * unload() {
+        for (const dd of load) {
+          yield wait(dd.crates * 1.2);
+          lorry.load -= dd.crates;
+          R.heapOut.push({ crates: dd.crates, region: dd.agent.region, ours: true, consignmentNo: dd.consignmentNo });
+        }
+      },
+    });
+  } else {
+    yield wait(10 + crates * 1.2);
+  }
+  const checker = checked?.by?.name || C.rng.pick(['W. Hollis', 'A. Dunn', 'G. Price', 'T. Bray']);
   for (const dd of load) {
     dd.gone = world.sim.now;
     dd.onLorry = false;
@@ -889,14 +907,16 @@ function* lorryRound(world, carman, lorry) {
     }
   }
   lorry.load = 0;
-  world.log(`${carman.name} delivered ${crates} crates (${load.length} consignment${load.length > 1 ? 's' : ''}) to the L. & N.W.R. goods yard, Warwick Road, for the night goods trains.`, { kind: 'commerce' });
+  world.log(`${carman.name} delivered ${crates} crate${crates > 1 ? 's' : ''} (${load.length} consignment${load.length > 1 ? 's' : ''}) to the L. & N.W.R. goods yard, Warwick Road, for the night goods trains.`, { kind: 'commerce' });
   lorry.activity = 'coming back from Warwick Road';
   carman.activity = lorry.activity;
-  yield wait(35);
+  yield wait(30);
+  lorry.node = 'HOME_S';
   lorry.onSite = true;
   yield* walk(world, lorry, 'N1', { mode: 'vehicle', speed: 220 });
   lorry.activity = 'in the cart shed';
   lorry.onSite = false;
+  lorry.parked = true;
   lorry.driver = null;
   carman.riding = null;
   carman.onSite = true;
@@ -954,12 +974,17 @@ export function ledgerViews(world) {
   const L = world.ledger;
   if (!L) return null;
   const acct = (a) => pseudo('ledger-account', { account: a }, a.code);
+  // A personal ledger: the accounts behind a control account, biggest first.
+  const personal = (control, sub) => () => [...L.accounts.values()].filter((a) => a.control === control)
+    .map((a) => ({ label: a.name, sub: sub(a), balance: a.debit - a.credit, doc: acct(a) }))
+    .sort((x, y) => Math.abs(y.balance) - Math.abs(x.balance) || x.label.localeCompare(y.label));
   return {
     trialBalance: trialBalanceDoc(world),
     general: () => [...L.accounts.values()].filter((a) => !a.control).map((a) => ({ label: a.name, balance: a.debit - a.credit, doc: acct(a) })),
-    sales: () => [...L.accounts.values()].filter((a) => a.control === 'debtors')
-      .map((a) => ({ label: a.name, sub: a.meta?.town, balance: a.debit - a.credit, doc: acct(a) }))
-      .sort((x, y) => y.balance - x.balance || x.label.localeCompare(y.label)),
+    personal: [
+      { id: 'sales', label: 'Sales Ledger', accounts: personal('debtors', (a) => a.meta?.town) },
+      { id: 'bought', label: 'Bought Ledger', accounts: personal('creditors', (a) => a.meta?.address) },
+    ],
   };
 }
 
@@ -977,15 +1002,17 @@ export function commercePapersForPlace(world, id) {
   if (['secretary-desk', 'secretary', 'chief-clerk'].includes(id)) {
     out.push({ label: 'Trial balance, as it stands', doc: trialBalanceDoc(world) });
   }
-  if (['sales-ledger', 'general-office'].includes(id)) {
+  // The ledger clerks' desks: the pages they've posted to lately.
+  for (const [control, name, desks] of [['debtors', 'Sales Ledger', ['sales-ledger', 'general-office']], ['creditors', 'Bought Ledger', ['bought-ledger', 'general-office']]]) {
+    if (!desks.includes(id)) continue;
     const recent = [];
     for (let i = ledger.postings.length - 1; i >= 0 && recent.length < 4; i--) {
       for (const [code] of ledger.postings[i].lines) {
         const a = ledger.accounts.get(code);
-        if (a?.control === 'debtors' && !recent.includes(a)) recent.push(a);
+        if (a?.control === control && !recent.includes(a)) recent.push(a);
       }
     }
-    for (const a of recent) out.push({ label: `Sales Ledger: ${a.name}`, doc: pseudo('ledger-account', { account: a }, a.code) });
+    for (const a of recent) out.push({ label: `${name}: ${a.name}`, doc: pseudo('ledger-account', { account: a }, a.code) });
   }
   return out;
 }

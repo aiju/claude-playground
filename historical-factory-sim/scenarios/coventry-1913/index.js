@@ -26,6 +26,8 @@ import {
   setupPurchasing, storekeeper, worksManagerDesk, buyer, buyersClerk, suppliersAtWork, railwayCartage, supplierCarts,
   parcelPost, receivingClerk, invoiceMatcher, boughtLedgerClerk, secretaryPayments, makeVan, purchasingSummary,
 } from './purchasing.js';
+import { setupRailway, railwayStaffProcess, yardDay, tradersCart, GX, GZ } from './railway.js';
+import { setupCoal, makeBoat, coalBoat, yardLabourer, stoker } from './coal.js';
 import { price as fmtPrice } from '../../engine/sim/money.js';
 
 export const meta = {
@@ -123,15 +125,17 @@ export function createScenario({ seed = 1913, start } = {}) {
   const commerce = setupCommerce(world, production);
   // Lorry rounds (est.): the big lorry three times a day, the second twice.
   commerce.lorries.push(
-    makeLorry('lorry-1', 'the big lorry', [9 * 60 + 30, 13 * 60 + 45, 16 * 60 + 15]),
-    makeLorry('lorry-2', 'the second lorry', [11 * 60, 15 * 60]),
+    makeLorry('lorry-1', 'the big lorry', [9 * 60 + 30, 13 * 60 + 30, 16 * 60 + 30]),
+    makeLorry('lorry-2', 'the second lorry', [11 * 60, 15 * 60 + 15]),
   );
   // Buying in, with the stock in the Rough Stores on 1 March and the orders
   // already out for what was running low.
   const purchasing = setupPurchasing(world, production, timetables);
+  setupCoal(world, production);
+  purchasing.boats.push(makeBoat('boat-hope', 'Hope', 'Joseph Hayward'));
   purchasing.vehicles.push(
-    makeVan('lnwr-van', 'the L. & N.W.R. van', { carrier: 'L. & N.W.R.', colour: '#3b3f45', driverName: 'an L. & N.W.R. carman' }),
-    makeVan('mr-van', 'the Midland Railway van', { carrier: 'Midland Railway', colour: '#6b2a26', driverName: 'a Midland Railway carman' }),
+    makeVan('lnwr-van', 'the L. & N.W.R. van', { carrier: 'L. & N.W.R.', colour: '#3b3f45', driverName: 'an L. & N.W.R. carman', home: 'GY_STABLES', parkAt: [GX + 110, GZ + 58, 0] }),
+    makeVan('mr-van', 'the Midland Railway van', { carrier: 'Midland Railway', colour: '#6b2a26', driverName: 'a Midland Railway carman', home: 'GY_STABLES', parkAt: [GX + 150, GZ + 58, 0] }),
     makeVan('cart-1', 'a supplier\u2019s cart', { kind: 'cart', colour: '#55603f', home: 'HOME_W' }),
     makeVan('cart-2', 'a supplier\u2019s cart', { kind: 'cart', colour: '#5d4a33', home: 'HOME_E' }),
   );
@@ -141,7 +145,18 @@ export function createScenario({ seed = 1913, start } = {}) {
 
   sim.spawn(worksManagerProgramme(world, production, timetables.worksStaff), 'works manager programme');
   sim.spawn(storekeeperRounds(world, production, timetables.works), 'storekeeper rounds');
+  // The L. & N.W.R. goods yard at Warwick Road: its staff, wagons and the
+  // other traders' carts in the evening rush.
+  const railway = setupRailway(world);
+  for (const p of railway.staff) sim.spawn(railwayStaffProcess(world, p), p.name);
+  sim.spawn(yardDay(world), 'goods yard');
+  for (let i = 0; i < 5; i++) {
+    const cart = makeVan(`traders-cart-${i}`, 'a carrier\u2019s cart', { kind: i % 2 ? 'van' : 'cart', colour: ['#4a5560', '#5d4a33', '#3f5240', '#6a3b2c', '#3d3d48'][i], home: 'GY_ROAD_W' });
+    railway.vehicles.push(cart);
+    sim.spawn(tradersCart(world, cart), cart.id);
+  }
   sim.spawn(suppliersAtWork(world), 'suppliers');
+  for (const b of purchasing.boats) sim.spawn(coalBoat(world, b), b.name);
   sim.spawn(parcelPost(world), 'parcel post');
   for (const v of purchasing.vehicles) sim.spawn(v.kind === 'cart' ? supplierCarts(world, v) : railwayCartage(world, v), v.name);
   sim.spawn(weeklyTally(world, timetables.works), 'weekly tally');
@@ -153,7 +168,8 @@ export function createScenario({ seed = 1913, start } = {}) {
     production,
     wages,
     paperView: makePaperView(world, FORMS, amountInWords),
-    vehicles: [...commerce.lorries, ...purchasing.vehicles],
+    vehicles: [...commerce.lorries, ...purchasing.vehicles, ...railway.vehicles, ...purchasing.boats],
+    railway,
     purchasingSummary: () => purchasingSummary(world),
     commerceSummary: () => commerceSummary(world),
     machinesInProgress: () => machinesInProgress(world),
@@ -292,13 +308,9 @@ function processFor(world, p, roles) {
         at: (room) => `oiling the line-shaft bearings in the ${room}`,
       });
     case 'Yard labourer':
-      return roaming(world, p, {
-        places: ['COAL', 'WHARF', 'DOCK', 'Y_W', 'N2', 'N3', 'BY1', 'Y7', 'E_N', 'Y2'],
-        between: [5, 15],
-        dwell: [5, 20],
-        goingTo: (place) => `going to the ${place.toLowerCase()}`,
-        at: () => 'sweeping and tidying the yard',
-      });
+      return yardLabourer(world, p, { places: ['COAL', 'WHARF', 'DOCK', 'Y_W', 'N2', 'N3', 'BY1', 'Y7', 'E_N', 'Y2'] });
+    case 'Stoker':
+      return stoker(world, p);
     case 'Office boy':
       if (!roles.errandBoy) roles.errandBoy = p;
       return roaming(world, p, {

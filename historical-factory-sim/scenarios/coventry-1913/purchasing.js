@@ -152,7 +152,8 @@ export function setupPurchasing(world, production, timetables) {
   // What the works owes its suppliers for February's deliveries, to be paid
   // on the third Wednesday of March; and February's railway account.
   for (const s of suppliers) {
-    const weekly = s.items.reduce((a, i) => a + P.cards.get(i).weekly / P.cards.get(i).per * P.cards.get(i).price, 0);
+    const cards = s.items.map((i) => P.cards.get(i)).filter(Boolean);
+    const weekly = cards.reduce((a, c) => a + c.weekly / c.per * c.price, 0);
     const owed = Math.round(weekly * rng.uniform(3.6, 4.4) / 2) * 2;
     if (owed > 0) ledger.post(feb28, 'Balance brought forward: February deliveries', [[s.account, 0, owed], ['opening', owed, 0]]);
   }
@@ -184,7 +185,10 @@ export const goods = (n, unit, per, desc) => (unit === 'each' && per === 1 ? `${
 // A quantity in the trade's own unit: spokes by the gross, frame tubes by
 // the set, saddles by number.
 export function quantity(n, unit, per = 1) {
-  if (per > 1) return `${(n / per).toLocaleString('en-GB')} ${unit}`;
+  if (per > 1) {
+    const v = n / per;
+    return `${v.toLocaleString('en-GB')} ${v === 1 || unit === 'gross' ? unit : PLURAL[unit] || `${unit}s`}`;
+  }
   if (unit === 'each') return n.toLocaleString('en-GB');
   return `${n.toLocaleString('en-GB')} ${n === 1 ? unit : PLURAL[unit] || `${unit}s`}`;
 }
@@ -376,7 +380,7 @@ export function* buyer(world, p) {
           top.fields.signedBy = `${md ? md.name : 'Charles Hartwell'}, Managing Director`;
           paper.mark(top, 'signed', 'signed by the Managing Director (over £50)');
         }
-        yield* walk(world, p, p.spot, { activity: 'going back to his desk' });
+        yield* walk(world, p, p.spot, { activity: `going back to ${p.sex === 'F' ? 'her' : 'his'} desk` });
       }
       for (const top of unsigned) {
         top.destination = null;
@@ -441,6 +445,7 @@ export function* suppliersAtWork(world) {
 }
 
 function packagesFor(l) {
+  if (l.item === 'coal') return 0; // loose, by weight
   if (l.item === 'bar-steel') return Math.max(1, Math.ceil(l.qty / 560)); // bundles of 5 cwt (est.)
   if (l.per > 1) return Math.max(1, Math.ceil(l.qty / l.per / 20)); // boxes of 20 gross
   return Math.max(1, Math.ceil(l.qty / (l.item === 'tyre-set' ? 50 : 100)));
@@ -459,6 +464,7 @@ function despatch(world, po, day) {
   const next = workingDay(cal, day, 1);
   if (RAILWAYS.includes(s.carrier)) cons.atYard = next + 3 * 60; // by the night goods train
   else if (s.carrier === 'own cart') cons.cartDue = rng.chance(0.5) ? day + 15 * 60 : next + 11 * 60;
+  else if (s.carrier === 'canal') cons.boatDue = next + 10 * 60 + 30;
   else cons.postDue = next + 10 * 60 + 15;
   const outsidePost = (type, fields, at) => world.sim.schedule(at, () => {
     const doc = world.paper.create(type, { ...fields, delivery: 'morning', received: null }, { at: 'post-office' });
@@ -513,8 +519,8 @@ function monthlyAccounts(world, day) {
 
 // --- Deliveries ------------------------------------------------------------------------------------
 
-export function makeVan(id, name, { kind = 'van', carrier, colour, driverName, home = 'HOME_S' }) {
-  return { id, name, kind, carrier, colour, driverName, home, node: home, motion: null, onSite: false, activity: 'away', load: 0, driver: null, papers: new Set() };
+export function makeVan(id, name, { kind = 'van', carrier, colour, driverName, home = 'HOME_S', parkAt = null }) {
+  return { id, name, kind, carrier, colour, driverName, home, node: home, motion: null, onSite: false, activity: parkAt ? 'standing in the yard' : 'away', load: 0, driver: null, papers: new Set(), parkAt, parked: !!parkAt };
 }
 
 // The railway companies' vans bring yesterday's goods "first thing in the
@@ -522,16 +528,31 @@ export function makeVan(id, name, { kind = 'van', carrier, colour, driverName, h
 export function* railwayCartage(world, van) {
   const P = world.purchasing;
   const cal = world.cal;
+  let done = null;
   for (;;) {
+    const R = world.railway;
+    const start = 8 * 60 + 15 - (R ? 30 : 0);
     const now = world.sim.now;
     const today = cal.dayStart(now);
-    let leave = today + 8 * 60 + 15;
-    if (now >= leave || cal.dow(today) === 0 || HOLIDAY(today)) leave = workingDay(cal, today, 1) + 8 * 60 + 15;
+    let leave = today + start;
+    if (now > leave || done === today || cal.dow(today) === 0 || HOLIDAY(today)) leave = workingDay(cal, today, 1) + start;
     yield until(leave);
-    const load = P.consignments.filter((c) => c.carrier === van.carrier && c.atYard && c.atYard <= world.sim.now && !c.delivered);
+    done = cal.dayStart(leave);
+    let load;
+    if (R) {
+      // Wait while the porters unload the night's vans onto the delivery bank.
+      const mine = () => R.heapIn.filter((h) => h.consignment.carrier === van.carrier && !h.taken);
+      const coming = () => R.wagons.some((w) => w.state === 'inward' && (w.goods || []).some((c) => c.carrier === van.carrier && !c.unloaded));
+      for (let i = 0; i < 100 && coming(); i++) yield wait(1);
+      const heaps = mine();
+      load = heaps.map((h) => h.consignment);
+      R.heapIn = R.heapIn.filter((h) => !heaps.includes(h));
+    } else {
+      load = P.consignments.filter((c) => c.carrier === van.carrier && c.atYard && c.atYard <= world.sim.now && !c.delivered);
+    }
     if (!load.length) continue;
     for (const c of load) c.delivered = 'on the van';
-    yield* deliver(world, van, load, { travel: 35 });
+    yield* deliver(world, van, load, { travel: R ? 25 : 35 });
   }
 }
 
@@ -577,10 +598,12 @@ function* deliver(world, v, load, { travel }) {
   });
   paper.hold(sheet, v);
   for (const c of load) paper.link(sheet, c.po.docs.top);
+  const R = world.railway;
+  if (railway && R) yield* R.loadAtTheYard(world, v, packages);
   v.activity = railway ? `on the way from Warwick Road with ${packages} packages` : `on the way with ${packages} packages`;
   yield wait(travel);
   v.onSite = true;
-  v.node = v.home;
+  v.node = railway && R ? 'HOME_S' : v.home;
   v.load = packages;
   v.driver = { name: v.driverName };
   yield* walk(world, v, 'Y4', { mode: 'vehicle', speed: 220, activity: `bringing ${packages} packages to the Rough Stores` });
@@ -599,10 +622,16 @@ function* deliver(world, v, load, { travel }) {
   }
   world.log(`${v.name[0].toUpperCase()}${v.name.slice(1)} delivered ${packages} package${packages > 1 ? 's' : ''} to the Rough Stores (${load.map((c) => `${c.supplier.name}, ${c.po.no}`).join('; ')}).`, { kind: 'stores' });
   v.activity = 'leaving the works';
-  yield* walk(world, v, v.home, { mode: 'vehicle', speed: 260 });
+  yield* walk(world, v, railway && R ? 'HOME_S' : v.home, { mode: 'vehicle', speed: 260 });
   v.onSite = false;
-  v.driver = null;
-  v.activity = 'away';
+  if (railway && R) {
+    v.activity = 'on the way back to Warwick Road';
+    yield wait(travel);
+    yield* R.backToTheYard(world, v);
+  } else {
+    v.driver = null;
+    v.activity = 'away';
+  }
   paper.put(sheet, railway ? 'railway' : 'suppliers', railway ? 'back to the goods office with the van' : 'taken back by the carman');
 }
 
@@ -620,8 +649,9 @@ export function* receivingClerk(world, p) {
     yield* work(world, p, 0.01);
     const call = P.atDoor.find((c) => !c.signed);
     if (call) {
+      const what = call.sheet.type === 'coal-ticket' ? 'the colliery\u2019s weight ticket' : call.sheet.fields.railway ? 'the delivery sheet' : 'the delivery note';
       yield* walk(world, p, call.node, { activity: `going out to ${call.vehicle.name}` });
-      yield* work(world, p, 2 + call.packages * 0.2, `checking ${call.packages} packages off the ${call.sheet.fields.railway ? 'delivery sheet' : 'delivery note'}`);
+      yield* work(world, p, 2 + call.packages * 0.2, `checking the goods against ${what}`);
       call.signed = world.sim.now;
       call.sheet.fields.signedBy = p.name;
       paper.mark(call.sheet, 'signed', `signed for by ${p.name}, receiving clerk`);
@@ -664,7 +694,6 @@ function* receive(world, p, c) {
   paper.hold(copy, p);
   yield* work(world, p, 3 + 2 * c.lines.length, `counting ${c.supplier.name}’s goods against order ${po.no}`);
   const no = `G.R. ${P.grNo++}`;
-  const store = world.production.stores.get('rough');
   const inspector = world.people.find((q) => q.trade === 'Storekeeper');
   const grn = paper.create('goods-received-note', {
     no, supplier: c.supplier.id, supplierName: c.supplier.name, poNo: po.no, prNos: po.docs.top.fields.prs, date: world.sim.now,
@@ -672,8 +701,8 @@ function* receive(world, p, c) {
     packages: c.packages, certified: p.name, inspected: inspector ? inspector.name : '', priced: false, invoiceNo: null,
   }, { by: p, no });
   for (const l of c.lines) {
-    store.put(l.item, l.qty, world.sim.now, no);
     const card = P.cards.get(l.item);
+    world.production.stores.get(card.store).put(l.item, l.qty, world.sim.now, no);
     card.onOrder = Math.max(0, card.onOrder - l.qty);
     cardLine(world, card, { ref: no, received: l.qty });
   }
@@ -685,11 +714,15 @@ function* receive(world, p, c) {
   paper.mark(copy, 'received', `endorsed: received in full, ${no}`);
   paper.put(copy, 'receiving-done', 'filed: received');
   if (po.advice?.container?.id === 'receiving-file') paper.put(po.advice, 'receiving-done', 'filed with the order');
+  for (const t of [...paper.container('receiving-tray').docs].filter((x) => x.type === 'coal-ticket' && x.fields.poNo === po.no)) {
+    paper.link(t, grn);
+    paper.put(t, 'receiving-done', 'filed with the goods received note');
+  }
   const [top, duplicate] = grn.copies;
   top.destination = 'invoice-match';
   paper.put(top, 'stores-out', 'for the Works Accounts Office');
   paper.put(duplicate, 'gr-book', 'the carbon duplicate stays in the book');
-  world.log(`${no}: ${c.supplier.name}’s goods for ${po.no} checked and taken into stock.`, { kind: 'stores' });
+  world.log(`${no}: goods from ${c.supplier.name} for ${po.no} checked and taken into stock.`, { kind: 'stores' });
 }
 
 // --- The Works Accounts Office: matching invoices ----------------------------------------------------
@@ -752,7 +785,8 @@ export function* boughtLedgerClerk(world, p) {
       yield* work(world, p, 3, `entering ${inv.fields.supplierName}’s invoice in the Bought Day Book`);
       const f = inv.fields;
       const s = P.supplierById.get(f.supplier);
-      ledger.post(world.sim.now, `Goods, ${f.passedNo} (their No. ${f.no})`, [['purchases', f.total, 0], [s.account, 0, f.total]], { ref: inv.id });
+      const expense = f.lines.some((l) => l.item === 'coal') ? 'fuel' : 'purchases';
+      ledger.post(world.sim.now, `Goods, ${f.passedNo} (their No. ${f.no})`, [[expense, f.total, 0], [s.account, 0, f.total]], { ref: inv.id });
       paper.enter('bought-day-book', { piNo: f.passedNo, supplier: s.name, invNo: f.no, poNo: f.poNo, total: f.total }, { from: inv, by: p });
       paper.mark(inv, 'posted', 'posted to the Bought Ledger');
       paper.put(inv, 'bought-files', 'filed under the supplier');

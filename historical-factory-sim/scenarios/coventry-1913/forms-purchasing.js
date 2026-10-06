@@ -14,7 +14,9 @@ import { quantity } from './purchasing.js';
 const qty = (n) => Number(n).toLocaleString('en-GB');
 // A line's quantity in its trade unit ("270 gross", "550 sets", "275").
 const amountOf = (l) => quantity(l.qty, l.unit, l.per || 1);
-const priceOf = (l) => `${fmt(l.price)}${l.per > 1 ? ` per ${l.per === 144 ? 'gross' : l.per}` : l.unit === 'each' ? ' each' : ` per ${l.unit}`}`;
+const priceOf = (l) => `${fmt(l.price)}${l.per > 1 ? ` per ${l.per === 144 ? 'gross' : l.unit === 'ton' ? 'ton' : l.per}` : l.unit === 'each' ? ' each' : ` per ${l.unit}`}`;
+// What came: so many packages, or for loose goods (coal) the weight.
+const packed = (f) => (f.packages ? `${f.packages} package${f.packages > 1 ? 's' : ''}` : f.lines.map(amountOf).join(', '));
 const supplierHead = (f) => `<div class="letterhead"><div class="lh-name">${esc(f.supplierName || f.fromName)}</div><div class="lh-addr">${esc(f.address)}</div></div>`;
 const blank = '<td></td><td></td><td></td>';
 
@@ -102,7 +104,7 @@ export const PURCHASING_FORMS = {
           ${supplierHead(f)}
           <div class="title">ADVICE OF DESPATCH</div>
           <div class="row"><span>To ${FIRM_SHORT}, Coventry</span><span>${hand(cal.docDate(f.date))}</span></div>
-          <p>We have this day forwarded ${f.carrier === 'own cart' ? 'by our own cart' : f.carrier === 'parcel post' ? 'by parcel post' : `per ${esc(f.carrier)} goods train`} ${hand(`${f.packages} package${f.packages > 1 ? 's' : ''}`)} marked ${hand(f.marks)}, against your order ${hand(f.poNo)}:</p>
+          <p>We have this day forwarded ${f.carrier === 'own cart' ? 'by our own cart' : f.carrier === 'parcel post' ? 'by parcel post' : f.carrier === 'canal' ? 'by boat' : `per ${esc(f.carrier)} goods train`} ${hand(packed(f))}${f.packages ? ` marked ${hand(f.marks)}` : ''}, against your order ${hand(f.poNo)}:</p>
           <table class="ruled"><tr><th>Quantity</th><th>Description</th></tr>${rows}</table>
           <div class="small">Invoice follows by post.</div>
           ${doc.marks.some((m) => m.mark === 'received') ? `<div class="stamp recd">RECEIVED<br>No. ${esc(doc.no)}</div>` : ''}
@@ -169,7 +171,7 @@ export const PURCHASING_FORMS = {
           <div class="row"><span>Purchase Order ${hand(f.poNo)}</span><span>Requisition ${hand((f.prNos || []).join(', '))}</span></div>
           <div class="row"><span>Received ${hand(cal.docDate(f.date))}</span><span>Per ${hand(f.per)}</span></div>
           <table class="ruled"><tr><th>Description</th><th>Quan. rec’d</th><th>Rejections</th><th>Price</th></tr>${rows}</table>
-          <div class="row"><span>Packages ${hand(f.packages)}</span>${priced ? `<span>Inv. No. ${hand(f.invoiceNo)}</span>` : ''}</div>
+          <div class="row"><span>Packages ${hand(f.packages || 'loose')}</span>${priced ? `<span>Inv. No. ${hand(f.invoiceNo)}</span>` : ''}</div>
           <div class="row foot"><span>Certified ${hand(f.certified)}</span><span>Goods inspected by ${hand(f.inspected)}</span></div>
           ${doc.copy === 1 ? '<div class="copy-name">DUPLICATE: RETAINED IN THE STORES</div>' : ''}
         </div>`;
@@ -262,11 +264,33 @@ export const PURCHASING_FORMS = {
   },
 };
 
+PURCHASING_FORMS['coal-ticket'] = {
+  title: 'Colliery Weight Ticket', size: 'the colliery\u2019s ticket', colour: '#e9e2cf',
+  note: 'The colliery weighs each boat-load and sends a ticket with the boatman; the receiving clerk signs for it at the wharf and it goes with the goods received note (est.: no specimen found).',
+  render(doc, ctx) {
+    const f = doc.fields;
+    const { cal } = ctx;
+    const tons = Math.floor(f.cwt / 20);
+    const cwt = f.cwt - tons * 20;
+    return `
+      <div class="fax slip" style="background:${this.colour}; width: 400px">
+        <div class="row"><span class="firm">${esc(f.colliery)}</span><span>No. ${hand(f.no)}</span></div>
+        <div class="title">WEIGHT TICKET</div>
+        <div class="row"><span>Boat ${hand(`\u201c${f.boat}\u201d`)}</span><span>Steerer ${hand(f.captain)}</span></div>
+        <div class="row"><span>Boiler slack, ${hand(`${tons} tons ${cwt} cwt.`)}</span></div>
+        <div class="row"><span>To ${FIRM_SHORT}, Foleshill, by the Coventry Canal</span></div>
+        <div class="row"><span>Your order ${hand(f.poNo)}</span><span>${hand(cal.docDate(f.date))}</span></div>
+        <div class="row foot"><span>Received ${f.signedBy ? hand(f.signedBy) : '______________'}</span></div>
+      </div>`;
+  },
+};
+
 export const PURCHASING_SUMMARIES = {
+  'coal-ticket': (f) => `\u201c${f.boat}\u201d: ${f.cwt / 20} tons of slack for ${f.poNo}`,
   'stock-card': (f) => `${f.desc}: ${quantity(f.lines.at(-1)?.balance ?? 0, f.unit, f.per || 1)} in stock`,
   'purchase-requisition': (f) => `${f.no} ${quantity(f.qty, f.unit, f.per || 1)} of ${f.desc.toLowerCase()}`,
   'purchase-order': (f) => `${f.no} ${f.supplierName}: ${fmt(f.value)}`,
-  'advice-note': (f) => `${f.supplierName}: ${f.packages} package${f.packages > 1 ? 's' : ''} for ${f.poNo}`,
+  'advice-note': (f) => `${f.supplierName}: ${packed(f)} for ${f.poNo}`,
   'supplier-invoice': (f) => `${f.supplierName} No. ${f.no}: ${fmt(f.total)}${f.passedNo ? `, ${f.passedNo}` : ''}`,
   'delivery-sheet': (f) => `${f.railway ? `${f.carrier} No. ${f.no}` : f.carrier}: ${f.lines.map((l) => l.po).join(', ')}`,
   'goods-received-note': (f) => `${f.no} ${f.supplierName}, ${f.poNo}`,

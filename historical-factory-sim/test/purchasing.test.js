@@ -59,7 +59,7 @@ test('every invoice posted to the Bought Ledger was matched to a goods received 
   }
   const book = paper.books.get('bought-day-book').entries;
   assert.equal(book.length, posted.length);
-  assert.equal(ledger.balance('purchases'), book.reduce((a, e) => a + e.total, 0));
+  assert.equal(ledger.balance('purchases') + ledger.balance('fuel'), book.reduce((a, e) => a + e.total, 0));
 });
 
 test('the books agree, and the Bought Ledger agrees with its control account', () => {

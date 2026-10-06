@@ -3,6 +3,7 @@
 // documented facts are the red brick and slate, limewashed shop walls,
 // lead-grey LNWR wagons and the chocolate-and-cream Corporation trams.
 import { STREET_Z, CANAL_Z } from './site.js';
+import { goodsYard, GX, GZ } from './railway.js';
 
 export const palette = {
   ground: '#6a6957',
@@ -42,7 +43,10 @@ export const scenery = {
   street: { z: STREET_Z, width: 34, x0: -1200, x1: 1200 },
   sideStreet: { x: -170, width: 26, z0: STREET_Z, z1: 950 },
   canal: { z: CANAL_Z, width: 34, x0: -1200, x1: 1200 },
-  boundaryWall: { x0: -262, x1: 262, z0: -168, z1: 182, height: 9, gates: [[-80, -50]], gaps: [[-250, -238]] },
+  boundaryWall: { x0: -262, x1: 262, z0: -168, z1: 182, height: 9, gates: [[-80, -50]], gaps: [[-250, -238]], northGaps: [[12, 44]] },
+  // The slack heap in the coal yard, by what's in stock (40 tons is about
+  // 1,700 cu. ft., est.).
+  heaps: [{ store: 'coal', item: 'coal', full: 800, x: 28, z: -116, radius: 17, height: 6.5, colour: '#1f1e1c' }],
   terraces: [
     // South side of Sherbourne Street, either side of Cross Street.
     { x0: -760, x1: -190, z: STREET_Z + 22, depth: 30, facing: 'N', storeys: 2 },
@@ -54,8 +58,11 @@ export const scenery = {
     // North side of the street, west and east of the works.
     { x0: -760, x1: -290, z: STREET_Z - 52, depth: 30, facing: 'S', storeys: 2 },
     { x0: 290, x1: 700, z: STREET_Z - 52, depth: 30, facing: 'S', storeys: 2 },
+    // Across Warwick Road from the goods yard.
+    ...goodsYard.scenery.terraces,
   ],
   pub: { x: -190, z: STREET_Z + 37, w: 40, d: 32, name: 'The Spon End Tavern' },
+  places: [goodsYard.scenery],
   neighbourWorks: [
     { x: 300, z: -150, w: 160, d: 90, floors: 3, name: 'a neighbouring ribbon mill' },
   ],
@@ -80,4 +87,6 @@ export const cameraPresets = {
   'machine-shop': { label: 'Machine shop', target: [150, 4, 40], position: [200, 110, 210], cut: 'open' },
   offices: { label: 'Offices', target: [-190, 6, 158], position: [-120, 80, 300], cut: 0 },
   'despatch-dock': { label: 'Despatch dock', target: [-200, 4, 90], position: [-130, 70, 175], cut: 0 },
+  wharf: { label: 'Canal wharf', target: [30, 2, -145], position: [135, 85, -45], cut: Infinity },
+  'goods-yard': { label: 'Warwick Road goods yard', target: [GX - 10, 4, GZ + 10], position: [GX + 170, 165, GZ + 250], cut: 'open' },
 };

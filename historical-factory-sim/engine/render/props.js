@@ -151,6 +151,9 @@ export const LIBRARY = {
     box([2.4, 3.6, 0.3], [-2.1, 4.4, 1.1], 'woodLight'),
     box([2.4, 3.6, 0.3], [2.1, 4.4, 1.1], 'woodLight'),
   ],
+  // A goods shed's platform, along the shed road (sized for a 300 ft shed).
+  'shed-platform': [box([296, 1, 36], [0, 0.5, 0], 'stone')],
+  'checker-desk': [box([2.6, 3.8, 1.8], [0, 1.9, 1.2], 'woodDark'), box([2.8, 0.15, 2], [0, 3.95, 1.2], 'woodDark', { rx: -0.25 })],
   'foreman-box': [
     box([6, 0.4, 6], [0, 7.2, 0], 'wood'),
     box([6, 3.2, 0.25], [0, 1.6, -3], 'wood'),
@@ -169,7 +172,7 @@ export function colourTable(pal) {
     woodDark: '#4a3b2d', woodLight: '#8a7458', brick: pal.brick, brickDark: pal.brickDark, glow: pal.hearthGlow,
     acid: '#8c9a5a', leather: '#7a5c40', lead: '#6f7478', nickelBath: '#4f8a83', brass: pal.brass, water: '#6f8a8a',
     enamel: pal.enamel, rim: '#bfc6c8', paper: '#e9e2cc', tube: '#55595c', mahogany: '#4a2a1f', leatherGreen: '#2f4a3a',
-    safeGreen: '#253a2c', cork: '#a07a55', glass: pal.glazing,
+    safeGreen: '#253a2c', cork: '#a07a55', glass: pal.glazing, stone: pal.stone,
   };
 }
 

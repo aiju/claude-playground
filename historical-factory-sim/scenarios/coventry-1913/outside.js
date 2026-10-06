@@ -125,4 +125,6 @@ export const SUPPLIERS = [
   { id: 'richmond', name: 'The Richmond Gear Case Co.', address: 'Croft Road, Coventry', items: ['gear-case', 'oil-bath-case'], carrier: 'own cart', days: [1, 3] },
   { id: 'shilton', name: 'T. Shilton, Basket Maker', address: 'Gosford Street, Coventry', items: ['basket'], carrier: 'own cart', days: [2, 5] },
   { id: 'midland-transfer', name: 'The Midland Transfer Printing Co.', address: 'Hockley, Birmingham', items: ['transfers'], carrier: 'parcel post', days: [2, 4] },
+  // Boiler slack by narrow boat from the Griff collieries, by the Coventry Canal.
+  { id: 'griff', name: 'The Griff Colliery Co. Ltd.', address: 'Griff, near Nuneaton', items: ['coal'], carrier: 'canal', days: [2, 4] },
 ];
