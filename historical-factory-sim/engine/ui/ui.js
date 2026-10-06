@@ -117,7 +117,12 @@ export class UI {
       else state = 'The works is closed';
     }
     const engine = sc.engineRunning(t) ? 'the engine is running' : 'the engine is stopped';
-    status.textContent = `${state}; ${engine}; ${onSite} on the premises.`;
+    let prod = '';
+    if (sc.world.works) {
+      const w = sc.world.works;
+      prod = ` ${w.finishedThisWeek} machines finished this week; ${sc.machinesInProgress()} in the shops; ${w.finishedStock.length} in the Stock Room.`;
+    }
+    status.textContent = `${state}; ${engine}; ${onSite} on the premises.${prod}`;
 
     if (this.logDirty) {
       this.logDirty = false;
@@ -152,6 +157,8 @@ export class UI {
     if (sel.kind === 'person') html += this.personHtml(sel.person);
     else if (sel.kind === 'spot') html += this.spotHtml(sel.spot);
     else if (sel.kind === 'building') html += this.buildingHtml(sel);
+    else if (sel.kind === 'lot') html += this.lotHtml(sel.lot);
+    else if (sel.kind === 'bike') html += this.bikeHtml(sel.machine);
     box.innerHTML = html;
     box.querySelector('.close').onclick = () => this.show({ kind: 'none' });
     const follow = box.querySelector('[data-act=follow]');
@@ -178,6 +185,7 @@ export class UI {
     const ident = p.worksNo ? `No. ${p.worksNo} · ${esc(p.title)}` : esc(p.title);
     let html = `<h2>${esc(p.name)}</h2><div class="sub">${ident}</div>`;
     html += `<div class="now">${esc(capitalise(p.activity))}</div>`;
+    if (p.carrying) html += `<div class="sub">Carrying ${esc(p.carrying.label)}</div>`;
     html += '<dl>';
     html += `<dt>Department</dt><dd>${esc(p.deptName)}</dd>`;
     if (room) html += `<dt>Works in</dt><dd>${esc(room.name)}</dd>`;
@@ -222,6 +230,59 @@ export class UI {
       for (const p of who) html += `<dt>${p.worksNo ? `No. ${p.worksNo}` : ''}</dt><dd>${esc(p.name)}, ${esc(p.title.toLowerCase())}</dd>`;
       html += '</dl>';
     }
+    return html;
+  }
+
+  lotHtml(lot) {
+    const sc = this.sc;
+    const cal = sc.cal;
+    const prod = sc.production;
+    const s = prod.current(lot);
+    const room = sc.site.rooms.get(lot.room);
+    const batch = lot.batch;
+    let html = `<h2>${esc(lot.label.split(' ')[0])}</h2><div class="sub">${esc(lot.label.split(' ').slice(1).join(' '))}</div>`;
+    let now;
+    if (lot.state === 'done') now = 'Finished';
+    else if (lot.state === 'awaiting move') now = `Waiting to be carried to the ${prod.roomName(lot.moveTo)}`;
+    else if (lot.state === 'moving' || lot.state === 'fetching') now = `Being carried to the ${prod.roomName(lot.moveTo)}`;
+    else if (lot.state === 'equip') now = `${capitalise(s.what || 'in the stove')}`;
+    else if (lot.state === 'equip-wait') now = 'Waiting for a stove';
+    else if (s && (s.op || s.issue)) {
+      const done = lot.qty - lot.left - lot.inHand;
+      now = `${capitalise(s.op)}: ${done} of ${lot.qty} done${lot.inHand ? `, ${lot.inHand} in hand` : ''}${lot.short ? ' (short of parts)' : ''}`;
+    } else now = lot.state;
+    html += `<div class="now">${esc(now)}</div><dl>`;
+    if (room) html += `<dt>In</dt><dd>${esc(room.name)}</dd>`;
+    html += `<dt>Quantity</dt><dd>${lot.qty} ${esc(lot.unit)}${lot.qty === 1 ? '' : 's'}</dd>`;
+    if (batch) {
+      html += `<dt>Sub-order</dt><dd>${esc(batch.id)}: ${batch.qty} ${esc(batch.name)}</dd>`;
+      html += `<dt>Put through</dt><dd>${esc(cal.dayName(batch.launched))} ${esc(cal.docDate(batch.launched))}</dd>`;
+      if (batch.frameNos) html += `<dt>Frame nos.</dt><dd>${batch.frameNos[0].toLocaleString('en-GB')}–${batch.frameNos[1].toLocaleString('en-GB')}</dd>`;
+    }
+    html += '</dl>';
+    const steps = lot.routing.map((st, i) => {
+      const name = st.op || st.what || (st.arrive ? `to the ${prod.roomName(st.room)}` : '');
+      const cls = i < lot.step ? 'done' : i === lot.step ? 'here' : '';
+      return `<li class="${cls}">${esc(capitalise(name))}</li>`;
+    });
+    html += `<ol class="routing">${steps.join('')}</ol>`;
+    const hist = lot.history.slice(-6).reverse();
+    if (hist.length) {
+      html += '<dl>' + hist.map((h) => `<dt>${esc(cal.dayName(h.t).slice(0, 3))} ${esc(cal.hhmm(h.t))}</dt><dd>${esc(capitalise(h.text))}</dd>`).join('') + '</dl>';
+    }
+    return html;
+  }
+
+  bikeHtml(m) {
+    if (!m) return '<h2>A machine in stock</h2>';
+    const cal = this.sc.cal;
+    const model = this.sc.catalogue?.MODELS?.[m.model];
+    let html = `<h2>Frame No. ${m.frameNo.toLocaleString('en-GB')}</h2><div class="sub">${esc(model ? model.name : m.model)}, ${esc(m.pattern)}'s pattern</div>`;
+    html += `<div class="now">Wrapped, in the Stock Room</div><dl>`;
+    html += `<dt>Sub-order</dt><dd>${esc(m.batch)}</dd>`;
+    html += `<dt>Finished</dt><dd>${esc(cal.dayName(m.finished))} ${esc(cal.docDate(m.finished))}, ${esc(cal.clockTime(m.finished))}</dd>`;
+    if (model) html += `<dt>List price</dt><dd>${esc(this.sc.catalogue.price(m.model, m.pattern))}</dd>`;
+    html += '</dl>';
     return html;
   }
 

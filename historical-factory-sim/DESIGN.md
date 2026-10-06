@@ -333,7 +333,16 @@ The process follows Grew's 13 stations (report, section "Thirteen stations"):
 ### Batches and how they're tracked
 
 - A batch is the unit the stores issue, the size of a stove load, and the unit a work tally follows.
+- Inside the shops a batch travels in trays of 25 under its one sub-order number **(choice)**. Moving whole batches of 100 through about 16 operations in turn made a batch take four weeks and left departments half idle. Trays bring it to about 2½ weeks from issue to the Stock Room, which is near the research estimate.
 - A bicycle becomes an individual object, with its frame number, when the number is stamped. Before that, parts are counted lots: a bin of 2,000 spokes, a tray of 144 cones.
+
+### Calibration (est.)
+
+No British times per operation survive. So the minutes per unit for each operation are set so that each department, at its headcount, is about 85% busy at 270 machines a week. A few were checked against the sources: Carter's piece rate gives about 75 minutes to true a pair of wheels, and Humber's 200 polishers for 1,000 machines a week make polishing very labour-heavy.
+
+Where the estimated headcounts left people with too little to do, they were trimmed: the wheel shop from 30 to 22, and wrapping from 15 to 6, plus 4 packers. This leaves about 375 hands.
+
+In a simulated three weeks from 3 March, the works finishes 250–300 machines in a full week and fewer in Easter week. Departments are 55–95% busy.
 
 ### Rules the managers run on (est.)
 

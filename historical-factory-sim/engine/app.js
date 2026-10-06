@@ -39,9 +39,9 @@ export function startApp({ createScenario, container, overlay }) {
   };
 
   const view = new View(container, scenario);
-  const cut = params.get('cut');
-  if (cut) view.setCut(cut === 'open' ? 'open' : Number(cut));
   if (params.get('cam')) view.setPreset(params.get('cam'));
+  const cut = params.get('cut');
+  if (cut) view.setCut(cut === 'open' ? 'open' : cut === 'roofs' ? Infinity : Number(cut));
   const ui = new UI(overlay, { scenario, view, clock });
   ui.refreshButtons();
 

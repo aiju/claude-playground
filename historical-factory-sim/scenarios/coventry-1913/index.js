@@ -9,7 +9,14 @@ import { buildings, yard, fixedSpots, rowSpots, STREET_Z, CANAL_Z } from './site
 import { makeTimetables, HOLIDAYS } from './calendar.js';
 import { makeStaff, DEPARTMENTS } from './staff.js';
 import { offDuty, steadyWork, roaming, commuteMinutes } from './routines.js';
+import { Production } from '../../engine/sim/production.js';
+import {
+  groupFor, setupWorks, seedWorks, onStep, onDone, worksManagerProgramme, storekeeperRounds,
+  standingDeliveries, weeklyTally, machinesInProgress,
+} from './works.js';
 import { palette, scenery, machinery, cameraPresets } from './look.js';
+import { MODELS, PATTERNS } from './catalogue.js';
+import { price as fmtPrice } from '../../engine/sim/money.js';
 
 export const meta = {
   id: 'coventry-1913',
@@ -35,8 +42,25 @@ export function createScenario({ seed = 1913, start } = {}) {
     site.addSpot({ id: `box-${dept.id}`, room: dept.room, x: room.x0 + 2.5, z: b.aisleZ + 3, type: 'foreman-box', facing: -Math.PI / 2, label: `Foreman's box, ${dept.name}` });
   }
 
+  // Where lots of work wait in each shop.
+  const wipRooms = new Set();
+  for (const b of buildings) for (const r of b.rooms || []) if (r.dept) wipRooms.add(r.id);
+  for (const id of wipRooms) {
+    const room = site.rooms.get(id);
+    const b = site.buildings.get(room.building);
+    site.addSpot({ id: `wip-${id}`, room: id, x: (room.x0 + room.x1) / 2, z: b.aisleZ + 3.5, type: 'wip', label: `Work waiting in the ${room.name}` });
+  }
+
   const world = new World({ sim, cal, rng: rng.fork('world'), site });
   const timetables = makeTimetables(cal);
+  const production = new Production(world, {
+    wipNode: (room) => `wip-${room}`,
+    onStep: (lot, step) => onStep(world, production, lot, step),
+    onDone: (lot) => onDone(world, production, lot),
+  });
+  world.production = production;
+  setupWorks(world, production);
+  seedWorks(world, production);
   timetables.saturday = new Timetable(cal, { days: { 6: [[9 * 60, 13 * 60]] }, holidays: HOLIDAYS });
 
   const peopleRng = rng.fork('people');
@@ -76,8 +100,23 @@ export function createScenario({ seed = 1913, start } = {}) {
     sim.spawn(processFor(world, p), p.name);
   }
 
+  sim.spawn(worksManagerProgramme(world, production, timetables.worksStaff), 'works manager programme');
+  sim.spawn(storekeeperRounds(world, production, timetables.works), 'storekeeper rounds');
+  sim.spawn(standingDeliveries(world, production, timetables.works), 'standing deliveries');
+  sim.spawn(weeklyTally(world, timetables.works), 'weekly tally');
+
   const works = timetables.works;
   return {
+    production,
+    machinesInProgress: () => machinesInProgress(world),
+    catalogue: {
+      MODELS,
+      price: (model, pattern) => {
+        const m = MODELS[model];
+        const lady = pattern === 'lady' || pattern === 'girl';
+        return fmtPrice(m.list + (lady ? m.ladyExtra || 0 : 0));
+      },
+    },
     meta,
     cal,
     sim,
@@ -118,8 +157,16 @@ function deptRooms(deptId) {
 
 const SHOP_ROOMS = buildings.flatMap((b) => (b.rooms || []).filter((r) => r.dept && r.dept !== 'engine').map((r) => r.id));
 
+const describeJob = (s, lot, n) => `${s.op} (${n} of ${lot.batch ? lot.batch.id : lot.label.split(' ')[0]})`;
+
 function processFor(world, p) {
   const site = world.site;
+  const production = world.production;
+  const g = groupFor(p);
+  if (g) return production.worker(p, [g[0]], { efficiency: g[1] * world.rng.uniform(0.92, 1.08), describe: describeJob });
+  if (p.trade === 'Messenger boy' || (p.trade === 'Labourer' && p.dept === 'stores')) {
+    return production.messenger(p, { base: p.spot });
+  }
   const sample = (ids, n) => world.rng.shuffle([...ids]).slice(0, n);
   if (p.role === 'foreman') {
     return roaming(world, p, {

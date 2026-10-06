@@ -2,7 +2,19 @@
 
 A stylised 3D simulation of a pre-computer factory, accurate to its time in the paperwork, logistics and bureaucracy. The first scenario is the Sherbourne Cycle Company Limited: a fictional, mid-sized Coventry cycle works in 1913, with about 400 hands, card time recorders, six-copy office orders, pay tins on Friday night and horse drays to the LNWR goods yard.
 
-**Status:** milestone 1 of 7 (see [DESIGN.md](DESIGN.md) §11). The works stands, with its steam engine, shafting and about 420 people. They come in through the gate before six, clock on at the time office, go to their places, stop for breakfast and dinner, and go home. Some are late, some are shut out until after breakfast. The actual production, paperwork and accounts come in the next milestones.
+**Status:** milestone 2 of 7 (see [DESIGN.md](DESIGN.md) §11).
+
+The works stands, with its steam engine, shafting and about 400 people. They clock on at the time office, take breakfast and dinner, and go home. Some are late, some are shut out until after breakfast.
+
+Production runs:
+- The Works Manager puts batches through.
+- Frames go through building, brazing, pickling, filing, numbering, polishing, three coats of stoved enamel and lining.
+- Bright parts are polished, plated and fitted, and wheels are laced and trued.
+- Everything meets in the Finishing Shop.
+- The machines are tested, viewed, wrapped and taken up to the Stock Room.
+- The machine and press shops make parts for stock whenever the Storekeeper's cards fall below their ordering levels.
+
+The works' paperwork and accounts come in the next milestones.
 
 - [DESIGN.md](DESIGN.md): what we're building and how, including the split between a period-independent engine and the 1913 scenario.
 - [Research report](research/reports/Coventry%20cycle%20works%201913.md): the sourced findings behind the design, with about 150 linked sources.
