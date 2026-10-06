@@ -56,6 +56,7 @@ URL parameters are handy for looking at a particular moment:
 | Parameter | Example | |
 |---|---|---|
 | `t` | `?t=1913-03-03T10:30` | Start at that time, with everyone already at work |
+| `run` | `?run=1913-03-05T14:30` | Start on Monday morning as usual, but run the works on to that time before showing it, so its paper and lorries are all there |
 | `speed` | `?speed=300` | Sim seconds per real second (60 is one minute a second) |
 | `cut` | `?cut=1` or `?cut=open` | Peel the buildings down to that floor, or take the roofs off |
 | `cam` | `?cam=engine-house` | A camera preset: `overview`, `gate`, `offices`, `main-block`, `engine-house`, `machine-shop`, `despatch-dock` |
