@@ -35,7 +35,7 @@ This document says what we're building and how. The facts behind it are in the [
 1. **1888:** Edwin Hartwell and Samuel Lowe start building safety bicycles in part of a converted ribbon factory at Spon End, by the Sherbourne.
 2. **1896:** at the height of the boom, the firm becomes a public company and moves to a new four-storey red-brick works in Foleshill.
 3. **1901:** the slump forces a capital reconstruction, like the write-downs real Coventry firms made in 1900–05.
-4. **1907:** a north-light shed is added for the machine shop, driven by electric motors on corporation current.
+4. **1907:** a north-light shed is added for the machine shop. The engine house is rebuilt between the old block and the new shed with a bigger engine that drives both.
 5. **1909:** the firm re-registers as a private company, as Singer did.
 6. **1913:** Edwin is chairman and his son Charles is managing director. The board is watching neighbours move into motorcycles.
 
@@ -120,8 +120,8 @@ The layout follows Humber's documented four-storey plan of 1897, which was still
 | **Office range** on the street | 2 storeys, 120 × 35 ft, corner entrance | **Ground floor:** enquiry counter, general office (sloping desks, partitioned cashier's cage with safe), showroom. **First floor:** board room, managing director, secretary, travellers' room, typists. Painted company name across the front (required by law). |
 | **Gatehouse and time office** at the works gate | — | Card time recorder (installed 1912) with "in" and "out" racks; gatekeeper; board of statutory notices; private telephone switchboard (the door attendant minds it). |
 | **Main block** | 4 storeys, 220 × 55 ft, about 14 ft floor to floor, goods hoist at one end, iron fire-escape stairs | See the floor-by-floor table below. |
-| **North-light shed** (1907) | 160 × 100 ft | Machine shop (capstans, automatics, milling) on electric group drive; press shop; hardening shop next to the boiler house. |
-| **Boiler and engine house** | — | Two Lancashire boilers, a 120 hp steam engine driving the main block's line shafts, and the chimney. |
+| **North-light shed** (1907) | 160 × 100 ft | Machine shop (capstans, automatics, milling) driven from line shafts; press shop; hardening shop next to the boiler house. |
+| **Boiler and engine house** | — | Two Lancashire boilers and a horizontal steam engine of about 150 hp **(choice)**. Its big flywheel drives everything: ropes run up a rope race to the main shaft on each floor of the main block, and another rope drive goes to the shed. The engine also belts a dynamo for the plating vats and the electric light in the shed and offices. The tall chimney stands beside it. |
 | **Yard buildings** | — | Smithy (single storey); crate shop (carpenters); stable for three horses with the van and dray shed; men's and women's lavatory blocks; mess room; workers' bicycle shed; coke and coal heaps. |
 | **Canal wharf** | — | Hand crane; coal boats unload here. |
 | **Despatch dock** | — | Raised platform where the drays load. |
@@ -575,9 +575,12 @@ Milestones 1–4 make a satisfying first thing to watch. I'd suggest a pull requ
 - **Elbourne describes an ideal**, which is why how "Elbourne" the firm is can be set.
 - **The ground plan is invented.** The site is a composite, not a real Coventry plot. Ordnance Survey maps of about 1905–1914 could guide the street pattern later.
 
-## 13. Questions for you
+## 13. Decisions
 
-1. Are the firm's name and backstory all right, or would you like something different?
-2. About 430 people is faithful to the scale, and fine for performance. Or would you rather have a smaller firm (about 200 people, buying in more parts) where each person is easier to follow?
-3. Should the default start be Monday 3 March 1913 (the busy spring), or the restart in early January?
-4. Is the order of the build plan right? An alternative is to get the paper flowing (milestones 3–4) before the production detail (milestone 2).
+These were agreed in conversation on 6 October 2026.
+
+1. The firm's name and backstory stay as above.
+2. The firm keeps its full size: about 400 hands plus 28 staff.
+3. The default start is Monday 3 March 1913.
+4. The build order is as in section 11.
+5. Power: the sources point to gas engines as the commonest prime mover in 1912 Coventry ("usually gas or oil", Carter), and to electric motors spreading after Rudge-Whitworth switched around 1907. The Sherbourne works has a full steam plant instead. It's still well within period practice (Humber's 1897 works ran on a steam engine), and it's much more fun to watch.

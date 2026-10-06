@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Sherbourne Cycle Works, 1913</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="engine/ui/ui.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="view"></div>
+  <div id="overlay"></div>
+  <script type="module">
+    import { startApp } from './engine/app.js';
+    import { createScenario } from './scenarios/coventry-1913/index.js';
+    await document.fonts.load('16px "Libre Caslon Text"').catch(() => {});
+    startApp({
+      createScenario,
+      container: document.getElementById('view'),
+      overlay: document.getElementById('overlay'),
+    });
+  </script>
+</body>
+</html>
