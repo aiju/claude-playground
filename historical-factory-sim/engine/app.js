@@ -56,6 +56,8 @@ export function startApp({ createScenario, container, overlay }) {
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
+  // A link ending #paperwork opens the paperwork explorer.
+  if (location.hash === '#paperwork') ui.explorer?.open();
   window.factory = { scenario, view, clock, ui };
   return window.factory;
 }

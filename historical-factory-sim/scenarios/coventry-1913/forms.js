@@ -276,6 +276,47 @@ export function amountInWords(f) {
 
 Object.assign(FORMS, COMMERCE_FORMS);
 
+// One line for each document in a list: who, what and how much.
+const machines = (lines) => {
+  const n = (lines || []).reduce((a, l) => a + l.qty, 0);
+  return `${n} machine${n === 1 ? '' : 's'}`;
+};
+const town = (address) => (address || '').split(', ').at(-1);
+const SUMMARIES = {
+  'time-card': (f, { cal }) => `No. ${f.worksNo} ${f.name}, week ending ${cal.shortDate(f.ending)}`,
+  'time-slip': (f, { cal }) => `No. ${f.worksNo} ${f.name}, ${cal.shortDate(f.day)}${f.broughtForward ? ', brought forward' : f.entries.length ? `, ${f.entries.length} job${f.entries.length > 1 ? 's' : ''}` : ''}`,
+  'work-tally': (f) => `${f.subOrder}: ${f.qty} ${f.item || f.unit}`,
+  'pay-slip': (f, { cal }) => `No. ${f.worksNo} ${f.name}: ${short(f.net)}, week ending ${cal.shortDate(f.ending)}`,
+  'coin-list': (f, { cal }) => `Week ending ${cal.shortDate(f.ending)}: ${fmt(f.total)}`,
+  'wages-abstract': (f, { cal }) => `Week ending ${cal.shortDate(f.ending)}: ${fmt(f.total)} net`,
+  cheque: (f) => `${f.payee}: ${fmt(f.amount)}`,
+  'unclaimed-report': (f, { cal }) => `Week ending ${cal.shortDate(f.ending)}: ${f.tins.length} tin${f.tins.length === 1 ? '' : 's'}, ${fmt(f.total)}`,
+  'ni-card': (f) => `No. ${f.worksNo} ${f.name}: ${f.stamps.length} stamp${f.stamps.length === 1 ? '' : 's'}`,
+  'unemployment-book': (f) => `No. ${f.worksNo} ${f.name}: ${f.stamps.length} stamp${f.stamps.length === 1 ? '' : 's'}`,
+  letter: (f) => `${f.fromName}, ${town(f.address)}: ${f.kind === 'remittance' ? `cheque for ${fmt(f.amount)}` : `order for ${machines(f.lines)}`}`,
+  'office-order': (f) => `${f.no} ${f.agentName}, ${town(f.address)}: ${machines(f.lines)}${f.hold ? ' (held)' : ''}`,
+  postcard: (f) => `To ${f.to}, acknowledging ${f.orderNo}`,
+  invoice: (f) => `No. ${f.no} ${f.agentName}: ${fmt(f.total)}`,
+  statement: (f) => `${f.agentName}: ${fmt(f.balance)} due`,
+  receipt: (f) => `${f.to}: ${fmt(f.amount)}`,
+  'paying-in-slip': (f) => `${f.items.length} cheque${f.items.length === 1 ? '' : 's'}, ${fmt(f.total)}`,
+  'packing-slip': (f) => `${f.orderNo} ${f.agentName}: ${machines(f.lines)}`,
+  'advice-of-despatch': (f) => `${f.orderNo} to ${f.agentName}, ${f.station}: ${f.crates} crate${f.crates === 1 ? '' : 's'}`,
+  'consignment-note': (f) => `No. ${f.no} ${f.consignee} to ${f.station}, carriage ${f.carriage.toLowerCase()}`,
+};
+for (const [k, fn] of Object.entries(SUMMARIES)) FORMS[k].summary = (doc, ctx) => fn(doc.fields, ctx);
+
+// The kinds of paper, grouped by where they're written, for the explorer.
+export const PAPER_KINDS = [
+  { group: 'The time office', types: ['time-card', 'time-slip'] },
+  { group: 'The shops', types: ['work-tally'] },
+  { group: 'The wages office', types: ['pay-slip', 'wages-abstract', 'coin-list', 'cheque', 'unclaimed-report'] },
+  { group: 'National Insurance', types: ['ni-card', 'unemployment-book'] },
+  { group: 'The post', types: ['letter', 'postcard'] },
+  { group: 'Orders and despatch', types: ['office-order', 'packing-slip', 'advice-of-despatch', 'consignment-note'] },
+  { group: 'Accounts', types: ['invoice', 'statement', 'receipt', 'paying-in-slip'] },
+];
+
 export function defineForms(paper) {
   for (const [id, f] of Object.entries(FORMS)) {
     paper.defineType({ id, title: f.title, colour: f.colour, copies: f.copies });

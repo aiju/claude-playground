@@ -24,8 +24,8 @@ import { walk, work } from '../../engine/sim/world.js';
 import { d, s, lsd, toHalfpenny, fmt, split } from '../../engine/sim/money.js';
 import { DEPARTMENTS } from './staff.js';
 import { GROUPS } from './works.js';
-import { defineForms } from './forms.js';
-import { receiveRemittances, bankTrip, commercePapersForPlace, commercePapersForLot } from './commerce.js';
+import { defineForms, PAPER_KINDS } from './forms.js';
+import { receiveRemittances, bankTrip, commercePapersForPlace, commercePapersForLot, ledgerViews } from './commerce.js';
 
 // Who is paid how. Coventry moved fast to piecework, "often gang piece-work";
 // setters and toolmakers stayed on time rates (Carr 1978). The machine and
@@ -66,9 +66,26 @@ export function setupPaper(world, production, timetables) {
     const node = site.nodes.has(`box-${dept.id}`) ? `box-${dept.id}` : `wip-${dept.room}`;
     paper.addContainer({ id: `slips-${dept.id}`, name: `the time-slip box in the ${room ? room.name : dept.name}`, node, kind: 'box' });
   }
-  paper.addBook({ id: 'wages-sheets', title: 'Wages Sheets', node: 'wages-1' });
-  paper.addBook({ id: 'wages-abstract', title: 'Wages Abstract', node: 'wages-1' });
-  paper.addBook({ id: 'stamp-book', title: 'Insurance Stamp Book', node: 'wages-2' });
+  const ending = (e, c) => c.cal.shortDate(e.ending);
+  const m = (h, f) => ({ h, f, money: true });
+  paper.addBook({
+    id: 'wages-sheets', title: 'Wages Sheets', node: 'wages-1', columns: [
+      { h: 'Week ending', f: ending }, { h: 'No.', f: (e) => e.worksNo, num: true }, { h: 'Name', f: (e) => e.name },
+      { h: 'Hours', f: (e) => (Math.round(e.hours * 4) / 4).toString(), num: true }, m('Gross', (e) => e.gross),
+      m('Insurance', (e) => e.health + e.unemployment), m('Net', (e) => e.net),
+    ],
+  });
+  paper.addBook({
+    id: 'wages-abstract', title: 'Wages Abstract Book', node: 'wages-1', columns: [
+      { h: 'Week ending', f: ending }, m('Gross', (e) => e.gross), m('Health', (e) => e.health), m('Unemployment', (e) => e.unemployment),
+      m('Employer', (e) => e.employerNI), m('Net', (e) => e.total),
+    ],
+  });
+  paper.addBook({
+    id: 'stamp-book', title: 'Insurance Stamp Book', node: 'wages-2', columns: [
+      { h: 'Week ending', f: ending }, { h: 'Cards and books stamped', f: (e) => e.cards, num: true }, { h: 'By', f: (e) => e.by },
+    ],
+  });
 
   const W = {
     paper,
@@ -105,6 +122,7 @@ export function setupPaper(world, production, timetables) {
   }
   production.onTake = (p, lot, step, n, minutes, started) => slipEntry(world, p, lot, step, n, minutes);
   production.onLaunch = (lot) => {
+    if (lot.kind === 'despatch') return; // packed against the office order, not a works order
     const tally = paper.create('work-tally', { lot: lot.label, subOrder: lot.batch ? lot.batch.id : lot.label.split(' ')[0], qty: lot.qty, unit: lot.unit, item: lot.batch ? lot.batch.name : lot.label.split(' ').slice(2).join(' '), issued: world.sim.now });
     paper.attach(tally, lot);
     lot.tally = tally;
@@ -452,6 +470,8 @@ export function* wagesClerk(world, p, { half, partner, timetable }) {
           health: r.health.worker, unemployment: r.unemp.worker, net: r.net,
         }, { at: 'wages-files' });
         r.paySlip = slip;
+        paper.link(slip, r.card);
+        for (const sl of r.slips) paper.link(slip, sl);
         paper.enter('wages-sheets', { ending: week.ending, dept: q.deptName, worksNo: q.worksNo, name: q.name, hours: r.hours, gross: r.gross, health: r.health.worker, unemployment: r.unemp.worker, net: r.net }, { from: slip, by: p });
         if (r.card) paper.put(r.card, 'wages-files', 'filed after working out the wages');
         for (const sl of r.slips) paper.put(sl, 'wages-files', false);
@@ -542,6 +562,8 @@ function* abstractAndCoinList(world, p, week) {
   const coinList = paper.create('coin-list', { ending: week.ending, coins, total }, { by: p });
   week.abstract = abstract;
   week.coinList = coinList;
+  paper.link(abstract, coinList);
+  for (const r of week.results) paper.link(abstract, r.paySlip);
   yield* walk(world, p, 'cashier-desk', { activity: 'taking the coin list to the Cashier' });
   paper.put(coinList, 'cashier', 'handed to the Cashier');
   world.log(`The wages for the week ending ${world.cal.docDate(week.ending)} come to ${fmt(total)} net; the coin list is with the Cashier.`, { kind: 'paper' });
@@ -567,6 +589,8 @@ export function* cashier(world, p) {
         signatories: ['Charles Hartwell, Director', world.people.find((q) => q.title === 'Secretary and Accountant')?.name + ', Secretary'],
       }, { by: p });
       wk.cheque = cheque;
+      paper.link(cheque, wk.coinList);
+      paper.link(cheque, wk.abstract);
       world.ledger?.post(now, `Wages, week ending ${cal.docDate(wk.ending)} (net)`, [['wages', wk.total, 0], ['bank', 0, wk.total]], { ref: cheque.id });
       world.log(`The Cashier drew a cheque on Lloyds Bank for the wages, ${fmt(wk.total)}, and set off for the bank.`, { kind: 'paper' });
       const trip = function* (who, label) {
@@ -660,6 +684,7 @@ function* unclaimedCheck(world, p) {
     const report = world.paper.create('unclaimed-report', { ending: wk.ending, tins: left.map((r) => ({ worksNo: r.p.worksNo, name: r.p.name, net: r.net })), total: left.reduce((a, r) => a + r.net, 0) }, { by: p });
     world.paper.put(report, 'wages-files', 'kept with the unclaimed tins for the Cashier');
     wk.unclaimed = report;
+    world.paper.link(report, wk.abstract);
     if (left.length) world.log(`${left.length} pay tins were not called for and are locked up with the unclaimed pay report.`, { kind: 'paper' });
   }
 }
@@ -698,10 +723,45 @@ export function makePaperView(world, FORMS, amountInWords) {
     if (doc.lot) return `with ${doc.lot.label.split(' ')[0]}, ${doc.lot.state === 'done' ? 'finished' : `in the ${world.production.roomName(doc.lot.room)}`}`;
     return null;
   };
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
   return {
     forms: FORMS,
     ctx,
     whereabouts: where,
+    kinds: PAPER_KINDS,
+    summary(doc) {
+      const f = FORMS[doc.type];
+      try {
+        if (f?.summary) return f.summary(doc, ctx);
+      } catch {
+        // fall through to the plain label
+      }
+      return doc.no ? `No. ${doc.no}` : f?.title || doc.type;
+    },
+    related: (doc) => paper.related(doc),
+    // Where the paper is now: every tray, rack, file and box with something
+    // in it, and what people are carrying.
+    places() {
+      const out = [];
+      for (const c of paper.containers.values()) {
+        if (c.docs.size) out.push({ id: `c:${c.id}`, label: cap(c.name), count: c.docs.size, away: !c.node, docs: () => [...c.docs] });
+      }
+      const holders = world.people.filter((q) => q.papers?.size);
+      const inHand = holders.reduce((a, q) => a + q.papers.size, 0);
+      if (inHand) out.push({ id: 'hands', label: 'In someone\u2019s hands', count: inHand, docs: () => holders.flatMap((q) => [...q.papers]) });
+      return out.sort((a, b) => b.count - a.count);
+    },
+    books() {
+      return [...paper.books.values()].filter((b) => b.columns?.length).map((b) => ({ id: b.id, label: b.title, count: b.entries.length, book: b }));
+    },
+    bookPage: (book, offset = 0) => ({ id: `view:book:${book.id}:${offset}`, type: 'book-page', fields: { book, offset }, history: [], marks: [], copy: 0 }),
+    bookEntry(book, e) {
+      const cols = book.columns.filter((c) => !c.money).slice(0, 4);
+      const money = book.columns.find((c) => c.money);
+      const text = cols.map((c) => c.f(e, ctx)).filter((v) => v !== null && v !== undefined && v !== '').join(' · ');
+      return { text, amount: money ? money.f(e, ctx) : null, from: e.from ? paper.docs.get(e.from) : null };
+    },
+    ledger: () => ledgerViews(world),
     papersFor(p) {
       const out = [];
       if (p.card) out.push({ label: 'Time card, this week', doc: p.card });

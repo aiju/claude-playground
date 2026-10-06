@@ -8,6 +8,10 @@
 //
 // A container sits at a node on the site. A book is a bound or loose-leaf
 // register with entries that point back to the documents they came from.
+//
+// Documents that belong together (an order and its invoice, a time card
+// and its pay slip) are linked, set to set, so the paper trail can be
+// followed in either direction.
 
 export class Paper {
   constructor(world) {
@@ -18,6 +22,7 @@ export class Paper {
     this.books = new Map();
     this.seq = 0;
     this.numbers = new Map();
+    this.byType = new Map(); // type -> top copies, oldest first
   }
 
   defineType(type) {
@@ -51,6 +56,8 @@ export class Paper {
     const top = copies[0];
     top.copies = copies;
     for (const c of copies) c.siblings = copies;
+    if (!this.byType.has(typeId)) this.byType.set(typeId, []);
+    this.byType.get(typeId).push(top);
     if (at) for (const c of copies) this.put(c, at);
     else if (by) for (const c of copies) this.hold(c, by);
     return top;
@@ -143,6 +150,40 @@ export class Paper {
     b.entries.push(e);
     if (from) this.note(from, `entered in the ${b.title}`);
     return e;
+  }
+
+  // The top copy of a document's set.
+  top(doc) {
+    return doc.siblings ? doc.siblings[0] : doc;
+  }
+
+  link(a, b) {
+    if (!a || !b) return;
+    const ta = this.top(a);
+    const tb = this.top(b);
+    if (ta === tb) return;
+    (ta.links ||= new Set()).add(tb);
+    (tb.links ||= new Set()).add(ta);
+  }
+
+  // The paper trail around a document: what it's linked to, and what those
+  // are linked to in turn (except through hubs like a wages abstract, which
+  // is linked to every pay slip of the week). Oldest first.
+  related(doc, { hub = 30, max = 80 } = {}) {
+    const top = this.top(doc);
+    const seen = new Set([top]);
+    const near = [...(top.links || [])];
+    for (const d of near) seen.add(d);
+    const out = [...near];
+    for (const d of near) {
+      if ((d.links?.size || 0) > hub) continue;
+      for (const e of d.links) {
+        if (seen.has(e)) continue;
+        seen.add(e);
+        out.push(e);
+      }
+    }
+    return out.sort((x, y) => x.created - y.created || x.id.localeCompare(y.id)).slice(0, max);
   }
 
   // Where a document physically is, as a node id (for drawing).
