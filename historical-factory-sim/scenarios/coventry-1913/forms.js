@@ -7,6 +7,7 @@
 import { fmt, short } from '../../engine/sim/money.js';
 import { FIRM, FIRM_SHORT, esc, hand, lsdCells, hours } from './formkit.js';
 import { COMMERCE_FORMS } from './forms-commerce.js';
+import { PURCHASING_FORMS, PURCHASING_SUMMARIES } from './forms-purchasing.js';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const RECORDER_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -274,7 +275,7 @@ export function amountInWords(f) {
   return out;
 }
 
-Object.assign(FORMS, COMMERCE_FORMS);
+Object.assign(FORMS, COMMERCE_FORMS, PURCHASING_FORMS);
 
 // One line for each document in a list: who, what and how much.
 const machines = (lines) => {
@@ -304,7 +305,7 @@ const SUMMARIES = {
   'advice-of-despatch': (f) => `${f.orderNo} to ${f.agentName}, ${f.station}: ${f.crates} crate${f.crates === 1 ? '' : 's'}`,
   'consignment-note': (f) => `No. ${f.no} ${f.consignee} to ${f.station}, carriage ${f.carriage.toLowerCase()}`,
 };
-for (const [k, fn] of Object.entries(SUMMARIES)) FORMS[k].summary = (doc, ctx) => fn(doc.fields, ctx);
+for (const [k, fn] of Object.entries({ ...SUMMARIES, ...PURCHASING_SUMMARIES })) FORMS[k].summary = (doc, ctx) => fn(doc.fields, ctx);
 
 // The kinds of paper, grouped by where they're written, for the explorer.
 export const PAPER_KINDS = [
@@ -314,7 +315,8 @@ export const PAPER_KINDS = [
   { group: 'National Insurance', types: ['ni-card', 'unemployment-book'] },
   { group: 'The post', types: ['letter', 'postcard'] },
   { group: 'Orders and despatch', types: ['office-order', 'packing-slip', 'advice-of-despatch', 'consignment-note'] },
-  { group: 'Accounts', types: ['invoice', 'statement', 'receipt', 'paying-in-slip'] },
+  { group: 'Stores and purchasing', types: ['stock-card', 'purchase-requisition', 'purchase-order', 'advice-note', 'delivery-sheet', 'coal-ticket', 'goods-received-note'] },
+  { group: 'Accounts', types: ['invoice', 'statement', 'receipt', 'paying-in-slip', 'supplier-invoice', 'supplier-statement', 'railway-account', 'payments-list', 'cheque-receipt'] },
 ];
 
 export function defineForms(paper) {

@@ -291,7 +291,7 @@ export const COMMERCE_FORMS = {
 
   'ledger-account': {
     title: 'Ledger Account', size: 'a page of the ledger',
-    note: 'Each customer has a page in the Sales Ledger: debits (invoices) on the left, credits (cash and discount) on the right. The sum of the balances must agree with the Sundry Debtors account in the General Ledger.',
+    note: 'Each customer has a page in the Sales Ledger and each supplier one in the Bought Ledger: debits on the left, credits on the right. The balances of each must add up to its control account in the General Ledger, Sundry Debtors or Sundry Creditors.',
     render(doc, ctx) {
       const a = doc.fields.account;
       const { cal } = ctx;

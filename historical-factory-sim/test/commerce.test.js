@@ -23,7 +23,10 @@ test('orders come in and machines go out, a couple of hundred a week', () => {
   for (const o of C.orders) {
     if (o.despatched) continue;
     const copy = o.order.copies[5];
-    assert.ok(copy.container?.id === 'warehouse-tray' || copy.lot || copy.container?.id === 'despatch-tray' || copy.holder, `${o.no} lost: ${paper.whereabouts(copy)}`);
+    // On the warehouse file, being packed, with the despatch clerk, or on its
+    // way to the warehouse with the office boy's next round.
+    const where = copy.container?.id;
+    assert.ok(['warehouse-tray', 'despatch-tray', 'office-out'].includes(where) || copy.lot || copy.holder, `${o.no} lost: ${where}`);
   }
 });
 

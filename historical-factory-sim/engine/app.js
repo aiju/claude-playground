@@ -2,6 +2,8 @@
 //
 // URL parameters, handy for looking at a particular moment:
 //   ?t=1913-03-03T10:30   start at that time (people are placed at work)
+//   ?run=1913-03-05T14:30 start at the usual time and run the works on to
+//                         then before showing it, so its paper is all there
 //   ?speed=300            sim seconds per real second
 //   ?cut=1 | open         peel the buildings
 //   ?cam=engine-house     a camera preset
@@ -10,20 +12,21 @@
 import { View } from './render/view.js';
 import { UI } from './ui/ui.js';
 
-export function startApp({ createScenario, container, overlay }) {
+// `runTo` ([year, month, day, hour, minute]) does what ?run= does, for a page
+// that can't pass URL parameters.
+export function startApp({ createScenario, container, overlay, runTo }) {
   const params = new URLSearchParams(location.search);
   const seed = params.get('seed') ? Number(params.get('seed')) : undefined;
-  let start;
-  const tParam = params.get('t');
   let scenario = createScenario({ seed });
-  if (tParam) {
-    const m = tParam.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/);
-    if (m) {
-      start = scenario.cal.at(+m[1], +m[2], +m[3], +(m[4] || 0), +(m[5] || 0));
-      scenario = createScenario({ seed, start });
-    }
-  }
+  const parse = (s) => {
+    const m = s && s.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/);
+    return m ? scenario.cal.at(+m[1], +m[2], +m[3], +(m[4] || 0), +(m[5] || 0)) : null;
+  };
+  const start = parse(params.get('t'));
+  if (start !== null) scenario = createScenario({ seed, start });
   const sim = scenario.sim;
+  const runUntil = parse(params.get('run')) ?? (runTo ? scenario.cal.at(...runTo) : null);
+  if (runUntil !== null && runUntil > sim.now) sim.runUntil(runUntil);
 
   const clock = {
     t: sim.now,

@@ -177,7 +177,7 @@ export class Explorer {
       if (ledger) {
         html += '<div class="ex-group"><div class="ex-group-name">Ledgers</div>';
         html += `<button class="ex-kind${s.kind === 'tb' ? ' on' : ''}" data-ledger="tb"><span class="ex-kind-name">General Ledger and trial balance</span></button>`;
-        html += `<button class="ex-kind${s.kind === 'sales' ? ' on' : ''}" data-ledger="sales"><span class="ex-kind-name">Sales Ledger</span><span class="ex-count">${num(ledger.sales().length)}</span></button>`;
+        for (const l of ledger.personal || []) html += `<button class="ex-kind${s.kind === 'personal' && s.id === l.id ? ' on' : ''}" data-ledger="${esc(l.id)}"><span class="ex-kind-name">${esc(l.label)}</span><span class="ex-count">${num(l.accounts().length)}</span></button>`;
         html += '</div>';
       }
       html += '<div class="ex-group"><div class="ex-group-name">Books</div>';
@@ -198,7 +198,7 @@ export class Explorer {
     for (const b of this.side.querySelectorAll('[data-type]')) b.onclick = () => pick({ kind: 'type', type: b.dataset.type });
     for (const b of this.side.querySelectorAll('[data-place]')) b.onclick = () => pick({ kind: 'place', id: b.dataset.place });
     for (const b of this.side.querySelectorAll('[data-book]')) b.onclick = () => pick({ kind: 'book', id: b.dataset.book, offset: 0 });
-    for (const b of this.side.querySelectorAll('[data-ledger]')) b.onclick = () => pick({ kind: b.dataset.ledger });
+    for (const b of this.side.querySelectorAll('[data-ledger]')) b.onclick = () => pick(b.dataset.ledger === 'tb' ? { kind: 'tb' } : { kind: 'personal', id: b.dataset.ledger });
   }
 
   // --- The middle column: the list -------------------------------------------------------
@@ -209,7 +209,7 @@ export class Explorer {
     if (s.kind === 'type') return `${s.type}:${this.paper.byType.get(s.type)?.length || 0}`;
     if (s.kind === 'place') return `${s.id}:${this.pv.places().find((p) => p.id === s.id)?.count || 0}`;
     if (s.kind === 'book') return `${s.id}:${this.pv.books().find((b) => b.id === s.id)?.count || 0}`;
-    return `${s.kind}:${Math.floor(this.clock.t / 30)}`;
+    return `${s.kind}:${s.id || ''}:${Math.floor(this.clock.t / 30)}`;
   }
 
   items() {
@@ -260,8 +260,10 @@ export class Explorer {
       const list = ledger.general();
       return { title: 'General Ledger', total: list.length, docs: list, make: acctRow, forward: true };
     }
-    const list = ledger.sales();
-    return { title: 'Sales Ledger', total: list.length, docs: list, make: acctRow, forward: true };
+    const l = (ledger.personal || []).find((x) => x.id === s.id);
+    if (!l) return { title: '', rows: [] };
+    const list = l.accounts();
+    return { title: l.label, total: list.length, docs: list, make: acctRow, forward: true };
   }
 
   renderList() {
@@ -329,8 +331,8 @@ export class Explorer {
       return b ? { doc: this.pv.bookPage(b.book, s.offset || 0), book: b, offset: s.offset || 0 } : null;
     }
     if (s.kind === 'tb') return { doc: this.pv.ledger().trialBalance };
-    if (s.kind === 'sales') {
-      const top = this.pv.ledger().sales()[0];
+    if (s.kind === 'personal') {
+      const top = this.pv.ledger().personal?.find((x) => x.id === s.id)?.accounts()[0];
       return top ? { doc: top.doc } : null;
     }
     if (s.kind === 'type') {
