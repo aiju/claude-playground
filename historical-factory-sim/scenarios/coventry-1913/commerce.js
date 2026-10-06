@@ -412,6 +412,8 @@ export function* orderClerk(world, p) {
     yield* work(world, p, 2, `writing the acknowledgement postcard to ${agent.name}`);
     const card = paper.create('postcard', { to: agent.name, address: agent.address, orderNo: no, theirDate: letter.fields.written, date: world.sim.now }, { by: p });
     paper.put(card, 'out-post', 'for the evening post');
+    paper.link(order, letter);
+    paper.link(order, card);
     paper.put(letter, 'files', 'filed with the order');
     world.log(`Order ${no} from ${agent.name}, ${agent.town}: ${qty} machine${qty > 1 ? 's' : ''}.${hold ? ' Held: the account is overdue.' : ''}`, { kind: 'commerce' });
   }
@@ -434,12 +436,14 @@ function writeInvoice(world, p, advice) {
   paper.put(invoice.copies[0], 'out-post', 'for the evening post');
   paper.put(invoice.copies[1], 'ledger-tray', 'for posting to the Sales Ledger');
   paper.enter('sales-day-book', { no, agent: agent.name, orderNo: f.orderNo, total }, { from: invoice, by: p });
+  paper.link(invoice, advice);
   paper.put(advice, 'files', 'filed with the invoice');
   for (const x of [...paper.container('invoice-tray').docs]) {
     if (x.type === 'packing-slip' && x.fields.orderNo === f.orderNo) paper.put(x, 'files', 'filed with the invoice');
   }
   const order = C.orders.find((o) => o.no === f.orderNo);
   if (order) (order.invoices ||= []).push(invoice);
+  if (order) paper.link(invoice, order.order);
   const part = order?.parts?.find((x) => x.consignmentNo === f.consignmentNo);
   if (part) part.invoice = invoice;
   const open = [...paper.container('orders-open').docs].find((dd) => dd.fields.no === f.orderNo);
@@ -480,6 +484,7 @@ export function* salesLedgerClerk(world, p) {
         if (brought) lines.push({ t: since, narrative: 'To account rendered', debit: brought > 0 ? brought : 0, credit: brought < 0 ? -brought : 0 });
         for (const l of recent) lines.push({ t: l.t, narrative: l.narrative, debit: l.debit, credit: l.credit });
         const st = paper.create('statement', { agent: a.id, agentName: a.name, address: a.address, date: world.sim.now, balance: bal, lines }, { by: p });
+        for (const l of recent) if (l.ref) paper.link(st, paper.docs.get(l.ref));
         paper.put(st, 'out-post', 'for the post');
         a.statementDay = world.sim.now;
         a.statementBalance = bal;
@@ -509,9 +514,10 @@ export function* receiveRemittances(world, p) {
     world.ledger.post(world.sim.now, f.discount ? 'By cheque and discount' : 'By cheque', lines, { ref: l.id });
     const entry = paper.enter('cash-book', { from: a.name, amount: f.amount, discount: f.discount, banked: 0 }, { from: l, by: p });
     paper.mark(l, 'entered', 'entered in the Cash Book');
-    C.toPayIn.push({ from: a.name, amount: f.amount, bank: f.bank, entry });
+    C.toPayIn.push({ from: a.name, amount: f.amount, bank: f.bank, entry, letter: l });
     const receipt = paper.create('receipt', { to: a.name, address: a.address, amount: f.amount, discount: f.discount, date: world.sim.now, stamp: f.amount >= lsd(2), cashier: p.name }, { by: p });
     paper.put(receipt, 'out-post', 'receipt for the post');
+    paper.link(receipt, l);
     paper.put(l, 'files', 'filed');
     // Orders held for this account can go now.
     for (const o of C.orders) {
@@ -536,6 +542,7 @@ export function* bankTrip(world, p) {
   C.toPayIn = [];
   const total = items.reduce((a, i) => a + i.amount, 0);
   const slip = items.length ? world.paper.create('paying-in-slip', { date: world.sim.now, items, total }, { by: p }) : null;
+  for (const i of items) world.paper.link(slip, i.letter);
   yield* walk(world, p, 'S_OF', { activity: 'taking the cheques to Lloyds Bank' });
   yield* walk(world, p, 'HOME_S', { activity: 'taking the cheques to Lloyds Bank' });
   p.onSite = false;
@@ -699,6 +706,9 @@ export function* despatchClerk(world, p) {
       paper.put(slipOffice, 'despatch-out', 'General Office copy');
       paper.put(slipFile, 'despatch-files', 'kept in the warehouse for reference');
       dd.slip = slip;
+      for (const x of [slip, advice, note]) paper.link(dd.copy, x);
+      paper.link(advice, slip);
+      paper.link(advice, note);
       paper.enter('despatch-book', { orderNo: f.no, consignee: agent.name, station: agent.station, crates: dd.crates, carriage: agent.carriage, consignmentNo }, { from: note, by: p });
       const complete = !outstanding(dd.copy).length;
       if (complete) paper.put(dd.copy, 'despatch-files', 'filed: despatched complete');
@@ -882,6 +892,31 @@ export function commerceSummary(world) {
 
 const pseudo = (type, fields, title) => ({ id: `view:${type}:${title}`, type, fields, history: [], marks: [], copy: 0 });
 
+function trialBalanceDoc(world) {
+  const ledger = world.ledger;
+  return pseudo('trial-balance', {
+    get tb() { return ledger.trialBalance(); },
+    get when() { return world.cal.docDate(world.sim.now); },
+    get personal() { return ledger.personalTotal('debtors'); },
+    get control() { return ledger.balance('debtors'); },
+  }, 'tb');
+}
+
+// The ledger for the paperwork explorer: the trial balance, the General
+// Ledger's accounts and the Sales Ledger's.
+export function ledgerViews(world) {
+  const L = world.ledger;
+  if (!L) return null;
+  const acct = (a) => pseudo('ledger-account', { account: a }, a.code);
+  return {
+    trialBalance: trialBalanceDoc(world),
+    general: () => [...L.accounts.values()].filter((a) => !a.control).map((a) => ({ label: a.name, balance: a.debit - a.credit, doc: acct(a) })),
+    sales: () => [...L.accounts.values()].filter((a) => a.control === 'debtors')
+      .map((a) => ({ label: a.name, sub: a.meta?.town, balance: a.debit - a.credit, doc: acct(a) }))
+      .sort((x, y) => y.balance - x.balance || x.label.localeCompare(y.label)),
+  };
+}
+
 export function commercePapersForPlace(world, id) {
   if (!world.commerce) return [];
   const paper = world.paper;
@@ -894,15 +929,7 @@ export function commercePapersForPlace(world, id) {
   }
   const ledger = world.ledger;
   if (['secretary-desk', 'secretary', 'chief-clerk'].includes(id)) {
-    out.push({
-      label: 'Trial balance, as it stands',
-      doc: pseudo('trial-balance', {
-        get tb() { return ledger.trialBalance(); },
-        get when() { return world.cal.docDate(world.sim.now); },
-        get personal() { return ledger.personalTotal('debtors'); },
-        get control() { return ledger.balance('debtors'); },
-      }, 'tb'),
-    });
+    out.push({ label: 'Trial balance, as it stands', doc: trialBalanceDoc(world) });
   }
   if (['sales-ledger', 'general-office'].includes(id)) {
     const recent = [];

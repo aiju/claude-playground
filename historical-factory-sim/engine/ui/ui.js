@@ -1,6 +1,7 @@
 // The overlay: clock, speed and view controls, the inspector and the log.
 import { fmt } from '../sim/money.js';
 import { Facsimile } from './facsimile.js';
+import { Explorer } from './explorer.js';
 
 const SPEEDS = [
   { label: '1×', v: 1, title: 'Real time' },
@@ -73,6 +74,12 @@ export class UI {
       this.paperBtn.onclick = () => { view.paperLayer.setEmphasis(!view.paperLayer.emphasis); this.refreshButtons(); };
       cutRow.appendChild(this.paperBtn);
     }
+    if (scenario.paperView?.kinds) {
+      const b = el('button', 'paperwork-btn', 'Paperwork');
+      b.title = 'Every paper written so far, where it is now, and the books and ledgers';
+      b.onclick = () => this.explorer.open();
+      cutRow.appendChild(b);
+    }
     controls.appendChild(cutRow);
 
     const placeRow = el('div', 'row');
@@ -92,6 +99,7 @@ export class UI {
     root.appendChild(el('div', 'hint', 'Drag to turn · right-drag to pan · scroll to zoom · click anyone'));
 
     this.facsimile = scenario.paperView ? new Facsimile(root, scenario) : null;
+    this.explorer = scenario.paperView?.kinds ? new Explorer(root, { scenario, clock, onClockChange: () => this.refreshButtons() }) : null;
     scenario.world.logListeners.push(() => { this.logDirty = true; });
     view.onPick = (sel) => this.show(sel);
     this.selection = null;

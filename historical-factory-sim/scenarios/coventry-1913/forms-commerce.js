@@ -270,7 +270,10 @@ export const COMMERCE_FORMS = {
     render(doc, ctx) {
       const b = doc.fields.book;
       const cols = b.columns;
-      const entries = b.entries.slice(-16);
+      const PAGE = 16;
+      const back = doc.fields.offset || 0;
+      const end = Math.max(0, b.entries.length - back);
+      const entries = b.entries.slice(Math.max(0, end - PAGE), end);
       const cell = (c, e) => {
         const v = c.f(e, ctx);
         return c.money ? lsdCells(v || 0) : `<td class="hand${c.num ? ' num' : ''}">${esc(v ?? '')}</td>`;
@@ -280,7 +283,7 @@ export const COMMERCE_FORMS = {
       return `
         <div class="fax sheet wide book">
           <div class="title">${esc(b.title.toUpperCase())}</div>
-          <div class="row small"><span>${b.entries.length} entr${b.entries.length === 1 ? 'y' : 'ies'}; the last ${entries.length} shown</span></div>
+          <div class="row small"><span>${b.entries.length} entr${b.entries.length === 1 ? 'y' : 'ies'}${entries.length ? `; entries ${end - entries.length + 1}–${end} shown` : ''}</span></div>
           <table class="ruled money"><tr>${head}</tr>${rows}</table>
         </div>`;
     },
@@ -306,7 +309,7 @@ export const COMMERCE_FORMS = {
       return `
         <div class="fax sheet wide book">
           <div class="row"><span class="big">${esc(a.name)}</span><span>${esc(a.meta?.address || '')}</span></div>
-          <div class="row small"><span>${esc(a.meta?.trade || '')}${a.meta ? `; terms list less ${Math.round(a.meta.discount * 100)}%` : ''}</span></div>
+          ${a.meta?.discount ? `<div class="row small"><span>${esc(a.meta.trade || '')}; terms list less ${Math.round(a.meta.discount * 100)}%</span></div>` : ''}
           <table class="ruled money ledger"><tr><th colspan="5">Dr.</th><th colspan="5">Cr.</th></tr>
             <tr><th>Date</th><th>Particulars</th><th>£</th><th>s.</th><th>d.</th><th>Date</th><th>Particulars</th><th>£</th><th>s.</th><th>d.</th></tr>${rows}</table>
           <div class="row foot"><span>Balance ${hand(bal === 0 ? 'Nil' : bal > 0 ? `${fmt(bal)} Dr.` : `${fmt(-bal)} Cr.`)}</span></div>

@@ -31,6 +31,8 @@ The commercial side runs too, following Elbourne and Spencer's *Commercial Organ
 
 The Works Manager's programme follows the order book: a model the agents are waiting for goes into the shops first.
 
+The **Paperwork** button opens an explorer of every paper written so far, by kind, by where it is now (in which tray, with the customer, at the railway, in someone's hand), and the books and ledgers. Each document shows as a facsimile with its carbon copies, its history and its paper trail: from an agent's letter through the office order, packing slip, advice of despatch, consignment note and invoice, or from a time card to its pay slip and the week's wages abstract. A link ending `#paperwork` opens the explorer straight away.
+
 Click anyone, any tray of work, a lorry, a desk or an office to see their papers as facsimiles of the period forms. Desks also show their books: the correspondence register, the order book, the despatch book, the sales day book and the cash book. The Secretary's desk has the trial balance, and the sales ledger clerk's desk has the agents' ledger pages. Purchasing, the coal boat and the goods yard come next.
 
 - [DESIGN.md](DESIGN.md): what we're building and how, including the split between a period-independent engine and the 1913 scenario.
