@@ -121,9 +121,14 @@ function copy(out, v) {
 // Spend `minutes` of working time. Work stops at the end of each spell of
 // the person's timetable and the person's `offDuty` routine runs (breakfast,
 // dinner, home for the night); then the work carries on where it left off.
-export function* work(world, p, minutes, activity) {
+//
+// If `job` is given and gets `abandoned` while the person is off duty (off
+// sick, say, and the foreman has given the work to someone else), the work
+// stops there.
+export function* work(world, p, minutes, activity, job = null) {
   let left = minutes;
   while (left > 1e-6) {
+    if (job && job.abandoned) return;
     const spell = p.timetable.currentSpell(world.sim.now);
     if (!spell) {
       yield* p.offDuty(world, p);

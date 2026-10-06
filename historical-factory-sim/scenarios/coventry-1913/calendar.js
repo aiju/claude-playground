@@ -40,6 +40,16 @@ export function makeTimetables(cal) {
     },
     holidays: HOLIDAYS,
   });
+  // The wages clerks stay on on Friday to pay out.
+  const wages = new Timetable(cal, {
+    days: {
+      1: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]], 2: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]],
+      3: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]], 4: [[hm(8), hm(12, 30)], [hm(13, 30), hm(17, 30)]],
+      5: [[hm(8), hm(12, 30)], [hm(13, 30), hm(18, 45)]],
+      6: [[hm(8), hm(12, 30)]],
+    },
+    holidays: HOLIDAYS,
+  });
   // The stokers come in to raise steam before the works starts, and the
   // engine-house crew eat at their posts.
   const engine = new Timetable(cal, {
@@ -57,5 +67,5 @@ export function makeTimetables(cal) {
     },
     holidays: HOLIDAYS,
   });
-  return { works, office, worksStaff, engine, gate };
+  return { works, office, worksStaff, wages, engine, gate };
 }

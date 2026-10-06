@@ -15,6 +15,8 @@ import {
   standingDeliveries, weeklyTally, machinesInProgress,
 } from './works.js';
 import { palette, scenery, machinery, cameraPresets } from './look.js';
+import { setupPaper, timekeeper, wagesClerk, cashier, worksPost, stampErrand, clocks, makePaperView } from './paper.js';
+import { FORMS, amountInWords } from './forms.js';
 import { MODELS, PATTERNS } from './catalogue.js';
 import { price as fmtPrice } from '../../engine/sim/money.js';
 
@@ -60,11 +62,11 @@ export function createScenario({ seed = 1913, start } = {}) {
   });
   world.production = production;
   setupWorks(world, production);
-  seedWorks(world, production);
   timetables.saturday = new Timetable(cal, { days: { 6: [[9 * 60, 13 * 60]] }, holidays: HOLIDAYS });
 
   const peopleRng = rng.fork('people');
   const messSeats = [...site.spots.keys()].filter((id) => id.startsWith('mess-seat-'));
+  const midSpell = [];
   for (const spec of makeStaff(rng.fork('staff'), site)) {
     const youth = spec.age < 18;
     const p = world.addPerson({
@@ -95,10 +97,22 @@ export function createScenario({ seed = 1913, start } = {}) {
         if (p.dinnerAt === 'home' && cur[0] >= cal.dayStart(t0) + 13 * 60) {
           p.record.push({ t: cur[0] - 69, kind: 'out' }, { t: cur[0] - peopleRng.uniform(2, 10), kind: 'in', late: false });
         }
+        midSpell.push(p);
       }
     }
-    sim.spawn(processFor(world, p), p.name);
   }
+
+  // The works' paper, then the opening work in progress (whose trays get
+  // their work tallies), then everyone's day.
+  const wages = setupPaper(world, production, timetables);
+  for (const p of midSpell) {
+    if (!p.card) continue;
+    for (const r of p.record) p.card.fields.punches.push({ t: r.t, kind: r.kind, late: r.late });
+    world.paper.put(p.card, p.record.at(-1).kind === 'in' ? 'rack-in' : 'rack-out', false);
+  }
+  seedWorks(world, production);
+  const roles = { postBoy: null, errandBoy: null, clerks: 0 };
+  for (const p of world.people) sim.spawn(processFor(world, p, roles), p.name);
 
   sim.spawn(worksManagerProgramme(world, production, timetables.worksStaff), 'works manager programme');
   sim.spawn(storekeeperRounds(world, production, timetables.works), 'storekeeper rounds');
@@ -108,6 +122,8 @@ export function createScenario({ seed = 1913, start } = {}) {
   const works = timetables.works;
   return {
     production,
+    wages,
+    paperView: makePaperView(world, FORMS, amountInWords),
     machinesInProgress: () => machinesInProgress(world),
     catalogue: {
       MODELS,
@@ -159,9 +175,17 @@ const SHOP_ROOMS = buildings.flatMap((b) => (b.rooms || []).filter((r) => r.dept
 
 const describeJob = (s, lot, n) => `${s.op} (${n} of ${lot.batch ? lot.batch.id : lot.label.split(' ')[0]})`;
 
-function processFor(world, p) {
+function processFor(world, p, roles) {
   const site = world.site;
   const production = world.production;
+  if (p.trade === 'Timekeeper') return timekeeper(world, p);
+  if (p.trade === 'Wages Clerk') return wagesClerk(world, p, { half: roles.clerks++, timetable: p.timetables.works });
+  if (p.trade === 'Cashier') return cashier(world, p);
+  if (p.trade === 'Messenger boy' && !roles.postBoy) {
+    roles.postBoy = p;
+    p.activity = 'the works post boy';
+    return worksPost(world, p);
+  }
   const g = groupFor(p);
   if (g) return production.worker(p, [g[0]], { efficiency: g[1] * world.rng.uniform(0.92, 1.08), describe: describeJob });
   if (p.trade === 'Messenger boy' || (p.trade === 'Labourer' && p.dept === 'stores')) {
@@ -224,7 +248,9 @@ function processFor(world, p) {
         at: () => 'seeing to the horses and the dray',
       });
     case 'Office boy':
+      if (!roles.errandBoy) roles.errandBoy = p;
       return roaming(world, p, {
+        errand: roles.errandBoy === p ? stampErrand : null,
         places: ['md-desk', 'secretary-desk', 'cashier-desk', 'works-manager', 'wages-1', 'storekeeper', 'typist-1', 'buyer', 'works-accountant'],
         between: [4, 15],
         goingTo: (room) => `taking letters to the ${room}`,

@@ -7,6 +7,7 @@ import { buildScenery } from './scenery.js';
 import { PropsLayer } from './props.js';
 import { FiguresLayer } from './figures.js';
 import { LotsLayer } from './lots.js';
+import { PaperLayer } from './paper.js';
 import { MillEngine, RopeDrive, lancashireBoiler, Smoke } from './machinery.js';
 import { sunPosition, sunDirection, lighting } from './sky.js';
 
@@ -74,6 +75,10 @@ export class View {
     scene.add(this.props.group);
     this.figures = new FiguresLayer(scenario.world);
     scene.add(this.figures.group);
+    if (scenario.world.paper) {
+      this.paperLayer = new PaperLayer(scenario);
+      scene.add(this.paperLayer.group);
+    }
     if (scenario.production) {
       this.lots = new LotsLayer(scenario);
       scene.add(this.lots.group);
@@ -287,6 +292,7 @@ export class View {
     this.smoke?.update(dt, 0.35 + 0.65 * sp2);
 
     this.figures.update(t, realTime, this.isVisible);
+    this.paperLayer?.update(this.figures, this.isVisible);
     if (this.lots) {
       this.lots.update(t, this.figures, this.isVisible);
       for (const { unit, spot, glow } of this.stoveGlows) {

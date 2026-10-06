@@ -107,3 +107,90 @@ button.on { background: var(--green); color: var(--green-ink); border-color: var
 .routing li { padding: 1px 0; }
 .routing li.done { color: #9a8f80; text-decoration: line-through; text-decoration-color: rgba(60,45,30,0.35); }
 .routing li.here { color: var(--ink); font-weight: 700; }
+
+/* Papers list in the inspector */
+.papers { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.papers .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+.papers button { display: block; width: 100%; text-align: left; margin-top: 4px; background: #fbf8ef; }
+.papers button small { color: var(--ink-soft); }
+
+/* The facsimile viewer */
+.facsimile { position: fixed; inset: 0; z-index: 50; }
+.facsimile.hidden { display: none; }
+.fax-backdrop { position: absolute; inset: 0; background: rgba(20, 16, 12, 0.55); }
+.fax-panel {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto;
+  background: #e7dfcc; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 18px;
+}
+.fax-close { position: absolute; top: 8px; right: 8px; }
+.fax-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; align-items: start; }
+.fax-copies { grid-column: 1 / -1; display: flex; gap: 6px; }
+.fax-copies button.on { background: var(--green); color: var(--green-ink); }
+.fax-sheet { display: flex; justify-content: center; padding: 10px; background: #8a7f6a; border-radius: 4px; overflow-x: auto; }
+.fax-meta { font-size: 13px; }
+.fax-title { font-size: 18px; font-weight: 700; }
+.fax-title span { display: block; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+.fax-note { font-style: italic; color: var(--ink-soft); }
+.fax-where { font-weight: 700; }
+.fax-history { padding-left: 18px; color: var(--ink); }
+.fax-history li { margin-bottom: 3px; }
+.fax-history span { color: var(--ink-soft); font-size: 12px; display: block; }
+@media (max-width: 760px) { .fax-body { grid-template-columns: 1fr; } }
+
+/* The forms themselves */
+.fax {
+  --ink-print: #2a2622;
+  --ink-hand: #1c2a4a;
+  position: relative;
+  font-family: 'Libre Caslon Text', Georgia, serif;
+  color: var(--ink-print);
+  background: #fbf8ef;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  font-size: 13px;
+  line-height: 1.35;
+  width: 460px;
+  max-width: 100%;
+}
+.fax.card { background: #efe3c4; border-radius: 3px; }
+.fax.slip { width: 360px; }
+.fax.sheet.wide { width: 720px; }
+.fax.cheque { width: 620px; background: #eaf0e4; border: 1px solid #b9c4b0; background-image: repeating-linear-gradient(45deg, rgba(90,120,90,0.05) 0 6px, transparent 6px 12px); }
+.fax .row { display: flex; justify-content: space-between; gap: 10px; margin: 3px 0; flex-wrap: wrap; }
+.fax .firm { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.fax .title { text-align: center; font-weight: 700; letter-spacing: 0.18em; margin: 4px 0 6px; font-size: 15px; }
+.fax .title.small-caps { font-size: 11px; letter-spacing: 0.08em; font-weight: 400; margin-bottom: 0; }
+.fax .big { font-size: 16px; }
+.fax .small { font-size: 10.5px; color: #5a5148; margin-top: 6px; }
+.fax .foot { margin-top: 8px; }
+.fax .hand { font-family: 'Cedarville Cursive', 'Segoe Script', cursive; color: var(--ink-hand); font-size: 1.12em; }
+.fax .hand.initials { font-size: 1.4em; }
+.fax .recorder { font-family: 'Courier Prime', 'Courier New', monospace; color: #4b3a7a; font-size: 12px; letter-spacing: 0.02em; }
+.fax .red, .fax .red .hand, .fax .recorder.red { color: #a3281b; }
+.fax table.ruled { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.fax table.ruled th, .fax table.ruled td { border: 1px solid rgba(60, 45, 30, 0.45); padding: 2px 5px; text-align: left; vertical-align: top; }
+.fax table.ruled th { font-size: 10.5px; font-weight: 700; text-align: center; background: rgba(0,0,0,0.03); }
+.fax table.money td.l, .fax table.money td.s, .fax table.money td.d { text-align: right; width: 34px; }
+.fax table.money tr.total td { border-top: 2px solid rgba(60,45,30,0.7); }
+.fax td.num { text-align: right; }
+.fax .stamp { display: inline-block; border: 2px solid #6b2a7a; color: #6b2a7a; padding: 0 4px; font-size: 10px; letter-spacing: 0.1em; transform: rotate(-6deg); font-family: 'Courier Prime', monospace; opacity: 0.85; }
+.fax .stamp.diag { position: absolute; right: 120px; top: 60px; font-size: 28px; border-width: 3px; color: #8a2a2a; border-color: #8a2a2a; transform: rotate(-14deg); }
+.fax .coupon { margin-top: 8px; border-top: 2px dashed rgba(60,45,30,0.6); padding-top: 4px; font-size: 10.5px; }
+.fax.corner-cut { clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 0 100%); }
+.fax.crayoned::after {
+  content: ''; position: absolute; right: -10px; top: 26px; width: 150px; height: 14px; background: rgba(40, 70, 170, 0.55);
+  transform: rotate(38deg); border-radius: 7px; filter: blur(0.6px);
+}
+.fax.cheque .bank { font-size: 22px; letter-spacing: 0.14em; font-weight: 700; color: #233a2a; }
+.fax.cheque .duty { font-size: 9px; text-align: center; border: 1px solid #a33; color: #a33; padding: 3px 6px; border-radius: 50%; }
+.fax.cheque .payline { border-bottom: 1px solid rgba(60,45,30,0.5); padding: 6px 0; }
+.fax.cheque .amount { border: 1px solid rgba(60,45,30,0.6); padding: 4px 10px; font-size: 16px; }
+.fax.cheque .sig { text-align: right; }
+.fax.ni .stamps { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; margin-top: 8px; }
+.fax.ni .stampbox { border: 1px dashed rgba(60,45,30,0.4); height: 40px; display: grid; place-items: center; }
+.fax.ni .nistamp { width: 90%; height: 85%; font-size: 10px; text-align: center; color: #fff; display: grid; place-items: center; line-height: 1.1; border: 2px dotted rgba(255,255,255,0.6); }
+.fax.ni .nistamp span { font-size: 8px; }
+.fax.ni .nistamp.seven { background: #7a4a7e; }
+.fax.ni .nistamp.six { background: #3f6e4a; }
+.fax.ni .nistamp.ui { background: #8a5a2e; }

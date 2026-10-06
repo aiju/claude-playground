@@ -82,6 +82,7 @@ export class Production {
     };
     this.lots.push(lot);
     this.active.add(lot);
+    this.onLaunch?.(lot);
     this.enter(lot, step);
     return lot;
   }
@@ -176,6 +177,7 @@ export class Production {
         store.take(s.issue.map(([item, per]) => [item, per * lot.qty]), this.now, lot.label);
         lot.short = false;
         this.note(lot, `parts issued from the ${store.name}`);
+        this.onIssue?.(lot, s, p);
       }
       const [lo, hi] = s.take || [lot.qty, lot.qty];
       const n = Math.min(lot.left, Math.max(1, Math.round(world.rng.uniform(lo, hi))));
@@ -183,9 +185,16 @@ export class Production {
       lot.inHand += n;
       lot.state = 'working';
       lot.holders.add(p.id);
-      p.job = { lot, n, step: s };
+      const job = { lot, n, step: s };
+      p.job = job;
       const minutes = (n * s.min) / efficiency;
-      yield* work(world, p, minutes, describe ? describe(s, lot, n) : `${s.op}: ${lot.label}`);
+      const started = this.now;
+      yield* work(world, p, minutes, describe ? describe(s, lot, n) : `${s.op}: ${lot.label}`, job);
+      if (job.abandoned) {
+        p.job = null;
+        continue;
+      }
+      this.onTake?.(p, lot, s, n, minutes, started);
       p.job = null;
       lot.holders.delete(p.id);
       lot.inHand -= n;
@@ -197,6 +206,21 @@ export class Production {
         lot.state = 'waiting';
       }
     }
+  }
+
+  // Someone can't finish what they claimed (off sick): the units go back to
+  // the lot for someone else to take.
+  abandon(p) {
+    const job = p.job;
+    if (!job || job.abandoned) return;
+    job.abandoned = true;
+    const lot = job.lot;
+    lot.left += job.n;
+    lot.inHand -= job.n;
+    lot.holders.delete(p.id);
+    if (lot.state === 'working' && lot.inHand <= 0) lot.state = 'waiting';
+    this.note(lot, `${job.n} given to someone else: ${p.name} is off`);
+    p.job = null;
   }
 
   // --- Carrying lots between shops ------------------------------------------

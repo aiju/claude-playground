@@ -9,6 +9,7 @@
 // recorders; the Sherbourne Works installed card recorders in 1912 (choice).
 import { until, wait } from '../../engine/sim/kernel.js';
 import { walk, work, WALK_SPEED } from '../../engine/sim/world.js';
+import { punch, endOfDay, collectPay } from './paper.js';
 
 const ACTIVITY = {
   'Turner': 'turning hub shells on a capstan lathe',
@@ -137,7 +138,7 @@ export function* offDuty(world, p) {
     }
     return;
   }
-  yield* goOut(world, p, 'going home');
+  yield* goOut(world, p, 'going home', { endOfDay: true });
   yield* comeIn(world, p, p.timetable.nextSpell(sim.now));
 }
 
@@ -151,6 +152,16 @@ function entrance(p) {
 
 function* comeIn(world, p, spell) {
   const { sim, rng } = world;
+  // Now and then someone is off sick for the day (est. one day in forty).
+  const firstOfDay = p.timetable.spellsOn(spell[0])[0];
+  if (firstOfDay && firstOfDay[0] === spell[0] && p.role !== 'staff' && rng.chance(0.025)) {
+    p.activity = 'off sick at home';
+    p.record.push({ t: spell[0], kind: 'absent' });
+    world.production?.abandon(p);
+    const last = p.timetable.lastSpellOfDay(spell[0]);
+    yield until(last[1] + 30);
+    spell = p.timetable.nextSpell(sim.now);
+  }
   let start = spell[0];
   let target;
   if (p.role === 'staff') target = start - rng.uniform(0, 10);
@@ -165,8 +176,8 @@ function* comeIn(world, p, spell) {
   const gate = entrance(p);
   yield* walk(world, p, gate, { activity: 'coming in to work', elapsed });
   if (clocks(p)) {
-    const late = sim.now - start;
-    if (late > 15 && p.timetable === p.timetables.works) {
+    const lateAtGate = sim.now - start;
+    if (lateAtGate > 15 && p.timetable === p.timetables.works) {
       // Shut out until the next spell: "losing a quarter".
       const next = p.timetable.nextSpell(start + 1);
       p.activity = 'shut out at the gate until after breakfast';
@@ -179,7 +190,9 @@ function* comeIn(world, p, spell) {
     yield* walk(world, p, recorder, { activity: 'clocking on' });
     yield wait(0.15);
     const lateBy = sim.now - start;
-    p.record.push({ t: sim.now, kind: 'in', late: lateBy > 5 && p.timetable === p.timetables.works });
+    const late = lateBy > 5 && p.timetable === p.timetables.works;
+    p.record.push({ t: sim.now, kind: 'in', late });
+    punch(world, p, 'in', late);
     if (lateBy > 5 && lateBy <= 15 && p.timetable === p.timetables.works) {
       world.log(`${p.name} (No. ${p.worksNo}) clocked on ${Math.round(lateBy)} minutes late and loses a quarter of an hour.`, { kind: 'gate', refs: [p.id] });
     }
@@ -187,13 +200,16 @@ function* comeIn(world, p, spell) {
   yield* walk(world, p, p.spot, { activity: 'going to work' });
 }
 
-function* goOut(world, p, activity) {
+function* goOut(world, p, activity, { endOfDay: last = false } = {}) {
   const { sim } = world;
+  if (last) endOfDay(world, p);
   if (clocks(p)) {
     const recorder = p.worksNo % 2 ? 'time-recorder-1' : 'time-recorder-2';
     yield* walk(world, p, recorder, { activity: 'clocking off' });
     yield wait(0.15);
     p.record.push({ t: sim.now, kind: 'out' });
+    punch(world, p, 'out', false);
+    if (last) yield* collectPay(world, p);
   }
   yield* walk(world, p, entrance(p), { activity });
   yield* walk(world, p, p.home, { activity });
@@ -207,9 +223,10 @@ export function* steadyWork(world, p) {
   for (;;) yield* work(world, p, 60, activityFor(p));
 }
 
-export function* roaming(world, p, { places, between = [8, 25], dwell = [1, 4], goingTo, at }) {
+export function* roaming(world, p, { places, between = [8, 25], dwell = [1, 4], goingTo, at, errand }) {
   const { rng } = world;
   for (;;) {
+    if (errand) yield* errand(world, p);
     yield* work(world, p, rng.uniform(...between), activityFor(p));
     const dest = rng.pick(places);
     const room = world.site.roomAt(dest);
