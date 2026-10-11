@@ -6,10 +6,12 @@ test('a Monday at the Sherbourne Works', () => {
   const sc = createScenario({ seed: 1 });
   const { sim, cal, world } = sc;
   const at = (h, m = 0) => cal.at(1913, 3, 3, h, m);
-  const onSite = () => world.people.filter((p) => p.onSite).length;
-  const hands = world.people.filter((p) => p.role !== 'staff');
+  // The works' own people (not the railwaymen at the goods yard).
+  const works = world.people.filter((p) => !p.outside);
+  const onSite = () => works.filter((p) => p.onSite).length;
+  const hands = works.filter((p) => p.role !== 'staff');
 
-  assert.ok(world.people.length >= 400, `${world.people.length} people`);
+  assert.ok(works.length >= 400, `${works.length} people`);
   sim.runUntil(at(5, 40));
   assert.ok(onSite() < 60, `at 5.40 a.m. ${onSite()} on site`);
 
@@ -22,11 +24,11 @@ test('a Monday at the Sherbourne Works', () => {
   assert.ok(!sc.engineRunning(sim.now), 'engine stops for breakfast');
 
   sim.runUntil(at(10, 30));
-  const atWork = world.people.filter((p) => p.onSite && !p.motion).length;
+  const atWork = works.filter((p) => p.onSite && !p.motion).length;
   assert.ok(atWork > 380, `${atWork} at work at 10.30 a.m.`);
 
   sim.runUntil(at(12, 50));
-  assert.ok(onSite() < world.people.length - 120, `${onSite()} still on site at dinner`);
+  assert.ok(onSite() < works.length - 120, `${onSite()} still on site at dinner`);
 
   sim.runUntil(at(15));
   assert.ok(onSite() > 380, `${onSite()} back after dinner`);

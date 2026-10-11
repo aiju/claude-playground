@@ -8,6 +8,8 @@
 // Feet; x east, z south. Sherbourne Street runs along the south side, the
 // Coventry Canal along the north.
 
+import { goodsYard } from './railway.js';
+
 export const STREET_Z = 200;
 export const CANAL_Z = -185;
 
@@ -154,7 +156,11 @@ export const yard = {
     n('BY_W', -245, 14), n('BY1', -120, 14), n('BY2', -16, 14),
     n('NW', -245, -50), n('N1', -228, -50), n('N2', -132, -50), n('N3', -82, -50), n('N4', -32, -50),
     n('N5', 28, -32), n('E_N', 140, -30), n('E1', 240, -30),
-    n('COAL', 28, -110, { label: 'Coal yard' }), n('WHARF', 28, -158, { label: 'Canal wharf' }),
+    n('COAL', 28, -110, { label: 'Coal yard' }), n('WHARF', 28, -163, { label: 'Canal wharf' }),
+    // The canal itself, for boats (not joined to the yard).
+    n('CN_E', 1150, CANAL_Z, { kind: 'home', label: 'the canal, from Hawkesbury and the Griff arm' }),
+    n('CN_WHARF', 28, CANAL_Z + 6, { label: 'Tied up at the works wharf' }),
+    n('CN_W', -1150, CANAL_Z, { kind: 'home', label: 'the canal, to the Coventry basin' }),
   ],
   edges: [
     ['HOME_W', 'S_W'], ['S_W', 'S_OF'], ['S_OF', 'S_SS'], ['S_SS', 'S_G'], ['S_G', 'S_E'], ['S_E', 'HOME_E'],
@@ -165,6 +171,7 @@ export const yard = {
     ['Y_W', 'BY_W'], ['BY_W', 'BY1'], ['BY1', 'BY2'], ['BY2', 'N4'], ['BY_W', 'NW'],
     ['NW', 'N1'], ['N1', 'N2'], ['N2', 'N3'], ['N3', 'N4'], ['N4', 'N5'], ['N5', 'E_N'], ['E_N', 'E1'],
     ['E1', 'Y_E'], ['N5', 'COAL'], ['COAL', 'WHARF'],
+    ['CN_E', 'CN_WHARF'], ['CN_WHARF', 'CN_W'],
   ],
 };
 
@@ -261,3 +268,10 @@ export const rowSpots = [
   { room: 'smithy-room', prefix: 'forge-', type: 'forge', count: 2, rows: 2 },
   { room: 'mess-room', prefix: 'mess-seat-', type: 'mess-seat', count: 24, rows: 4, margin: 3 },
 ];
+
+// The L. & N.W.R. goods yard at Warwick Road, two miles off: a separate patch
+// of the map, joined to the works only by the road journey between them.
+buildings.push(...goodsYard.buildings);
+yard.nodes.push(...goodsYard.nodes);
+yard.edges.push(...goodsYard.edges);
+fixedSpots.push(...goodsYard.spots);

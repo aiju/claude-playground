@@ -2,6 +2,7 @@
 // world around the site, from the scenario's scenery description.
 import * as THREE from 'three';
 import { terraceFront, groundTexture, slateTexture } from './textures.js';
+import { buildPlace } from './places.js';
 
 export function buildScenery(scenario) {
   const pal = scenario.palette;
@@ -131,7 +132,14 @@ export function buildScenery(scenario) {
     x = b;
   }
   wallRuns.push([[x, bw.z1], [bw.x1, bw.z1]]);
-  wallRuns.push([[bw.x0, bw.z0], [bw.x1, bw.z0]], [[bw.x0, bw.z0], [bw.x0, bw.z1]], [[bw.x1, bw.z0], [bw.x1, bw.z1]]);
+  // The north wall, open where the wharf is.
+  x = bw.x0;
+  for (const [a, b] of bw.northGaps || []) {
+    wallRuns.push([[x, bw.z0], [a, bw.z0]]);
+    x = b;
+  }
+  wallRuns.push([[x, bw.z0], [bw.x1, bw.z0]]);
+  wallRuns.push([[bw.x0, bw.z0], [bw.x0, bw.z1]], [[bw.x1, bw.z0], [bw.x1, bw.z1]]);
   for (const [[x0, z0], [x1, z1]] of wallRuns) {
     const len = Math.hypot(x1 - x0, z1 - z0);
     if (len < 1) continue;
@@ -160,6 +168,12 @@ export function buildScenery(scenario) {
     g.add(m);
     const r = new THREE.Mesh(gable(nw.x - 1, nw.x + nw.w + 1, nw.z - 120 - nw.d / 2 - 1, nw.z - 120 + nw.d / 2 + 1, h, 9), slate);
     g.add(r);
+  }
+  // Other places with their own ground, such as a railway goods yard.
+  for (const place of sc.places || []) {
+    const r = buildPlace(place, pal);
+    g.add(r.group);
+    lit.push(...r.lit);
   }
   return { group: g, lit };
 }

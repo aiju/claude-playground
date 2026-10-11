@@ -120,7 +120,7 @@ export class UI {
     const [date, time, status] = this.clockPanel.querySelectorAll('.date, .time, .status');
     date.textContent = cal.longDate(t);
     time.textContent = cal.clockTime(t);
-    const onSite = sc.world.people.filter((p) => p.onSite).length;
+    const onSite = sc.world.people.filter((p) => p.onSite && !p.outside).length;
     let state;
     if (sc.shopsWorking(t)) state = 'The works is at work';
     else if (sc.timetables.works.isHoliday(t)) state = 'Bank holiday: the works is closed';
@@ -178,6 +178,7 @@ export class UI {
     else if (sel.kind === 'lot') html += this.lotHtml(sel.lot);
     else if (sel.kind === 'bike') html += this.bikeHtml(sel.machine);
     else if (sel.kind === 'vehicle') html += this.vehicleHtml(sel.vehicle);
+    else if (sel.kind === 'wagon') html += this.wagonHtml(sel.wagon);
     html += this.papersHtml(sel);
     box.innerHTML = html;
     box.querySelector('.close').onclick = () => this.show({ kind: 'none' });
@@ -216,7 +217,7 @@ export class UI {
     html += `<dt>Pay</dt><dd>${esc(this.pay(p))}</dd>`;
     if (home) html += `<dt>Lives</dt><dd>${esc(home.label || '')}</dd>`;
     html += '</dl>';
-    if (p.role !== 'staff') html += this.timecardHtml(p);
+    if (p.role === 'hand' || p.role === 'foreman') html += this.timecardHtml(p);
     html += '<div class="actions"><button data-act="follow">Follow</button></div>';
     return html;
   }
@@ -315,12 +316,32 @@ export class UI {
     return html;
   }
 
+  wagonHtml(w) {
+    if (!w) return '<h2>A wagon</h2>';
+    const owner = w.owner === 'MR' ? 'Midland Railway' : 'L. & N.W.R.';
+    const kind = { open: 'open goods wagon', van: 'covered goods van', cattle: 'cattle wagon' }[w.kind] || 'wagon';
+    let html = `<h2>${esc(owner)} No. ${w.no.toLocaleString('en-GB')}</h2><div class="sub">${esc(capitalise(kind))}, lead grey</div>`;
+    const state = {
+      inward: `In last night with goods: ${w.packages} packages still to unload`,
+      empty: 'Unloaded, waiting to be drawn out',
+      loading: w.sheeted ? `Loaded and sheeted for the night goods: ${w.region}` : `Loading for the night goods: ${w.region}`,
+      siding: 'Standing in the sidings',
+    }[w.state] || '';
+    html += `<div class="now">${esc(state)}</div><dl>`;
+    if (w.crates) html += `<dt>Cycle crates</dt><dd>${w.crates}</dd>`;
+    if (w.packages && w.state !== 'inward') html += `<dt>Other packages</dt><dd>${w.packages}</dd>`;
+    html += '</dl>';
+    return html;
+  }
+
   vehicleHtml(v) {
     if (!v) return '';
-    let html = `<h2>${esc(capitalise(v.name))}</h2><div class="sub">Pair-horse lorry</div>`;
+    const kind = { lorry: 'Pair-horse lorry', van: 'One-horse covered van', cart: 'One-horse cart' }[v.kind] || 'Horse vehicle';
+    let html = `<h2>${esc(capitalise(v.name))}</h2><div class="sub">${esc(kind)}</div>`;
     html += `<div class="now">${esc(capitalise(v.activity))}</div><dl>`;
     if (v.driver) html += `<dt>Carman</dt><dd>${esc(v.driver.name)}</dd>`;
-    html += `<dt>Load</dt><dd>${v.load ? `${v.load} crate${v.load > 1 ? 's' : ''}` : 'Empty'}</dd>`;
+    const unit = v.kind === 'lorry' ? 'crate' : 'package';
+    html += `<dt>Load</dt><dd>${v.load ? `${v.load} ${unit}${v.load > 1 ? 's' : ''}` : 'Empty'}</dd>`;
     html += '</dl>';
     return html;
   }

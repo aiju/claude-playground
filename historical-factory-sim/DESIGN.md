@@ -146,14 +146,14 @@ The layout follows Humber's documented four-storey plan of 1897, which was still
 
 ### The goods yard
 
-The LNWR goods yard at Warwick Road, about two miles away, is a **second, smaller diorama** you can switch to. It doesn't share the same ground plane. It shows:
+The LNWR goods yard at Warwick Road, about two miles away, is a **second, smaller diorama** you can switch to. It stands on its own patch of ground, well away from the works, and the vehicles that go between them leave one and turn up at the other after the time the journey takes. It shows:
 - the walled yard and the weighbridge office at the gate;
 - the No. 2 goods shed, with an internal platform and lead-grey wagons, some still with white diamonds and some with "L N W R" lettering;
 - the 5-ton hand crane and wagon turntables;
 - the two-storey street range with stables below;
 - the cartage foreman.
 
-The yard fills with drays between 5 and 7 p.m. Our crates are tracked in full detail. Other traffic is ambient.
+The yard fills with drays between 5 and 7 p.m. Our crates are tracked in full detail. Other traffic is ambient. How it runs is in "The goods yard and the coal boat as built" in §7.
 
 The private siding is optional. Daimler had one, but it isn't needed for cycles, which went out as small consignments ("smalls") through the goods shed. We can add it later.
 
@@ -461,8 +461,8 @@ This is the routine as the simulation runs it. Figures marked (est.) are estimat
   - The despatch clerk, at a desk in the warehouse, writes the packing slip and the advice of despatch, each in triplicate, plus the railway's consignment note.
   - The customer's copy of the advice goes by post, the office copies of both go to the General Office, and the warehouse copy waits on the dock with the crates.
 - **Cartage:**
-  - Two pair-horse lorries go to Warwick Road at set times when there are crates waiting (est.): the big lorry at 9.30, 1.45 and 4.15, the second at 11 and 3. Whichever of the three carmen is free takes one.
-  - A round takes about two hours: 35 minutes each way at a walk, plus unloading.
+  - Two pair-horse lorries go to Warwick Road at set times when there are crates waiting (est.): the big lorry at 9.30, 1.30 and 4.30, the second at 11 and 3.15. Whichever of the three carmen is free takes one.
+  - A round takes about an hour and a half: half an hour each way at a walk, plus backing up to the goods shed, unloading and waiting for the checker.
   - The consignment note stays with the railway, and the packing slip goes on with the goods. The checker signs the warehouse copy of the advice, which comes back to the despatch clerk.
   - Carriage on "Paid" consignments is posted to the L. & N.W.R. account at 2s. 6d. a crate (est.).
   - The carmen work longer hours than the shops, to 6.30 p.m. (est.), and are paid for them. The pay window stays open until they're off.
@@ -480,7 +480,67 @@ This is the routine as the simulation runs it. Figures marked (est.) are estimat
 - **Stock and the programme:**
   - The Stock Room opens with 450 machines from the winter (est.).
   - The Works Manager still follows the season's programme cycle, but puts first any model the agents are waiting for that isn't covered by stock and work in hand.
-- **Not yet built:** credit notes, telegrams, the letter book, export, the B/C/D order series, and the goods yard diorama (milestone 5).
+- **Not yet built:** credit notes, telegrams, the letter book, export, and the B/C/D order series.
+
+### Purchasing as built (milestone 5)
+
+The routine is Elbourne's (1914), with Spencer's (1907) where they differ. Figures marked (est.) are estimates.
+
+- **Stock control cards:**
+  - The storekeeper keeps a card for each bought-in part (about two dozen) and for coal.
+  - Each card has an ordering level of a week and a half's use plus the supplier's lead time, and a normal quantity of two weeks' use (est.).
+  - The storekeeper looks through the cards at 8.40 and 2.15, and posts the day's issues to them before the end of the day.
+- **Requisitions and orders:**
+  - When stock plus what's on order falls to the level, the storekeeper writes a purchase requisition in triplicate. The Works Manager initials it (Spencer's "O.K. and initial each item").
+  - The Buyer places it with the part's supplier. His clerk types the purchase order in triplicate: the top copy for the supplier, the second for the Buyer's file, and the third, without prices, for the Receiving Clerk. It is entered in the Purchase Orders Register.
+  - The Managing Director signs any order over £50.
+  - Orders go by the evening post. The Receiving Clerk's copy goes round with the office boy.
+- **Suppliers:**
+  - There are sixteen, plus the colliery: tubes, lugs, rims, spokes, balls, chains, hubs, gears, saddles, tyres and the rest, from Birmingham, Sheffield, Nottingham, Redditch, Chelmsford and Coventry itself. Some are real firms of the period and some are invented.
+  - Each takes one to six working days to send the goods (est.), and posts an advice of despatch the same day. The invoice follows by separate post up to two days later.
+  - The goods come by the L. & N.W.R. or the Midland (by the night goods, then the railway's van in the morning), by the supplier's own cart, or by parcel post. Coal comes by canal boat.
+  - Nothing is delivered on a Sunday or a bank holiday.
+- **Receiving:**
+  - The Receiving Clerk signs the carman's delivery sheet or delivery note at the Rough Stores door, counts the goods against the unpriced copy of the order, and writes a goods received note in carbon duplicate. The duplicate stays in his book, and the entry goes in the Goods Received Book.
+  - The goods go into the store, the stock card is posted, and the order copy is endorsed "received in full" and filed with the advice note.
+  - The top copy of the goods received note goes to the Works Accounts Office.
+- **Invoices:**
+  - "Suppliers' invoices shall not be sent beyond the Works Accounts Office." There a cost clerk matches each invoice with its goods received note, prices the note, and passes and numbers the invoice (P.I. 1301 and so on).
+  - The Bought Ledger clerk enters it in the Bought Day Book and posts it to the supplier's page in the Bought Ledger, against Purchases (or Coal and Fuel for the colliery's invoices).
+- **Statements and pay day:**
+  - At the start of the month each supplier sends a statement, and the L. & N.W.R. sends its monthly account for carriage. The Bought Ledger clerk checks each against the ledger and marks it agreed.
+  - "Our pay day is the third Wednesday in the month" (Spencer). On the Monday before, the Bought Ledger clerk makes out the list of payments for everything delivered in the month before.
+  - The Secretary checks the list and the Managing Director sanctions it. On the Wednesday the Cashier writes a combined cheque and receipt for each supplier, less 2½% for prompt payment (the railway's account is paid net), with a penny stamp on the receipt for £2 or more. They go by the evening post, and the receipts come back signed.
+- **Opening state:** each card opens with some stock (est.), and orders already placed for anything below its level. February's purchases are owed as balances brought forward and are paid on 19 March.
+
+### The goods yard and the coal boat as built (milestone 5)
+
+**The yard** (after West, *Railway Goods Station Working*, 1912; numbers est.):
+- **The staff:** eight railwaymen: a goods checker, a caller-off, three porters, a shunt-horse driver, a weighbridge clerk and the cartage foreman. They're on from six in the morning to a quarter to nine at night.
+- **The morning:**
+  - At half past five the shunt horse places last night's inward vans (an L. & N.W.R. and a Midland) and four empty open wagons at the goods shed.
+  - The porters unload the vans onto the delivery bank.
+  - At a quarter to eight the railway's vans load our packages there and take them to the works with a delivery sheet, which the Receiving Clerk signs.
+  - Other traders' carts take away the rest during the day.
+- **Our crates:**
+  - The lorries back up to a bay, and the crates go onto the platform.
+  - The checker checks them against the consignment notes and signs. The notes stay in the goods office, and the warehouse copy of each advice goes back with the carman.
+  - The porters load the crates into the open wagons for the north and the south.
+- **The evening:**
+  - Between five and half past seven the traders' carts crowd the bays.
+  - From a quarter to eight the porters sheet the loaded wagons.
+  - At half past eight the shunt horse draws them out for the night goods, which takes every crate that came in that day.
+- **Rolling stock:** lead-grey wagons. The L. & N.W.R.'s are lettered L N W R with white diamonds; the Midland's are lettered M R. Sheeted wagons stand in the sidings.
+
+**Coal:**
+- **Supply:** boiler slack comes from the Griff colliery near Nuneaton, by horse-drawn narrow boat down the Coventry Canal, 25 tons at a time (est.). It is ordered on a stock card like any other part.
+- **The boat:**
+  - It arrives in the late morning with the colliery's weight ticket.
+  - The Receiving Clerk comes down to the wharf to sign the ticket.
+  - The six yard labourers shovel the slack into barrows and wheel it to the coal yard, which takes about three hours.
+  - The ticket is filed with the goods received note.
+- **Use:** the two stokers barrow 3 cwt at a time from the coal yard to the boiler fronts, about two tons a day (est.).
+- **On screen:** the heap in the coal yard grows and shrinks with the stock.
 
 ### Facsimiles
 
@@ -500,7 +560,10 @@ Layouts follow the column lists in Elbourne's specimen forms. The research had n
 - **Despatches:** every despatched machine has an advice of despatch, an invoice and a consignment note.
 - **Wages:** the cash drawn equals the total on the wages abstract.
 - **National Insurance:** stamps bought equal stamps fixed on cards and books.
-- **Purchases:** every supplier's invoice paid is matched to a goods received note.
+- **Purchases:** every supplier's invoice paid is matched to a goods received note, and the Bought Ledger agrees with Sundry Creditors.
+- **Pay day:** suppliers are paid on the third Wednesday, less 2½%, and their statements agree with the ledger.
+- **The goods yard:** every crate carted to Warwick Road goes by a night goods, and the checker signs every consignment note.
+- **Coal:** every boat-load has its weight ticket and goods received note, and the boilers never run short.
 
 ## 8. Simulation model
 
@@ -612,7 +675,7 @@ Each milestone runs on its own and ends with the invariant tests passing.
 2. **Production.** The catalogue, bills of materials and routings; stores; batches flowing through the shops with stoves and hearths as capacities; frame numbers; finished stock.
 3. **Works paper.** Work tallies, stage tickets, job tickets, time cards, the wages week through to Friday's pay tins, National Insurance stamps and lateness fines.
 4. **Commercial paper.** The post bag, agents' orders, the six-copy office order, despatch, consignment notes, the dray to Warwick Road, invoices, day books, ledgers, statements, cheques and the bank. *(Built; see "The commercial routine as built" in §7.)*
-5. **Purchasing and logistics.** Requisitions, purchase orders, goods received notes, invoice matching and supplier payment; LNWR cartage; the canal coal boat; the goods yard diorama.
+5. **Purchasing and logistics.** Requisitions, purchase orders, goods received notes, invoice matching and supplier payment; LNWR cartage; the canal coal boat; the goods yard diorama. *(Built; see "Purchasing as built" and "The goods yard and the coal boat as built" in §7.)*
 6. **The year.** Seasonality, the show, the month-end routine, the cost abstract, stocktaking and the 31 August year end, the audit and the AGM, plus the inspector's visits and accidents.
 7. **Polish.** Full facsimiles, follow mode, lighting and the tilt-shift look, and the surroundings (terraces, tram, pub).
 

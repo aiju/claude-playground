@@ -9,6 +9,7 @@ import { FiguresLayer } from './figures.js';
 import { LotsLayer } from './lots.js';
 import { PaperLayer } from './paper.js';
 import { VehiclesLayer } from './vehicles.js';
+import { WagonsLayer } from './wagons.js';
 import { MillEngine, RopeDrive, lancashireBoiler, Smoke } from './machinery.js';
 import { sunPosition, sunDirection, lighting } from './sky.js';
 
@@ -98,9 +99,23 @@ export class View {
       }
     }
 
+    // Heaps of loose stuff in the open, sized by what's in the store.
+    this.heaps = (scenario.scenery?.heaps || []).map((h) => {
+      const mesh = new THREE.Mesh(new THREE.ConeGeometry(h.radius, h.height, 9, 2), new THREE.MeshStandardMaterial({ color: h.colour, roughness: 1, flatShading: true }));
+      mesh.position.set(h.x, 0, h.z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return { h, mesh, store: scenario.production?.stores.get(h.store) };
+    });
+
     if (scenario.vehicles?.length) {
       this.vehicles = new VehiclesLayer(scenario);
       scene.add(this.vehicles.group);
+    }
+    if (scenario.railway) {
+      this.wagons = new WagonsLayer(scenario);
+      scene.add(this.wagons.group);
     }
 
     // The engine house and boiler house.
@@ -206,6 +221,13 @@ export class View {
       this.onPick?.({ kind: 'person', person: this.scenario.world.people[hit.instanceId] });
       return;
     }
+    const hitsW = this.wagons ? this.raycaster.intersectObjects(this.wagons.pickables(), false) : [];
+    const wHit = hitsW.find((h) => h.object.parent?.visible);
+    if (wHit && (!lotHit || wHit.distance < lotHit.distance)) {
+      this.select(-1);
+      this.onPick?.({ kind: 'wagon', wagon: this.wagons.wagonFor(wHit.object) });
+      return;
+    }
     const hitsV = this.vehicles ? this.raycaster.intersectObjects(this.vehicles.pickables(), false) : [];
     const vHit = hitsV.find((h) => h.object.visible && h.object.parent?.visible);
     if (vHit && (!lotHit || vHit.distance < lotHit.distance)) {
@@ -280,6 +302,9 @@ export class View {
     this.hemi.intensity = L.hemi;
     this.hemi.color.set(L.night > 0.5 ? '#9fb2d6' : '#dfe6ea');
     const dir = sunDirection(sp);
+    const tg = this.controls.target;
+    this.sun.target.position.set(Math.round(tg.x / 50) * 50, 0, Math.round(tg.z / 50) * 50);
+    this.sun.target.updateMatrixWorld();
     this.sun.position.copy(this.sun.target.position).add(dir.multiplyScalar(1500));
     this.sun.intensity = L.sun;
     this.sun.color.copy(L.sunColour);
@@ -288,8 +313,11 @@ export class View {
     const works = sc.shopsLit ? sc.shopsLit(t) : sc.shopsWorking(t);
     const office = sc.officeWorking(t);
     this.interior.intensity = (works || office) ? 0.55 * L.night : 0.05 * L.night;
+    const mod = parts.hour * 60 + parts.minute;
     for (const { spec, litMats } of this.buildings.byId.values()) {
-      const on = spec.style === 'office' ? office || (spec.id === 'gatehouse' && L.night > 0.3) : works;
+      let on = spec.style === 'office' ? office || (spec.id === 'gatehouse' && L.night > 0.3) : works;
+      // Buildings with their own hours (the railway's) are lit by those.
+      if (spec.litHours) on = mod >= spec.litHours[0] && mod < spec.litHours[1] && sc.cal.dow(t) !== 0;
       for (const { mat } of litMats) mat.emissiveIntensity = on ? 1.1 * L.night : 0;
     }
     for (const { mat, kind } of this.sceneryLit) {
@@ -306,6 +334,13 @@ export class View {
 
     this.figures.update(t, realTime, this.isVisible);
     this.vehicles?.update(t);
+    this.wagons?.update(t, this.isVisible);
+    for (const { h, mesh, store } of this.heaps) {
+      const f = Math.cbrt(Math.max(0, store ? store.qty(h.item) : 0) / h.full);
+      mesh.visible = f > 0.05;
+      mesh.scale.setScalar(Math.max(f, 0.05));
+      mesh.position.y = (h.height * f) / 2;
+    }
     this.paperLayer?.update(this.figures, this.isVisible);
     if (this.lots) {
       this.lots.update(t, this.figures, this.isVisible);
