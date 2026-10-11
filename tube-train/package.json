@@ -1,0 +1,15 @@
+{
+  "name": "tube-train",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A 3D model of a London Underground Victoria line train (2009 Stock), rendered in the browser with WebGL",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "stills": "node tools/stills.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.55.0",
+    "three": "0.186.1"
+  }
+}
