@@ -1,0 +1,207 @@
+% The opening pages of G. H. Hardy, Divergent Series (Oxford, Clarendon
+% Press, 1949), chapter I, pp. 1-6, for comparing against the printed book.
+
+\chapter{Introduction}
+
+\section{The sum of a series.} The series
+$$\sum_0^\infty a_n = a_0+a_1+a_2+\dots$$
+is said to be \emph{convergent}, to the sum $s$, if the `partial sum'
+$$s_n = a_0+a_1+\dots+a_n$$
+tends to a finite limit $s$ when $n\to\infty$; and a series which is not
+convergent is said to be \emph{divergent}. Thus the series
+$$\no\label{1-1} 1-1+1-1+\dots, \no 1-2+3-4+\dots, \\
+  \no 1-2+4-8+\dots, \no 1-1!+2!-3!+\dots, \\
+  \no 1+1+1+1+\dots, \no 1+2+4+8+\dots,$$
+are divergent. The series
+$$\no 1+e^{i\theta}+e^{2i\theta}+\dots, \no \frac12+\cos\theta+\cos2\theta+\dots,$$
+are divergent for all real $\theta$, and
+$$\no \sin\theta+\sin2\theta+\sin3\theta+\dots$$
+is divergent except when $\theta$ is a multiple of $\pi$, when it converges to
+the sum 0.
+
+The definitions of convergence and divergence are now commonplaces of
+elementary analysis. The ideas were familiar to mathematicians before Newton
+and Leibniz (indeed to Archimedes); and all the great mathematicians of the
+seventeenth and eighteenth centuries, however recklessly they may seem to
+have manipulated series, knew well enough whether the series which they used
+were convergent. But it was not until the time of Cauchy that the
+definitions were formulated generally and explicitly.
+
+Newton and Leibniz, the first mathematicians to use infinite series
+systematically, had little temptation to use divergent series (though
+Leibniz played with them occasionally). The temptation became greater as
+analysis widened, and it was soon found that they were useful, and that
+operations performed on them uncritically often led to important results
+which could be verified independently. We give a few simple examples in the
+next section; in Ch.~II we shall give others, of greater importance, from
+the work of the classical analysts.
+
+\section{Some calculations with divergent series.} We know that
+$$\no\label{geom} 1+x+x^2+\dots = \frac{1}{1-x}$$
+if $|x|<1$. It seems plain that, if we are to attribute a `sum', in some
+sense, to the series for other $x$, this sum should be formally the same.
+For (i) it would be very inconvenient if the formula varied in different
+cases; (ii) we should expect the sum $s$ to satisfy the equations
+$$s = 1+x+x^2+x^3+\dots = 1+x(1+x+x^2+\dots) = 1+xs;$$
+and (iii) the left-hand side of \eqref{geom} is the result of performing the
+division implied by the right, so that there is certainly one sense of
+`$=$' with which \eqref{geom} may be said to be true for all $x$.
+
+(1) Let us assume then that \eqref{geom} is, in some sense, true for all $x$
+(except perhaps for $x=1$, which plainly presents special difficulties), and
+operate on the formula in an entirely uncritical spirit.
+
+Putting $x=e^{i\theta}$, where $0<\theta<2\pi$ (so that $x\ne1$), we obtain
+$$\no 1+e^{i\theta}+e^{2i\theta}+\dots = (1-e^{i\theta})^{-1} = \frac12+\frac12i\cot\frac12\theta,$$
+and so
+$$\no \frac12+\cos\theta+\cos2\theta+\dots = 0, \no\label{sin} \sin\theta+\sin2\theta+\dots = \frac12\cot\frac12\theta,$$
+for $0<\theta<2\pi$. Changing $\theta$ into $\theta+\pi$, we obtain
+$$\no\label{cos-alt} \frac12-\cos\theta+\cos2\theta-\dots = 0, \no\label{sin-alt} \sin\theta-\sin2\theta+\dots = \frac12\tan\frac12\theta,$$
+for $-\pi<\theta<\pi$. For $\theta=0$, \eqref{cos-alt} gives
+$$\no\label{grandi} 1-1+1-\dots = \frac12.$$
+
+(2) We now differentiate \eqref{cos-alt} and \eqref{sin-alt} repeatedly with
+respect to $\theta$. We thus obtain
+$$\no\label{d1} \sum_1^\infty (-1)^{n-1}n^{2k}\cos n\theta = 0 \quad (k=1,2,\dots;\ -\pi<\theta<\pi), \\
+  \no\label{d2} \sum_1^\infty (-1)^{n-1}n^{2k+1}\sin n\theta = 0, \\
+  \no \sum_1^\infty (-1)^{n-1}n^{2k}\sin n\theta = (-1)^k\left(\frac{d}{d\theta}\right)^{2k}\frac12\tan\frac12\theta, \\
+  \no\label{d4} \sum_1^\infty (-1)^{n-1}n^{2k+1}\cos n\theta = (-1)^k\left(\frac{d}{d\theta}\right)^{2k+1}\frac12\tan\frac12\theta,$$
+the last three formulae for $k=0$, $1,\dots$, $-\pi<\theta<\pi$. In
+particular, putting $\theta=0$ in \eqref{d1} and \eqref{d4}, and
+$\theta=\frac12\pi$ in \eqref{d2}, and remembering that the Taylor's series
+for $\frac12\tan\frac12\theta$ is
+$$\frac12\tan\frac12\theta = \Sum_{k=0}^\infty \frac{2^{2k+2}-1}{(2k+2)!}B_{k+1}\,\theta^{2k+1},$$
+where $B_k$ is Bernoulli's number, we obtain
+$$\no\label{b1} 1^{2k}-2^{2k}+3^{2k}-\dots = 0 \quad (k=1,2,\dots), \\
+  \no\label{b2} 1^{2k+1}-2^{2k+1}+\dots = (-1)^k\frac{2^{2k+2}-1}{2k+2}B_{k+1} \quad (k=0,1,\dots), \\
+  \no\label{b3} 1^{2k+1}-3^{2k+1}+5^{2k+1}-\dots = 0 \quad (k=0,1,\dots).$$
+Similarly, starting from
+$$\no e^{i\theta}-e^{3i\theta}+e^{5i\theta}-\dots = \frac{e^{i\theta}}{1+e^{2i\theta}} = \frac12\sec\theta,$$
+and remembering that
+$$\sec\theta = 1+\Sum_1^\infty \frac{E_k\,\theta^{2k}}{(2k)!},$$
+where $E_k$ is Euler's number, we obtain \eqref{b3} and also
+$$\no 1^{2k}-3^{2k}+5^{2k}-\dots = \frac12(-1)^kE_k \quad (k=1,2,\dots).$$
+We observe in passing that \eqref{b2}, for $k=0$, is
+$$\no\label{quarter} 1-2+3-4+\dots = \frac14,$$
+which is also the result of squaring \eqref{grandi} by Cauchy's rule
+$$(1-1+1-\dots)(1-1+1-\dots) = 1\,.\,1-(1\,.\,1+1\,.\,1)+(1\,.\,1+1\,.\,1+1\,.\,1)-\dots.$$
+
+(3) If we integrate \eqref{cos-alt} from $\theta=0$ to $\theta=\phi$, and
+then write $\theta$ again for $\phi$, we obtain
+$$\no\label{first-int} \sin\theta-\frac12\sin2\theta+\frac13\sin3\theta-\dots = \frac12\theta \quad (-\pi<\theta<\pi).$$
+This series is convergent. A second integration gives
+$$\no\label{second-int} 1-\cos\theta-\frac{1-\cos2\theta}{2^2}+\frac{1-\cos3\theta}{3^2}-\dots = \frac14\theta^2.$$
+Here we may include the limits,\footnote{The series being uniformly
+convergent for all $\theta$.} and $\theta=\pi$ gives
+$$\no 1+\tfrac{1}{3^2}+\tfrac{1}{5^2}+\dots = \frac18\pi^2.$$
+Since
+$$1+\tfrac1{3^2}+\tfrac1{5^2}+\dots = 1+\tfrac1{2^2}+\tfrac1{3^2}+\dots-\tfrac1{2^2}-\tfrac1{4^2}-\dots = \left(1-\tfrac14\right)\left(1+\tfrac1{2^2}+\tfrac1{3^2}+\dots\right),$$
+we deduce
+$$\no 1+\tfrac1{2^2}+\tfrac1{3^2}+\dots = \frac16\pi^2, \no 1-\tfrac1{2^2}+\tfrac1{3^2}-\dots = \frac1{12}\pi^2,$$
+and so
+$$\no\label{last-int} \cos\theta-\frac{\cos2\theta}{2^2}+\frac{\cos3\theta}{3^2}-\dots = \frac1{12}\pi^2-\frac14\theta^2 \quad (-\pi\le\theta\le\pi).$$
+
+Further integrations lead to the summation of
+$\sum(-1)^{n-1}n^{-2k}\cos n\theta$ and $\sum(-1)^{n-1}n^{-2k-1}\sin n\theta$
+by means of the Bernoullian functions.
+
+(4) Alternatively, we could, by a more daring calculation, deduce
+\eqref{second-int} from \eqref{grandi} and \eqref{b1}, arguing that
+$$\Sum_1^\infty (-1)^{n-1}\frac{1-\cos n\theta}{n^2} &= \Sum_{n=1}^\infty \frac{(-1)^{n-1}}{n^2}\Sum_{k=0}^\infty (-1)^k\frac{(n\theta)^{2k+2}}{(2k+2)!} \\
+  &= \Sum_{k=0}^\infty \frac{(-1)^k\theta^{2k+2}}{(2k+2)!}\Sum_{n=1}^\infty (-1)^{n-1}n^{2k} = \frac12\theta^2(1-1+1-\dots) = \frac14\theta^2.$$
+Indeed we could generalize this argument. Suppose that
+$$f(\theta) = a_0+a_1\theta^2+a_2\theta^4+\dots$$
+is convergent for all $\theta$. Then the argument suggests that
+$$\no \Sum_1^\infty (-1)^{n-1}\frac{f(n\theta)}{n^2} &= \Sum_{n=1}^\infty \frac{(-1)^{n-1}}{n^2}\Sum_{l=0}^\infty a_l(n\theta)^{2l} = \sum_{l=0}^\infty a_l\theta^{2l}\sum_{n=1}^\infty (-1)^{n-1}n^{2l-2} \\
+  &= a_0\left(\frac1{1^2}-\frac1{2^2}+\frac1{3^2}-\dots\right)+a_1\theta^2(1-1+1-\dots) = \frac1{12}a_0\pi^2+\frac12a_1\theta^2.$$
+This is plainly not true generally; for example, it is false when
+$f(\theta)=e^{-\theta^2}$: but it is true for quite extensive classes of
+functions. Thus, if $f(\theta)$ is the Bessel function
+$$J_0(\theta) = 1-\frac{\theta^2}{2^2}+\frac{\theta^4}{2^2\,.\,4^2}-\dots,$$
+it gives
+$$\no\label{bessel} J_0(\theta)-\frac{J_0(2\theta)}{2^2}+\frac{J_0(3\theta)}{3^2}-\dots = \frac1{12}\pi^2-\frac18\theta^2 \quad (-\pi<\theta<\pi).$$
+
+(5) From \eqref{sin} we deduce
+$$\sum_1^\infty \cos n\theta\sin n\phi = \frac14\{\cot\frac12(\phi+\theta)+\cot\frac12(\phi-\theta)\} = \dfrac12\,\frac{\sin\phi}{\cos\theta-\cos\phi},$$
+and so
+$$\frac{\cos m\theta-\cos m\phi}{\cos\theta-\cos\phi} = 2\Sum_{n=1}^\infty \frac{\sin n\phi}{\sin\phi}\cos n\theta(\cos m\theta-\cos m\phi)$$
+for any positive integral $m$. If we integrate this equation from
+$\theta=0$ to $\theta=\pi$ (ignoring any difficulties about the range of
+$\theta$ over which it may be expected to be valid\footnote{We have to
+expect trouble with \eqref{sin} for $\theta=0$ or $\theta=2\pi$, since the
+left-hand side vanishes identically and the right-hand side has an infinity,
+and here for values of $\theta$ for which $\cos\theta=\cos\phi$. But it is
+not unreasonable to suppose that these difficulties will disappear when we
+multiply by the factor $\cos m\theta-\cos m\phi$; and the result seems to
+justify our expectation.}), we obtain
+$$\no\label{int-a} \int_0^\pi \frac{\cos m\theta-\cos m\phi}{\cos\theta-\cos\phi}\,d\theta = \pi\frac{\sin m\phi}{\sin\phi},$$
+which may be verified in various ways.
+
+(6) It follows from \eqref{sin} and \eqref{sin-alt} that
+$$\sin\theta+\sin3\theta+\dots = \frac12\cosec\theta, \qquad \sin2\theta+\sin4\theta+\dots = \frac12\cot\theta.$$
+If we multiply these equations by $\theta$, integrate from $\theta=0$ to
+$\theta=\frac12\pi$, and observe that
+$$\int_0^{\frac12\pi} \theta\sin(2n+1)\theta\,d\theta = \frac{(-1)^n}{(2n+1)^2}, \qquad \int_0^{\frac12\pi} \theta\sin2n\theta\,d\theta = (-1)^{n-1}\frac{\pi}{4n},$$
+we obtain
+$$\no\label{int-b} \int_0^{\frac12\pi} \frac{\theta}{\sin\theta}\,d\theta = 2\left(1-\tfrac1{3^2}+\tfrac1{5^2}-\dots\right), \\
+  \no\label{int-c} \int_0^{\frac12\pi} \theta\cot\theta\,d\theta = \frac12\pi\log2.$$
+These formulae also may be verified independently.
+
+\section{First definitions.} The results of the formal calculations of
+\S1.2 are correct wherever they can be checked: thus all of the formulae
+\eqref{first-int}--\eqref{last-int}, \eqref{bessel}, and
+\eqref{int-a}--\eqref{int-c} are correct. It is natural to suppose that the
+other formulae will prove to be correct, and our transformations
+justifiable, if they are interpreted appropriately. We should then be able
+to regard the transformations as shorthand representations of more complex
+processes justifiable by the ordinary canons of analysis. It is plain that
+the first step towards such an interpretation must be some definition, or
+definitions, of the `sum' of an infinite series, more widely applicable than
+the classical definition of Cauchy.
+
+This remark is trivial now: it does not occur to a modern mathematician
+that a collection of mathematical symbols should have a `meaning' until one
+has been assigned to it by definition. It was not a triviality even to the
+greatest mathematicians of the eighteenth century. They had not the habit of
+definition: it was not natural to them to say, in so many words, `by $X$ we
+\emph{mean} $Y$'. There are reservations to be made, to which we shall
+return in \SS1.6--7; but it is broadly true to say that mathematicians
+before Cauchy asked not `How shall we \emph{define} $1-1+1-\dots$?' but
+`What \emph{is} $1-1+1-\dots$?', and that this habit of mind led them into
+unnecessary perplexities and controversies which were often really verbal.
+
+It is easy now to pick out one cause which aggravated this tendency, and
+made it harder for the older analysts to take the modern, more
+`conventional', view. It generally seems that there is only one sum which it
+is `reasonable' to assign to a divergent series: thus all `natural'
+calculations with the series \eqref{1-1} seem to point to the conclusion
+that its sum should be taken to be $\frac12$. We can devise arguments
+leading to a different value,\footnote{See \S1.6(2).} but it always seems
+as if, when we use them, we are somehow `not playing the game'.
+
+The reason for this is fairly obvious. The simplest argument for
+\eqref{grandi} is `$s=1-1+1-\dots=1-(1-1+1-\dots)=1-s$, and so
+$s=\frac12$': we thus obtain the value $\frac12$, whatever our definition,
+provided only that it satisfies certain very natural conditions.
+
+Let us suppose, for example, that we have given any definition of the sum
+of a series which satisfies the following axioms:
+
+\begin{items}
+\item[($A$)] \emph{if}\enskip$\sum a_n=s$\enskip\emph{then}\enskip$\sum ka_n=ks$;
+\item[($B$)] \emph{if}\enskip$\sum a_n=s$\enskip\emph{and}\enskip$\sum b_n=t$,\enskip
+\emph{then}\enskip$\sum(a_n+b_n)=s+t$;
+\item[($C$)] \emph{if}\enskip$a_0+a_1+a_2+\dots=s$\enskip\emph{then}\enskip
+$a_1+a_2+a_3+\dots=s-a_0$, \emph{and conversely}.
+\end{items}
+
+\noindent Actually, all definitions which we shall use satisfy ($A$) and
+($B$), and most, though not all, satisfy ($C$). Then, if $1-1+1-\dots=s$,
+we have
+$$s = 1-1+\dots = 1+(-1+1-\dots) = 1-(1-1+\dots) = 1-s:$$
+here we have used only ($A$) and ($C$). Similarly, if $1-2+3-4+\dots=s$, we
+have
+$$s = 1-2+3-\dots &= 1+(-2+3-4+\dots) = 1-(2-3+4-\dots) \\
+  &= 1-(1-1+1-\dots)-(1-2+3-\dots) = 1-\frac12-s,$$
+and so $s=\frac14$, in agreement with \eqref{quarter}. Here we have used all
+of ($A$), ($B$), and ($C$).
