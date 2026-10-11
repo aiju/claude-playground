@@ -12,6 +12,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 | [pdp10-death-star](pdp10-death-star) | The Death Star firing its superlaser, ray traced by a MACRO-10 program running under TOPS-10 on a simulated PDP-10 (KA10) |
 | [pdp10-still-life](pdp10-still-life) | A still life of a ceramic Clawd and a glass of water on a gingham tablecloth, drawn by a recursive ray tracer with soft shadows and procedural textures in MACRO-10 on a simulated PDP-10 (KA10) |
 | [sunken-bell-song](sunken-bell-song) | A layered orchestral, ethnic and electronic instrumental with choir, duduk and erhu, synthesized from scratch in JavaScript |
+| [ttl-minicomputer](ttl-minicomputer) | Design exploration for a 16-bit minicomputer built from 7400-series chips: ISA, assembler and simulator, test programs, a 98-chip implementation with an event-driven timing simulator, and an evaluation of the instruction set |
 
 ## House rules
 
