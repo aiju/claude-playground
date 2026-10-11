@@ -2,7 +2,7 @@
 
 A stylised 3D simulation of a pre-computer factory, accurate to its time in the paperwork, logistics and bureaucracy. The first scenario is the Sherbourne Cycle Company Limited: a fictional, mid-sized Coventry cycle works in 1913, with about 400 hands, card time recorders, six-copy office orders, pay tins on Friday night and horse drays to the LNWR goods yard.
 
-**Status:** milestone 5 of 7 (see [DESIGN.md](DESIGN.md) §11).
+**Status:** milestone 6 of 7, in progress: the cost accounts and the month's end are built (see [DESIGN.md](DESIGN.md) §11).
 
 The works stands, with its steam engine, shafting and about 400 people. Production runs:
 - Frames go through building, brazing, filing, numbering, polishing, three coats of stoved enamel and lining.
@@ -40,6 +40,15 @@ Buying in runs on Elbourne's routine too:
 - Suppliers' statements are checked against the ledger at the start of the month.
 - On the third Wednesday the month's accounts are paid. The list of payments is checked by the Secretary and sanctioned by the Managing Director, and each supplier gets a combined cheque and receipt, less 2½%.
 
+The cost accounts and the month's end follow Elbourne and Hawkins's *Cost Accounts* (1905):
+- Every sub-order has a cost card in the Cost Ledger.
+  - Each coupon cut from a work tally when the stores issue parts is priced from the stock rate card and posted to its card.
+  - Each week's time slips are abstracted into direct wages by sub-order, with the rest of the wages going to standing orders (supervision, stores, the engine house, waiting time and so on). The allocation agrees with the wages to the farthing.
+- Every fortnight the Works Accountant adds shop charges as a percentage on direct wages, sets that against what the works actually spent, and revises the rate. He closes the cards of finished batches and takes the Delivered Orders Cost Abstract to the Managing Director: the works cost of every order invoiced against its invoice.
+- On the last working day of the month the salaried staff are paid in envelopes, with the insured staff's health stamps fixed.
+- On the first working day the Secretary posts the month's accrued expenses and depreciation in the Journal and extracts a trial balance. On the third the Secretary makes out the monthly statement: sales, the works cost of the machines invoiced, office and selling expenses, and the month's estimated profit or loss.
+- The figures show machines alone barely covering their works cost, as the research report's model suggests, since part of a 1913 maker's turnover came from spares. A spares trade comes next.
+
 Away from the works:
 - **The Warwick Road goods yard** is a second diorama, about two miles off.
   - At half past five the shunt horse places last night's inward vans and empty open wagons at the goods shed.
@@ -49,7 +58,7 @@ Away from the works:
 
 The **Paperwork** button opens an explorer of every paper written so far, by kind, by where it is now (in which tray, with the customer, at the railway, in someone's hand), and the books and ledgers. Each document shows as a facsimile with its carbon copies, its history and its paper trail: from an agent's letter through the office order, packing slip, advice of despatch, consignment note and invoice, or from a time card to its pay slip and the week's wages abstract. A link ending `#paperwork` opens the explorer straight away.
 
-Click anyone, any tray of work, a lorry, a wagon, a desk or an office to see their papers as facsimiles of the period forms. Desks also show their books: the correspondence register, the order book, the despatch book, the sales day book, the cash book, the purchase orders register, the goods received book and the bought day book. The Secretary's desk has the trial balance, and the ledger clerks' desks have the agents' and suppliers' ledger pages. The year comes next: the seasons, the cycle show, the month-end routine, stocktaking and the year end.
+Click anyone, any tray of work, a lorry, a wagon, a desk or an office to see their papers as facsimiles of the period forms. Desks also show their books: the correspondence register, the order book, the despatch book, the sales day book, the cash book, the purchase orders register, the goods received book and the bought day book. The Secretary's desk has the trial balance, and the ledger clerks' desks have the agents' and suppliers' ledger pages. The Works Accountant's desk has the Cost Ledger and the Estimator's sheets, the Secretary's desk the Journal and the private file of monthly accounts, and the Cashier's the Salaries Book. The rest of the year comes next: the seasons, the cycle show, stocktaking and the year end.
 
 - [DESIGN.md](DESIGN.md): what we're building and how, including the split between a period-independent engine and the 1913 scenario.
 - [Research report](research/reports/Coventry%20cycle%20works%201913.md): the sourced findings behind the design, with about 150 linked sources.
@@ -91,5 +100,5 @@ node --test
 ## Layout
 
 - `engine/`: knows nothing about Coventry or 1913. `engine/sim` is the event kernel, calendar, £ s d, random numbers, the site graph and people. `engine/render` is the three.js view. `engine/ui` is the overlay.
-- `scenarios/coventry-1913/`: everything with a date on it: the site plan, timetables, staff, routines, production, the works' and the office's paper, the agents and suppliers, purchasing, the goods yard, the coal boat, and colours.
+- `scenarios/coventry-1913/`: everything with a date on it: the site plan, timetables, staff, routines, production, the works' and the office's paper, the agents and suppliers, purchasing, the goods yard, the coal boat, the cost accounts, the month's end, and colours.
 - `test/`: Node tests.

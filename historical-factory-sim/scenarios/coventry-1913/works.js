@@ -53,7 +53,7 @@ const lady = (lot) => lot.batch && (lot.batch.pattern === 'lady' || lot.batch.pa
 
 // --- Routings for the three streams of a batch and for erecting ----------------
 
-function frameRouting() {
+export function frameRouting() {
   return [
     { issue: frameIssue(), store: 'rough', group: 'storeman', room: 'rough-stores', min: 1.5, op: 'issuing tubes and lugs', take: [100, 100] },
     { op: 'building frames in the jig', group: 'frame-builder', room: 'frame-shop', min: 125, take: [1, 2], stage: 'built' },
@@ -78,7 +78,7 @@ function frameRouting() {
   ];
 }
 
-function brightRouting() {
+export function brightRouting() {
   return [
     { issue: brightIssue(), store: 'finished', group: 'finished-storeman', room: 'view-room', min: 2, op: 'issuing bright parts', take: [100, 100] },
     { op: 'polishing cranks, chainwheels and handlebars', group: 'polisher', room: 'polishing', min: 140, take: [1, 2], stage: 'polished' },
@@ -90,7 +90,7 @@ function brightRouting() {
   ];
 }
 
-function wheelRouting() {
+export function wheelRouting() {
   return [
     { issue: wheelRoughIssue(), store: 'rough', group: 'storeman', room: 'rough-stores', min: 2, op: 'issuing rims and spokes', take: [100, 100] },
     { issue: wheelFinishedIssue(), store: 'finished', group: 'finished-storeman', room: 'view-room', min: 1.5, op: 'issuing hubs and cones', take: [100, 100] },
@@ -101,7 +101,7 @@ function wheelRouting() {
   ];
 }
 
-function erectingRouting(model) {
+export function erectingRouting(model) {
   return [
     { issue: [...finishingIssue(model), ['ball', 22]], store: 'rough', group: 'storeman', room: 'finishing', min: 3, op: 'making up finishing sets', take: [100, 100] },
     { issue: finishingMadeIssue(), store: 'finished', group: 'finished-storeman', room: 'finishing', min: 1, op: 'issuing bracket parts', take: [100, 100] },
@@ -150,7 +150,7 @@ export const STOCK_PARTS = {
 
 const VIEW_MIN = { 'hub-shell': 1, chainwheel: 2, crank: 1, axle: 0.5, 'seat-pillar': 0.5, 'small-parts': 3, cone: 0.5, cup: 0.5, 'pressings-set': 1, handlebar: 1 };
 
-function stockRouting(item, qty) {
+export function stockRouting(item, qty) {
   const sp = STOCK_PARTS[item];
   const material = sp.tube ? [['handlebar-tube', 1]] : [['bar-steel', sp.bar]];
   const r = [{ issue: material, store: 'rough', group: 'storeman', room: 'rough-stores', min: 0.05, op: `issuing ${sp.tube ? 'tube' : 'bar steel'}`, take: [qty, qty] }];

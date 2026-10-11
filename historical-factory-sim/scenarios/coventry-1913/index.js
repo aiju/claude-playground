@@ -28,6 +28,8 @@ import {
 } from './purchasing.js';
 import { setupRailway, railwayStaffProcess, yardDay, tradersCart, GX, GZ } from './railway.js';
 import { setupCoal, makeBoat, coalBoat, yardLabourer, stoker } from './coal.js';
+import { setupCosting, openingWorkInProgress, costClerk, worksAccountant } from './costing.js';
+import { setupMonthEnd, secretaryMonthEnd } from './monthend.js';
 import { price as fmtPrice } from '../../engine/sim/money.js';
 
 export const meta = {
@@ -139,7 +141,11 @@ export function createScenario({ seed = 1913, start } = {}) {
     makeVan('cart-1', 'a supplier\u2019s cart', { kind: 'cart', colour: '#55603f', home: 'HOME_W' }),
     makeVan('cart-2', 'a supplier\u2019s cart', { kind: 'cart', colour: '#5d4a33', home: 'HOME_E' }),
   );
+  // The cost accounts, with a card for every sub-order in the shops.
+  setupCosting(world, production);
+  setupMonthEnd(world);
   seedWorks(world, production);
+  openingWorkInProgress(world, production);
   const roles = { postBoy: null, errandBoy: null, officePostBoy: null, clerks: 0 };
   for (const p of world.people) sim.spawn(processFor(world, p, roles), p.name);
 
@@ -235,7 +241,7 @@ function processFor(world, p, roles) {
     return worksPost(world, p);
   }
   switch (p.trade) {
-    case 'Secretary and Accountant': return secretary(world, p, { extra: [secretaryPayments] });
+    case 'Secretary and Accountant': return secretary(world, p, { extra: [secretaryMonthEnd, secretaryPayments] });
     case 'Storekeeper': return storekeeper(world, p);
     case 'Works Manager': return worksManagerDesk(world, p);
     case 'Buyer': return buyer(world, p);
@@ -247,7 +253,8 @@ function processFor(world, p, roles) {
         roles.matcher = p;
         return invoiceMatcher(world, p);
       }
-      break;
+      return costClerk(world, p);
+    case 'Works Accountant and Estimator': return worksAccountant(world, p);
     case 'Order and Invoice Clerk': return orderClerk(world, p);
     case 'Sales Ledger Clerk': return salesLedgerClerk(world, p);
     case 'Despatch Clerk': return despatchClerk(world, p);
