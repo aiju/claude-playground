@@ -1,0 +1,88 @@
+% G. H. Hardy, Divergent Series (Oxford, Clarendon Press, 1949), the start
+% of chapter III, pp. 42-43: theorems, fraktur letters, a footnote.
+
+\pagenumber{42}
+\chapter[III]{General theorems}
+
+\section{Generalities concerning linear transformations.} The theory of
+divergent series is concerned with generalizations of the notion of the
+limit of a sequence $(s_n)$, which are usually effected by an auxiliary
+sequence of linear means of $s_n$. Thus in \S1.3 we defined the (C,~1)
+limit of $(s_n)$, or the (C,~1) sum of $\sum a_n$, as the limit of
+$$\no\label{c1} t_m = \frac{s_0+s_1+\dots+s_m}{m+1}$$
+when $m\to\infty$; and the A limit of $(s_n)$, or the A sum of $\sum a_n$,
+as the limit of
+$$\no\label{abel} t(x) = \sum a_nx^n = \sum x^n(1-x)s_n$$
+when $x\to1$ through values less than 1. In each case the auxiliary means
+are of the form
+$$\no\label{tm} t_m = \sum c_{m,n}s_n \quad (m=0,1,2,\dots)$$
+or
+$$\no\label{tx} t(x) = \sum c_n(x)s_n,$$
+where $x$ is a continuous parameter.\footnote{Summations are over
+$0,1,2,\dots$ when there is no indication to the contrary. The variable of
+summation will not be shown explicitly unless this is necessary to avoid
+ambiguity: it is obvious, for example, that in \eqref{tm} and \eqref{tx}
+the summation must be with respect to $n$, so that, for example,
+$\sum c_{m,n}s_n$ means $\sum_{n=0}^\infty c_{m,n}s_n$.} Thus in \eqref{c1}
+$$c_{m,n} = (m+1)^{-1} \quad (0\le n\le m), \qquad c_{m,n} = 0 \quad (n>m),$$
+and in \eqref{abel} $c_n(x)=x^n(1-x)$. In one case they depend on an
+integral parameter $m$, in the other on a continuous parameter $x$; but, as
+we shall see, this distinction is not very important. For the moment we
+consider means of the type \eqref{tm}.
+
+We call the system of equations \eqref{tm}, which we may write shortly as
+$$\no t = \mathrm{T}(s),$$
+a \emph{linear transformation} T; $t_m$ the \emph{transform} of $s_n$ by T;
+and the matrix
+$$|\mathrm{T}| = (c_{m,n}),$$
+in which $c_{m,n}$ is the element in the $m$th row and $n$th column, the
+\emph{matrix of}~T.
+
+\section{Regular transformations.} The most important transformations are
+\emph{regular}. We say that T is regular if
+$$\no t_m\to s \quad (m\to\infty)$$
+whenever
+$$\no s_n\to s \quad (n\to\infty).$$
+We regard the first assertion as including that of the existence of $t_m$
+for every $m$, i.e. the convergence of all the series \eqref{tm}. Thus,
+after Cauchy's theorem quoted in \S1.4, the transformation \eqref{c1} is
+regular.
+
+There is an important theorem, due to Toeplitz and Schur, which states
+necessary and sufficient conditions for the regularity of T. We prove this
+theorem (Theorem~2) in \S3.3: it is convenient to associate it with two
+other theorems of a similar character concerning different classes of
+transformations. We call the class of linear transformations
+$\mathfrak{T}$, the class of regular transformations $\mathfrak{T}_r$. The
+class $\mathfrak{T}_c$ is the class of transformations which transform all
+convergent sequences into convergent sequences, i.e. transformations such
+that the convergence of $s_n$ to $s$ implies the convergence of $t_m$ to
+\emph{some} limit $t$. Thus $\mathfrak{T}_r$ is the subclass of
+$\mathfrak{T}_c$ in which $t$ is necessarily the same as $s$. The class
+$\mathfrak{T}_c^*$ is the class of transformations which convert all
+bounded sequences into convergent sequences, i.e. transformations such that
+$s_n=O(1)$ implies $t_m\to t$. It is plain that $\mathfrak{T}_c^*$ is also
+a subclass of $\mathfrak{T}_c$; but $\mathfrak{T}_c^*$ and $\mathfrak{T}_r$
+are, as we shall see, mutually exclusive. We shall prove the following
+three theorems.
+
+\begin{theorem}\label{thm-c} In order that \textup{T} should belong to
+$\mathfrak{T}_c$, it is necessary and sufficient \textup{(i)} that
+$$\no \gamma_m = \sum|c_{m,n}| < H,$$
+where $H$ is independent of $m$; \textup{(ii)} that
+$$\no c_{m,n}\to\delta_n,$$
+for each $n$, when $m\to\infty$; \textup{(iii)} that
+$$\no c_m = \sum c_{m,n}\to\delta$$
+when $m\to\infty$. In these circumstances $\sum\delta_n$ is absolutely
+convergent, and
+$$\no t_m\to t = \delta s+\sum\delta_n(s_n-s) = s(\delta-\sum\delta_n)+\sum\delta_ns_n,$$
+when $m\to\infty$, whenever $s_n\to s$.
+\end{theorem}
+
+Here, of course, the limits $\delta_n$ and $\delta$ are finite.
+
+\begin{theorem} In order that \textup{T} should belong to $\mathfrak{T}_r$
+\textup{(}i.e. that \textup{T} should be regular\textup{)}, it is necessary
+and sufficient that the conditions of Theorem~\ref{thm-c} should be
+satisfied, that $\delta_n=0$ for each $n$, and that $\delta=1$.
+\end{theorem}
