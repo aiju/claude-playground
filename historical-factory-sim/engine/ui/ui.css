@@ -1,0 +1,288 @@
+:root {
+  --paper: #f3ecdc;
+  --paper-2: #e9e0cb;
+  --ink: #2b2118;
+  --ink-soft: #5a4a3a;
+  --rule: rgba(60, 45, 30, 0.28);
+  --green: #1f4a33;
+  --green-ink: #f3ecdc;
+  --red-ink: #9b2c1f;
+  --shadow: 0 2px 10px rgba(20, 14, 8, 0.28);
+  --serif: 'Libre Caslon Text', Georgia, 'Times New Roman', serif;
+  --gap: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1b1a18;
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+#view { position: fixed; inset: 0; }
+#view canvas { display: block; }
+
+.panel {
+  position: fixed;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+}
+
+.clock { top: var(--gap); left: var(--gap); min-width: 260px; max-width: 360px; }
+.clock .firm { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.clock .date { font-size: 18px; margin-top: 4px; }
+.clock .time { font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.clock .status { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; font-style: italic; }
+
+.controls { top: var(--gap); right: var(--gap); display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.row .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; align-self: center; margin-right: 4px; }
+
+button {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  min-height: 28px;
+}
+button:hover { background: #ddd2b8; }
+button.on { background: var(--green); color: var(--green-ink); border-color: var(--green); }
+
+.inspector {
+  top: 150px;
+  right: var(--gap);
+  width: 330px;
+  max-height: calc(100vh - 330px);
+  overflow-y: auto;
+}
+.inspector.hidden { display: none; }
+.inspector h2 { margin: 0 0 2px; font-size: 20px; font-weight: 600; }
+.inspector .sub { font-size: 13px; color: var(--ink-soft); }
+.inspector .now { margin: 10px 0; padding: 8px 10px; background: var(--paper-2); border-left: 3px solid var(--green); font-size: 14px; }
+.inspector dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 8px 0; font-size: 13px; }
+.inspector dt { color: var(--ink-soft); }
+.inspector dd { margin: 0; }
+.inspector .close { position: sticky; float: right; top: 0; }
+.inspector .actions { display: flex; gap: 6px; margin-top: 8px; }
+
+.timecard { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.timecard caption { text-align: left; font-size: 12px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 4px; }
+.timecard th, .timecard td { border: 1px solid var(--rule); padding: 2px 4px; text-align: center; }
+.timecard th { background: var(--paper-2); font-weight: 600; }
+.timecard td.late { color: var(--red-ink); }
+
+.log { left: var(--gap); bottom: var(--gap); width: min(520px, calc(100vw - 2 * var(--gap))); max-height: 170px; overflow-y: auto; font-size: 13px; }
+.log .entry { padding: 2px 0; border-bottom: 1px dotted var(--rule); }
+.log .entry:last-child { border-bottom: 0; }
+.log .t { color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.log .gate { color: var(--red-ink); }
+.log:empty { display: none; }
+
+.hint { position: fixed; right: var(--gap); bottom: var(--gap); font-size: 12px; color: #e9e0cb; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
+.loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--paper); font-size: 18px; }
+
+@media (max-width: 760px) {
+  .clock { min-width: 0; max-width: calc(100vw - 2 * var(--gap)); right: var(--gap); }
+  .clock .time { font-size: 24px; }
+  .controls { top: auto; bottom: var(--gap); left: var(--gap); right: var(--gap); align-items: stretch; padding: 8px; }
+  .row { justify-content: flex-start; }
+  .inspector { top: 128px; left: var(--gap); right: var(--gap); width: auto; max-height: 45vh; }
+  .log { display: none; }
+  .hint { display: none; }
+}
+
+.routing { margin: 8px 0; padding-left: 22px; font-size: 12.5px; color: var(--ink-soft); }
+.routing li { padding: 1px 0; }
+.routing li.done { color: #9a8f80; text-decoration: line-through; text-decoration-color: rgba(60,45,30,0.35); }
+.routing li.here { color: var(--ink); font-weight: 700; }
+
+/* Papers list in the inspector */
+.papers { margin-top: 10px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.papers .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+.papers button { display: block; width: 100%; text-align: left; margin-top: 4px; background: #fbf8ef; }
+.papers button small { color: var(--ink-soft); }
+
+/* The facsimile viewer */
+.facsimile { position: fixed; inset: 0; z-index: 50; }
+.facsimile.hidden { display: none; }
+.fax-backdrop { position: absolute; inset: 0; background: rgba(20, 16, 12, 0.55); }
+.fax-panel {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto;
+  background: #e7dfcc; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 18px;
+}
+.fax-close { position: absolute; top: 8px; right: 8px; }
+.fax-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; align-items: start; }
+.fax-copies { grid-column: 1 / -1; display: flex; gap: 6px; }
+.fax-copies button.on { background: var(--green); color: var(--green-ink); }
+.fax-sheet { display: flex; justify-content: center; padding: 10px; background: #8a7f6a; border-radius: 4px; overflow-x: auto; }
+.fax-meta { font-size: 13px; }
+.fax-title { font-size: 18px; font-weight: 700; }
+.fax-title span { display: block; font-size: 12px; font-weight: 400; color: var(--ink-soft); }
+.fax-note { font-style: italic; color: var(--ink-soft); }
+.fax-where { font-weight: 700; }
+.fax-history { padding-left: 18px; color: var(--ink); }
+.fax-history li { margin-bottom: 3px; }
+.fax-history span { color: var(--ink-soft); font-size: 12px; display: block; }
+@media (max-width: 760px) { .fax-body { grid-template-columns: 1fr; } }
+
+/* The forms themselves */
+.fax {
+  --ink-print: #2a2622;
+  --ink-hand: #1c2a4a;
+  position: relative;
+  font-family: 'Libre Caslon Text', Georgia, serif;
+  color: var(--ink-print);
+  background: #fbf8ef;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  font-size: 13px;
+  line-height: 1.35;
+  width: 460px;
+  max-width: 100%;
+}
+.fax.card { background: #efe3c4; border-radius: 3px; }
+.fax.slip { width: 360px; }
+.fax.sheet.wide { width: 720px; }
+.fax.cheque { width: 620px; background: #eaf0e4; border: 1px solid #b9c4b0; background-image: repeating-linear-gradient(45deg, rgba(90,120,90,0.05) 0 6px, transparent 6px 12px); }
+.fax .row { display: flex; justify-content: space-between; gap: 10px; margin: 3px 0; flex-wrap: wrap; }
+.fax .firm { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.fax .title { text-align: center; font-weight: 700; letter-spacing: 0.18em; margin: 4px 0 6px; font-size: 15px; }
+.fax .title.small-caps { font-size: 11px; letter-spacing: 0.08em; font-weight: 400; margin-bottom: 0; }
+.fax .big { font-size: 16px; }
+.fax .small { font-size: 10.5px; color: #5a5148; margin-top: 6px; }
+.fax .foot { margin-top: 8px; }
+.fax .hand { font-family: 'Cedarville Cursive', 'Segoe Script', cursive; color: var(--ink-hand); font-size: 1.12em; }
+.fax .hand.initials { font-size: 1.4em; }
+.fax .recorder { font-family: 'Courier Prime', 'Courier New', monospace; color: #4b3a7a; font-size: 12px; letter-spacing: 0.02em; }
+.fax .red, .fax .red .hand, .fax .recorder.red { color: #a3281b; }
+.fax table.ruled { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.fax table.ruled th, .fax table.ruled td { border: 1px solid rgba(60, 45, 30, 0.45); padding: 2px 5px; text-align: left; vertical-align: top; }
+.fax table.ruled th { font-size: 10.5px; font-weight: 700; text-align: center; background: rgba(0,0,0,0.03); }
+.fax table.money td.l, .fax table.money td.s, .fax table.money td.d { text-align: right; width: 34px; }
+.fax table.money tr.total td { border-top: 2px solid rgba(60,45,30,0.7); }
+.fax td.num { text-align: right; }
+.fax .stamp { display: inline-block; border: 2px solid #6b2a7a; color: #6b2a7a; padding: 0 4px; font-size: 10px; letter-spacing: 0.1em; transform: rotate(-6deg); font-family: 'Courier Prime', monospace; opacity: 0.85; }
+.fax .stamp.diag { position: absolute; right: 120px; top: 60px; font-size: 28px; border-width: 3px; color: #8a2a2a; border-color: #8a2a2a; transform: rotate(-14deg); }
+.fax .coupon { margin-top: 8px; border-top: 2px dashed rgba(60,45,30,0.6); padding-top: 4px; font-size: 10.5px; }
+.fax.corner-cut { clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 0 100%); }
+.fax.crayoned::after {
+  content: ''; position: absolute; right: -10px; top: 26px; width: 150px; height: 14px; background: rgba(40, 70, 170, 0.55);
+  transform: rotate(38deg); border-radius: 7px; filter: blur(0.6px);
+}
+.fax.cheque .bank { font-size: 22px; letter-spacing: 0.14em; font-weight: 700; color: #233a2a; }
+.fax.cheque .duty { font-size: 9px; text-align: center; border: 1px solid #a33; color: #a33; padding: 3px 6px; border-radius: 50%; }
+.fax.cheque .payline { border-bottom: 1px solid rgba(60,45,30,0.5); padding: 6px 0; }
+.fax.cheque .amount { border: 1px solid rgba(60,45,30,0.6); padding: 4px 10px; font-size: 16px; }
+.fax.cheque .sig { text-align: right; }
+.fax.ni .stamps { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; margin-top: 8px; }
+.fax.ni .stampbox { border: 1px dashed rgba(60,45,30,0.4); height: 40px; display: grid; place-items: center; }
+.fax.ni .nistamp { width: 90%; height: 85%; font-size: 10px; text-align: center; color: #fff; display: grid; place-items: center; line-height: 1.1; border: 2px dotted rgba(255,255,255,0.6); }
+.fax.ni .nistamp span { font-size: 8px; }
+.fax.ni .nistamp.seven { background: #7a4a7e; }
+.fax.ni .nistamp.six { background: #3f6e4a; }
+.fax.ni .nistamp.ui { background: #8a5a2e; }
+
+/* The office's forms */
+.fax .typed, .fax td.typed { font-family: 'Special Elite', 'Courier New', monospace; color: #2b2a33; font-size: 0.95em; }
+.fax .copy-name { margin-top: 10px; text-align: center; font-size: 10px; letter-spacing: 0.16em; border-top: 1px solid rgba(60,45,30,0.4); padding-top: 3px; }
+.fax.letter { width: 480px; background: #fdfbf4; }
+.fax.letter p { margin: 6px 0; }
+.fax.letter ul.items { margin: 4px 0 4px 18px; padding: 0; }
+.fax .letterhead { text-align: center; border-bottom: 1px solid rgba(60,45,30,0.5); padding-bottom: 4px; margin-bottom: 8px; }
+.fax .letterhead .lh-name { font-size: 17px; font-weight: 700; letter-spacing: 0.06em; }
+.fax .letterhead .lh-trade { font-size: 11px; font-style: italic; }
+.fax .letterhead .lh-addr { font-size: 11px; }
+.fax .stamp.recd { position: absolute; right: 22px; top: 118px; text-align: center; color: #3a3f9a; border-color: #3a3f9a; font-size: 10px; line-height: 1.2; padding: 2px 6px; }
+.fax.postcard { width: 420px; background: #f3ead2; }
+.fax.postcard p { margin: 5px 0; }
+.fax .halfd { border: 1px solid #8a2a2a; color: #8a2a2a; padding: 4px 6px; font-size: 11px; }
+.fax.invoice { width: 560px; }
+.fax.receipt .amount { border: 1px solid rgba(60,45,30,0.6); padding: 3px 8px; }
+.fax .rstamp { display: inline-block; text-align: center; font-size: 8px; background: #b5473a; color: #fff; padding: 3px 5px; line-height: 1.2; }
+.fax .rstamp .hand { color: #fff; font-size: 10px; }
+.fax .bank { font-size: 18px; letter-spacing: 0.14em; font-weight: 700; color: #233a2a; text-align: center; }
+.fax .stamp { margin-top: 6px; }
+.fax.book { width: 760px; }
+.fax table.ledger td { font-size: 12px; }
+
+/* The paperwork explorer */
+.explorer { position: fixed; inset: 0; z-index: 40; background: rgba(20, 16, 12, 0.6); padding: 12px; padding-block: calc(12px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)); }
+.explorer.hidden { display: none; }
+.ex-panel { height: 100%; display: flex; flex-direction: column; background: var(--paper); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; color: var(--ink); }
+.ex-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 52px 12px 16px; border-bottom: 1px solid var(--rule); position: relative; background: var(--paper-2); }
+.ex-name h2 { margin: 0; font-size: 22px; line-height: 1.1; }
+.ex-name span { font-size: 12px; color: var(--ink-soft); font-style: italic; }
+.ex-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.ex-tabs button.on { background: var(--green); color: var(--green-ink); border-color: var(--green); }
+.ex-time { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.ex-clock { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.ex-close { position: absolute; top: 10px; right: 10px; }
+.ex-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px 340px minmax(0, 1fr); }
+.ex-side, .ex-rows, .ex-view { overflow-y: auto; min-height: 0; }
+.ex-side { border-right: 1px solid var(--rule); padding: 10px 10px 16px; background: var(--paper-2); }
+.ex-group { margin-bottom: 12px; }
+.ex-group-name { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-soft); padding: 4px 6px; }
+.ex-kind { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; padding: 5px 6px; margin: 1px 0; font-size: 13.5px; }
+.ex-kind:hover { background: #ddd2b8; }
+.ex-kind.on { background: var(--paper); color: var(--ink); border-color: var(--rule); font-weight: 700; }
+.ex-kind.none { color: #9a8f80; }
+.ex-kind-name { flex: 1; min-width: 0; }
+.ex-count { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ex-swatch { display: inline-flex; width: 26px; height: 16px; position: relative; flex: none; }
+.ex-swatch i { position: absolute; width: 12px; height: 15px; border: 1px solid rgba(60,45,30,0.35); box-shadow: 0 1px 1px rgba(0,0,0,0.12); }
+.ex-swatch i:nth-child(1) { left: 0; z-index: 6; } .ex-swatch i:nth-child(2) { left: 3px; z-index: 5; } .ex-swatch i:nth-child(3) { left: 6px; z-index: 4; }
+.ex-swatch i:nth-child(4) { left: 9px; z-index: 3; } .ex-swatch i:nth-child(5) { left: 11px; z-index: 2; } .ex-swatch i:nth-child(6) { left: 13px; z-index: 1; }
+.ex-list { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--rule); }
+.ex-list-head { padding: 10px 12px 8px; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; }
+.ex-list-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ex-list-title span { font-size: 12px; color: var(--ink-soft); }
+.ex-list-head input { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--rule); border-radius: 4px; background: #fbf8ef; color: var(--ink); width: 100%; }
+.ex-rows { flex: 1; padding: 4px 0 12px; }
+.ex-row { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid rgba(60,45,30,0.12); border-radius: 0; padding: 7px 12px; font-size: 13px; }
+.ex-row > span { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
+.ex-row:hover { background: var(--paper-2); }
+.ex-row.on { background: #fffaf0; color: var(--ink); box-shadow: inset 3px 0 0 var(--green); }
+.ex-row.plain { cursor: default; }
+.ex-paper { grid-row: span 3; width: 10px; height: 13px; margin-top: 3px; border: 1px solid rgba(60,45,30,0.35); }
+.ex-row-text { color: var(--ink); }
+.ex-row-meta { font-size: 11.5px; color: var(--ink-soft); }
+.ex-empty, .ex-more { padding: 12px; color: var(--ink-soft); font-style: italic; font-size: 13px; }
+.ex-view { padding: 12px 14px 20px; background: #e7dfcc; }
+.ex-view-bar { display: flex; gap: 6px; margin-bottom: 8px; min-height: 0; }
+.ex-view-bar:empty { display: none; }
+.ex-fax { grid-template-columns: minmax(0, 1fr) 250px; }
+.fax-related { margin-top: 12px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.fax-related .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+.fax-related button { display: block; width: 100%; text-align: left; margin-top: 4px; background: #fbf8ef; font-size: 12.5px; }
+.fax-related button b { font-weight: 700; }
+.fax-related button small { display: block; color: var(--ink-soft); }
+.fax-error { color: var(--red-ink); padding: 12px; background: var(--paper); }
+@media (max-width: 1180px) {
+  .ex-fax { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .explorer { padding: 0; padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px); }
+  .ex-panel { border-radius: 0; }
+  .ex-body { display: flex; flex-direction: column; overflow-y: auto; }
+  .ex-side { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; flex: none; border-right: 0; border-bottom: 1px solid var(--rule); padding: 8px; }
+  .ex-group { display: flex; gap: 4px; margin: 0; flex: none; }
+  .ex-group-name { display: none; }
+  .ex-kind { width: auto; white-space: nowrap; border-color: var(--rule); }
+  .ex-list { flex: none; border-right: 0; }
+  .ex-rows { max-height: 42vh; }
+  .ex-view { flex: none; overflow: visible; }
+  .ex-time { margin-left: 0; }
+}

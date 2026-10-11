@@ -1,0 +1,10 @@
+{
+  "name": "historical-factory-sim",
+  "private": true,
+  "type": "module",
+  "description": "A stylised 3D simulation of a pre-computer factory. No dependencies: three.js is loaded from a CDN in the browser.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000"
+  }
+}
