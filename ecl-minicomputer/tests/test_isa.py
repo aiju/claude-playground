@@ -349,7 +349,8 @@ class Control(unittest.TestCase):
 
     def test_assembler_errors(self):
         for bad in ("addi r1, r2, 40000", "andi r1, r2, -1", "sw r1, [r2 + r3]",
-                    "beq r1, r2, buf", "lw r1, [here]\nhere: nop", "slli r1, r2, 32"):
+                    "beq r1, r2, buf", "lw r1, [here]\nhere: nop", "slli r1, r2, 32",
+                    "la r1, SP\nSP: nop", "r5 = 3"):
             with self.assertRaises(asm.AsmError, msg=bad):
                 asm.assemble_text(isa, bad + "\n.data\nbuf: .word 0")
 
@@ -409,7 +410,7 @@ class Timing(unittest.TestCase):
         # the final fall-through is a mispredict (2 bubbles)
         c, t = self.cycles("li r1, 10\n.l: nop\ndbnz r1, .l")
         self.assertEqual(t.mispredicts, 1)
-        self.assertEqual(c, (22 + 4) + 9 * 1 + 2)
+        self.assertEqual(c, (22 + 4) + 9 * 1 + (3 if pipeline.BASE.resolve == "MEM" else 2))
 
     def test_mul_latency(self):
         c0, _ = self.cycles("mult r1, r2\nmflo r3")

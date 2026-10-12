@@ -106,7 +106,7 @@ def assemble(name, ops, ctx):
                       f"(logical immediates are zero-extended)")
         return v
 
-    def branch_off(target_i, known_pc=ctx.pc):
+    def branch_off(target_i, known_pc=ctx.pc + 4):
         if not isinstance(ops[target_i], Expr):
             ctx.error(f"{name}: the target must be a label or address")
         v, known = ctx.value(ops[target_i].expr)
@@ -369,14 +369,14 @@ def disassemble(w, pc=0):
     if op == OP_LUI:
         return f"lui r{t}, {imm:#x}"
     if op in BRANCH_NAMES:
-        tgt = (pc + 4 * sx16(imm)) & M32
+        tgt = (pc + 4 + 4 * sx16(imm)) & M32
         if m == "dbnz":
             return f"dbnz r{t}, {tgt:#x}"
         return f"{m} r{s}, r{t}, {tgt:#x}"
     if op in (OP_J, OP_JAL):
         off = w & 0x3FFFFFF
         off = off - (1 << 26) if off & (1 << 25) else off
-        return f"{m} {(pc + 4 * off) & M32:#x}"
+        return f"{m} {(pc + 4 + 4 * off) & M32:#x}"
     if op in LOAD_NAMES or op in STORE_NAMES:
         v = sx16(imm)
         mem = f"[r{s}]" if v == 0 else f"[r{s} {'+' if v > 0 else '-'} {abs(v)}]"

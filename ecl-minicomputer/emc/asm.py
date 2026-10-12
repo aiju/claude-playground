@@ -419,6 +419,8 @@ class Assembler:
             return scope
         while len(toks) >= 2 and toks[0][0] == "id" and toks[1] == ("op", ":"):
             name = toks[0][1]
+            if name.lower() in self.reg_names:
+                raise AsmError(f"label {name!r} is a register name")
             if not name.startswith("."):
                 scope = name
             st = self.new_stmt(where, raw, scope)
@@ -428,6 +430,8 @@ class Assembler:
         if not toks:
             return scope
         if len(toks) >= 2 and toks[0][0] == "id" and toks[1] == ("op", "="):
+            if toks[0][1].lower() in self.reg_names:
+                raise AsmError(f"symbol {toks[0][1]!r} is a register name")
             st = self.new_stmt(where, raw, scope)
             st.kind = "dir"
             st.name = ".equ"

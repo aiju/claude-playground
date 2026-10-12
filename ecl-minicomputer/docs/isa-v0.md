@@ -84,7 +84,8 @@ Every instruction is one 32-bit word. Fields never move:
 - **Immediates** are sign-extended, except for `ANDI`, `ORI` and `XORI`,
   which zero-extend, and `LUI`, which puts its immediate in the upper half.
 - **Branch and jump offsets** count instructions (words) and are relative
-  to the address of the branch or jump itself.
+  to the address of the next instruction (`PC + 4`), the value the
+  pipeline already carries along.
 
 ## Opcode map
 
@@ -228,18 +229,18 @@ There are no indexed stores: they would read three registers.
 
 | Instruction | Operation |
 |---|---|
-| `BEQ s, t, off` | if `s = t`: `PC ← PC + 4·off` |
+| `BEQ s, t, off` | if `s = t`: `PC ← PC + 4 + 4·off` |
 | `BNE`, `BLT`, `BGE`, `BLTU`, `BGEU` | not equal, signed `<`, signed `≥`, unsigned `<`, unsigned `≥` |
-| `DBNZ t, off` | `t ← t − 1`; if the new `t ≠ 0`: `PC ← PC + 4·off`. The assembler sets `s = t`: the hardware reads `s` and writes `t`. |
-| `J off` | `PC ← PC + 4·off` (±128 MB) |
-| `JAL off` | `r31 ← PC + 4`, `PC ← PC + 4·off` |
+| `DBNZ t, off` | `t ← t − 1`; if the new `t ≠ 0`: `PC ← PC + 4 + 4·off`. The assembler sets `s = t`: the hardware reads `s` and writes `t`. |
+| `J off` | `PC ← PC + 4 + 4·off` (±128 MB) |
+| `JAL off` | `r31 ← PC + 4`, `PC ← PC + 4 + 4·off` |
 
 The conditional branches reach ±128 KB. There are no delay slots.
 
 **Performance note:** the draft 0 hardware predicts a conditional branch
-taken when its offset is negative (backward) and not taken otherwise,
-including offset 0. Put loop tests at the bottom of loops and the rare
-case of an `if` out of line.
+taken when its offset is negative (a backward branch, including one to
+itself) and not taken otherwise. Put loop tests at the bottom of loops and
+the rare case of an `if` out of line.
 
 ## Exceptions
 

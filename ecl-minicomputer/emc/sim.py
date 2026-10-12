@@ -409,7 +409,7 @@ def make(m, w, pc):
 
     # ---- branches
     if op in isa.BRANCH_NAMES:
-        target = (pc + 4 * simm) & M32
+        target = (pc + 4 + 4 * simm) & M32
         taken = m.taken
         idx = pc >> 2
         cond = {
@@ -453,7 +453,7 @@ def make(m, w, pc):
     if op in (isa.OP_J, isa.OP_JAL):
         off = w & 0x3FFFFFF
         off = off - (1 << 26) if off & (1 << 25) else off
-        target = (pc + 4 * off) & M32
+        target = (pc + 4 + 4 * off) & M32
         if op == isa.OP_J:
             def f(p):
                 return target

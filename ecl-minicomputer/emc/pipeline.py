@@ -14,7 +14,10 @@ stage from these rules:
   WB  = MEM + length of MEM
 
 A stalled instruction waits in ID, holding IF behind it, which is what an
-interlocked pipeline does. Given the same parameters this is exact, not
+interlocked pipeline does. A main-bus access freezes the whole pipeline
+(every register holds) until its last MEM cycle, so a redirect that falls
+into a frozen cycle takes effect when the freeze ends. A predicted-taken
+branch redirects fetch in its first ID cycle, even while it is stalled. Given the same parameters this is exact, not
 an estimate, so the netlist simulator can check it cycle for cycle.
 
 Parameters (Config):
@@ -32,6 +35,8 @@ Parameters (Config):
   mul_issue      cycles between successive multiplies (= mul_lat when the
                  multiplier isn't pipelined)
   bus_cycles     extra MEM cycles per main-bus access
+  slt_late       SLT/SLTU/SLTI/SLTIU results arrive after MEM, like a load's
+                 (the draft 0 hardware: it saves a multiplexer in the ALU path)
 """
 
 from collections import Counter
@@ -53,10 +58,15 @@ class Config:
     mul_issue: int = 8
     div_lat: int = 34
     bus_cycles: int = 20
+    slt_late: bool = True
     desc: str = ""
 
 
-BASE = Config(desc="5 stages, BTFN prediction in ID, branches resolved in EX, 8-cycle multiply")
+BASE = Config(mul_lat=18, mul_issue=18, resolve="MEM",
+              desc="the draft 0 hardware: 5 stages, BTFN prediction in ID, branch and JALR "
+                   "redirects from a register after EX (3 bubbles), 18-cycle multiply, "
+                   "34-cycle divide, SLT results after MEM")
+HW = BASE
 
 PRESETS = {
     "p5": BASE,
@@ -64,28 +74,37 @@ PRESETS = {
                             desc="as p5, but every branch predicted not taken"),
     "p5-perfect": replace(BASE, name="p5-perfect", predict="perfect", taken_bubbles=0,
                           desc="as p5 with a perfect branch predictor and target buffer"),
-    "p5-resolve-mem": replace(BASE, name="p5-resolve-mem", resolve="MEM",
-                              desc="as p5, branches resolved in MEM (one more bubble per mispredict)"),
+    "p5-resolve-ex": replace(BASE, name="p5-resolve-ex", resolve="EX",
+                             desc="as p5, branches redirect fetch from EX (one bubble fewer per mispredict "
+                                  "and JALR; needs a slower clock)"),
     "p6-mem2": replace(BASE, name="p6-mem2", load_lat=1,
                        desc="memory access over two stages: one more load-use bubble"),
     "p5-mul4": replace(BASE, name="p5-mul4", mul_lat=4, mul_issue=4,
                        desc="as p5 with a 4-cycle multiply"),
-    "p5-mul17": replace(BASE, name="p5-mul17", mul_lat=17, mul_issue=17,
-                        desc="as p5 with a 17-cycle multiply (radix-4, 2 bits a cycle)"),
+    "p5-mul8": replace(BASE, name="p5-mul8", mul_lat=8, mul_issue=8,
+                       desc="as p5 with an 8-cycle multiply (radix 16)"),
+    "p5-sltfast": replace(BASE, name="p5-sltfast", slt_late=False,
+                          desc="as p5 with SLT results forwarded from EX like other ALU results"),
     "p5-mulpipe": replace(BASE, name="p5-mulpipe", mul_lat=3, mul_issue=1,
                           desc="as p5 with a pipelined 3-cycle multiplier"),
+    "brief": Config(name="brief", resolve="EX", slt_late=False,
+                    desc="the model the benchmark programs were tuned for (docs/notes-v0): "
+                         "8-cycle multiply, branch and JALR redirects from EX (2 bubbles), "
+                         "SLT forwarded from EX"),
 }
 
 # instruction classes
-ALU, LOAD, STORE, BRANCH, JUMP, JALR, MULDIV_START, HILO_READ, HILO_WRITE, HALT = range(10)
+ALU, LOAD, STORE, BRANCH, JUMP, JALR, MULDIV_START, HILO_READ, HILO_WRITE, HALT, SLT = range(11)
 
 
-def analyse(w):
+def analyse(w, slt_late=True):
     """(class, EX sources, store-data source, destination, is_div, backward)"""
     op, s, t, d, sh, fn = fields(w)
     srcs, sdata, dst, is_div, back = (), None, None, False, False
     if op == isa.OP_ALU:
         cls, srcs, dst = ALU, (s, t), d
+        if slt_late and fn in (2, 3):
+            cls = SLT
     elif op == isa.OP_SHIFT:
         cls, dst = ALU, d
         srcs = (s,) if 4 <= fn <= 7 else (s, t)
@@ -105,6 +124,8 @@ def analyse(w):
             cls = HALT
     elif op in isa.IMM_NAMES or op == isa.OP_LUI:
         cls, srcs, dst = ALU, (s,), t
+        if slt_late and op in (0x0A, 0x0B):
+            cls = SLT
     elif op in isa.BRANCH_NAMES:
         cls, back = BRANCH, sx16(w & 0xFFFF) < 0
         if op == 0x17:
@@ -120,7 +141,13 @@ def analyse(w):
         cls, srcs, sdata = STORE, (s,), t
     else:
         cls = HALT
-    srcs = tuple(r for r in srcs if r)
+    # The hardware decides interlocks from the fields, not the instruction:
+    # s counts unless it's J/JAL (their offset fills s and t); t counts for
+    # the R-type groups and the compare-and-branches. The assembler puts 0 in
+    # unused fields, so this matches the per-instruction sources above.
+    hw_s = op not in (isa.OP_J, isa.OP_JAL)
+    hw_t = op in isa.R_GROUPS or (op in isa.BRANCH_NAMES and op != 0x17)
+    srcs = tuple(r for r in ((s,) if hw_s else ()) + ((t,) if hw_t else ()) if r)
     if sdata == 0:
         sdata = None
     if dst == 0:
@@ -144,6 +171,7 @@ class Timing:
         self.branches = 0
         self.last = 0
         self.n = 0
+        self.wb_log = None
         self.step = self._make_step()
 
     def _make_step(self):
@@ -157,6 +185,7 @@ class Timing:
         resolve_off = 1 if cfg.resolve == "EX" else 2
         alu_lat, load_lat, bus_cycles = cfg.alu_lat, cfg.load_lat, cfg.bus_cycles
         taken_bubbles = cfg.taken_bubbles
+        slt_late = cfg.slt_late
         predict = cfg.predict
         mul_lat, mul_issue, div_lat = cfg.mul_lat, cfg.mul_issue, cfg.div_lat
         # previous instruction's stages, redirect, units
@@ -165,13 +194,20 @@ class Timing:
         redirect = 0
         mul_free = hilo_ready = 0
         n = branches = mispredicts = 0
+        freezes = []               # (first frozen cycle, first cycle after) of recent bus accesses
+
+        def thaw(c):
+            for a, b in freezes:
+                if a <= c < b:
+                    c = b
+            return c
 
         def step(idx, pc, npc, bus):
             nonlocal IF_p, ID_p, EX_p, MEM_p, k_p, redirect, mul_free, hilo_ready
             nonlocal n, branches, mispredicts
             info = info_tab[idx]
             if info is None:
-                info = info_tab[idx] = analyse(imem[idx])
+                info = info_tab[idx] = analyse(imem[idx], slt_late)
             cls, srcs, sdata, dst, is_div, back = info
             IF = IF_p + 1
             if ID_p > IF:
@@ -203,8 +239,12 @@ class Timing:
             MEM = MEM_p + k_p
             if ex + 1 > MEM:
                 MEM = ex + 1
+            if bus:
+                freezes.append((MEM, MEM + bus_cycles))
+                if len(freezes) > 4:
+                    del freezes[0]
             if dst is not None:
-                if cls == LOAD:
+                if cls == LOAD or cls == SLT:
                     ready[dst] = ready_mem[dst] = MEM + k + load_lat
                     ready_kind[dst] = "bus" if bus else "load"
                 else:
@@ -218,9 +258,9 @@ class Timing:
                 pred = taken if predict == "perfect" else (back if predict == "btfn" else False)
                 if pred != taken:
                     mispredicts += 1
-                    rd = ex + resolve_off
+                    rd = thaw(ex) + resolve_off
                 elif taken and taken_bubbles:
-                    rd = ID + taken_bubbles
+                    rd = thaw(ID) + taken_bubbles
             elif cls == MULDIV_START:
                 if is_div:
                     mul_free = hilo_ready = ex + div_lat
@@ -232,12 +272,14 @@ class Timing:
                     hilo_ready = ex + 1
             elif cls == JUMP:
                 if taken_bubbles:
-                    rd = ID + taken_bubbles
+                    rd = thaw(ID) + taken_bubbles
             elif cls == JALR:
-                rd = ex + resolve_off
+                rd = thaw(ex) + resolve_off
             redirect = rd
             IF_p, ID_p, EX_p, MEM_p, k_p = IF, ID, ex, MEM, k
             n += 1
+            if self.wb_log is not None:
+                self.wb_log.append(MEM + k)
             self.last = MEM + k
             self.n = n
             self.branches = branches

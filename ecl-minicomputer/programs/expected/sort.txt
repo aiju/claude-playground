@@ -1,0 +1,3 @@
+sorted 20000 words
+checksum 6aae2371
+first 253758 middle 2153329896 last 4294906036

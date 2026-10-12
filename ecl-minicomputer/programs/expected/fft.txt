@@ -1,0 +1,11 @@
+1024-point FFT, Q15, scaled by 1/2 a stage
+bin 50: -5 -8196
+bin 974: 1 8191
+bin 724: -2 4097
+bin 895: 2360 3347
+bin 129: 2357 -3347
+bin 300: 1 4092
+bin 77: -2049 -1
+bin 947: 2048 -4
+spectrum fold 563c7040
+round trip: max |error| 559, sum |error| 40645 over 2048 values
