@@ -216,3 +216,22 @@ This isn't a proposal yet, just something concrete to argue with.
    - (c) A 32-bit integer machine with separate 64-bit FP registers (MIPS
      plus FPU).
    - My lean: (b).
+
+## 7. Answers
+
+Emily's answers, which draft 0 follows:
+
+1. **Integer first, 32 bits.** Floating point can come later.
+2. **It will actually be built.** Push the clock hard.
+3. **Any ECL that can reasonably be bought,** with the details still to
+   check ([parts.md](parts.md) does that).
+4. **(b), an attached processor.** It has its own local memory for code
+   and data, and a TTL-level, relatively slow main bus to the rest of the
+   system. The bus details are still to come.
+5. **Vectors: maybe.** Keep the option open.
+6. **Register organisation: open.**
+
+That makes draft 0 a 32-bit integer load/store machine with 32
+registers, local instruction and data memories, and a window onto the
+main bus. Opcodes are left free for vectors. The
+[evaluation](evaluation-v0.md) has the next round of questions.
