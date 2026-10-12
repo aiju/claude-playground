@@ -16,9 +16,11 @@ stage from these rules:
 A stalled instruction waits in ID, holding IF behind it, which is what an
 interlocked pipeline does. A main-bus access freezes the whole pipeline
 (every register holds) until its last MEM cycle, so a redirect that falls
-into a frozen cycle takes effect when the freeze ends. A predicted-taken
-branch redirects fetch in its first ID cycle, even while it is stalled. Given the same parameters this is exact, not
-an estimate, so the netlist simulator can check it cycle for cycle.
+into a frozen cycle takes effect when the freeze ends, and a branch target
+fetched in a frozen cycle enters ID only after it. A predicted-taken
+branch redirects fetch in its first ID cycle, even while it is stalled.
+Given the same parameters this is exact, not an estimate, so the netlist
+simulator can check it cycle for cycle.
 
 Parameters (Config):
   alu_lat        EX→EX distance for an ALU result (1: back to back)
@@ -214,7 +216,9 @@ class Timing:
                 IF = ID_p
             why = None
             if redirect > IF:
-                IF, why = redirect, "branch"
+                # the IF/ID register holds through a freeze, so a target
+                # fetched in a frozen cycle waits there until the freeze ends
+                IF, why = thaw(redirect), "branch"
             ID = IF + 1
             if EX_p > ID:
                 ID = EX_p

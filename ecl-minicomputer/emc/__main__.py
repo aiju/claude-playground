@@ -1,4 +1,4 @@
-"""Command line: python3 -m emc {asm,run,test,report} ..."""
+"""Command line: python3 -m emc {asm,run,test,report,hw} ..."""
 
 import argparse
 import os
@@ -103,6 +103,8 @@ def main():
     t.set_defaults(fn=cmd_test)
     rp = sub.add_parser("report", help="regenerate docs/performance-v0.md")
     rp.set_defaults(fn=cmd_report)
+    from .hw import cli as hw_cli
+    hw_cli.add_parser(sub)
     args = p.parse_args()
     if getattr(args, "file", None) and not os.path.exists(args.file) and os.path.exists(testing.program_path(args.file)):
         args.file = testing.program_path(args.file)
