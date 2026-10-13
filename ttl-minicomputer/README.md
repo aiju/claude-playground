@@ -16,12 +16,19 @@ chips. There have been two rounds so far:
   datapath, pipelined microcode and a separate fetch cycle. It runs all 20
   programs cycle-exactly in the chip-level simulator at 3 MHz (worst-case
   delays) and checks the timing model's estimates.
+- **Software:** a C compiler for drafts 1a and 1b (a C89 subset, through an
+  ISA-independent SSA IR), with a small C library. Its code runs in about
+  1.2× the cycles of the hand-written programs. Object files and a linker
+  let C and hand-written assembly be built separately and linked together.
 
 | Document | What's in it |
 |---|---|
 | [docs/evaluation-v1.md](docs/evaluation-v1.md) | **Start here**: draft 1a vs 1b, the hardware options, and recommendations for draft 2 |
 | [docs/proposals.md](docs/proposals.md) | Every design idea from the discussions so far (ISA, clocking, system bus, MMU, I/O, video, DMA, networking, OS, big ideas) with its status |
 | [docs/system-bus.md](docs/system-bus.md) | Draft specification of the system bus: signals, transfers, arbitration, optional bursts, simple peripherals, electrical rules from the signal-integrity simulations, and how the main CPU uses it |
+| [docs/compiler.md](docs/compiler.md) | The C compiler: what it supports, how it works, the IR, how good its code is, and what that says about 1a vs 1b |
+| [docs/compiler-performance.md](docs/compiler-performance.md) | Generated: compiled C against the hand-written programs, per program and configuration |
+| [docs/linking.md](docs/linking.md) | Object files, the linker, and linking C with hand-written assembly |
 | [docs/isa-v1.md](docs/isa-v1.md) | Draft 1, the common machine: registers, flags, memory, I/O, interrupts, shared instruction groups |
 | [docs/isa-v1a.md](docs/isa-v1a.md), [docs/isa-v1b.md](docs/isa-v1b.md) | The two draft 1 encodings |
 | [docs/timing-model-v1.md](docs/timing-model-v1.md) | How draft 1 cycle counts are estimated |
@@ -43,6 +50,11 @@ dependencies.
 
 ```sh
 python3 -m tmc --isa v1b run programs/v1b/life.s --stats   # draft 1b: cycles for all six configurations, mix, profile
+python3 -m tmc --isa v1b cc programs/c/life.c --run --stats # compile C for draft 1b (or v1a) and run it
+python3 -m tmc --isa v1b cc main.c programs/v1b/lib/print.s --run   # C and assembly linked together
+python3 -m tmc --isa v1b asm -c util.s           # an object file; tmc ld links, tmc objdump shows them
+python3 -m tmc ccbench                           # compiled C against the hand-written programs
+python3 -m unittest tests.test_cc tests.test_compiler tests.test_link   # compiler and linker tests (python3 tests/cc/fuzz.py: random ones)
 python3 -m tmc --isa v1a test                    # all draft 1a programs against expected output
 python3 -m tmc report1                           # regenerate docs/performance-v1.md (under a minute)
 
@@ -83,12 +95,17 @@ ti.com on first use. The sweeps are meant to run on a fast local machine:
 ## Layout
 
 ```
-tmc/asm.py          assembler core: expressions, labels, directives, size relaxation (ISA-independent)
+tmc/asm.py          assembler core: expressions, labels, directives, size relaxation, object files (ISA-independent)
+tmc/obj.py          object file, executable and library formats; relocation kinds
+tmc/link.py         the linker; tmc/tools.py has ld, objdump and ar
 tmc/isa/v0.py       ISA draft 0: encoder, disassembler, semantics (one module per ISA revision)
 tmc/isa/v1a.py      draft 1a; v1b.py draft 1b; v1common.py what they share (semantics, common groups)
 tmc/sim32.py        instruction-level simulator for the 32-bit draft 1 machines
 tmc/timing32.py     draft 1 timing model: micro-op scheduler, six hardware configurations
 tmc/report1.py      generates docs/performance-v1.md
+tmc/cc/             C compiler frontend: preprocessor, parser, IR generation, driver; C library in lib/
+tmc/ir/             compiler IR and the target-independent optimiser
+tmc/codegen/        compiler backends for 1a and 1b: instruction selection, register allocation
 tmc/sim.py          draft 0 instruction-level simulator: memory, I/O page, statistics, interrupts
 tmc/testing.py      program test suite
 tmc/report.py       generates docs/performance.md
@@ -108,6 +125,8 @@ tmc/si/             backplane signal integrity: IBIS models in ngspice, field so
 hwsim/              Go event-driven simulator: chip models, setup/hold, write timing, bus contention
 programs/           draft 0 programs and library, reference.py (independent expected outputs)
 programs/v1a, v1b/  draft 1 programs and libraries; programs/common/ holds data both use
+programs/c/         C versions of the draft 1 programs, for the compiler
+tests/cc/           C compiler test programs, expected output from gcc, random tester
 tests/              assembler/ISA unit tests, hardware exercise programs (tests/hw/exercise_v1b.py
                     generates the 1b one)
 ```
@@ -119,7 +138,8 @@ The tooling is split so most of it carries over to the next draft:
 - **ISA-independent**: the assembler core, the simulator harness, the test
   suite and report, the chip library and timing data, the netlist language,
   the static timing analyser and the Go simulator.
-- **Per ISA**: `tmc/isa/vN.py` (encodings, assembler hook, semantics), the
+- **Per ISA**: `tmc/isa/vN.py` (encodings, assembler hook, semantics; the
+  hook names the fields the linker fills in with `ctx.fix`), the
   microcode, and the CPU netlist. A netlist module's `CONFIG` tells the Go
   simulator which chips hold the register file and RAM, how wide the address
   and PC are, which nets mark a fetch and a halt, and which I/O fixture to
