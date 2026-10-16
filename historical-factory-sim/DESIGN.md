@@ -542,6 +542,46 @@ The routine is Elbourne's (1914), with Spencer's (1907) where they differ. Figur
 - **Use:** the two stokers barrow 3 cwt at a time from the coal yard to the boiler fronts, about two tons a day (est.).
 - **On screen:** the heap in the coal yard grows and shrinks with the stock.
 
+### The cost accounts and the month's end as built (milestone 6a)
+
+After Elbourne (1914) for the routine and Hawkins (1905) for the way oncost is charged. Figures marked (est.) are estimates.
+
+- **The Estimator's sheets:** last October the Works Accountant and Estimator made out an Estimate Detail Sheet for each model and pattern on the programme:
+  - material from the stock rate card;
+  - direct wages from the Ratefixer's piece prices;
+  - shop charges at 75% on direct wages, last season's rate (est.);
+  - office oncost at 7½% on works cost (est., from about £4,500 a year of office and selling expenses on £60,000 of works cost; Hawkins's worked example uses 10%).
+- **The stock rate card:** bought parts are priced at their contract price. Parts made for stock are priced at their standard works cost: bar steel, piece prices and shop charges.
+- **Cost cards:** every sub-order, works batch or stock order, has a Cost Allocation Card in the Cost Ledger.
+  - Batches already in the shops on 3 March bring forward what had been spent on them, at standard (est.).
+  - Eight standing orders carry the works' own time: supervision; stores, viewing and the works post; the engine house; upkeep of plant and tools; waiting time and make-up to the day rate; crates, packing and despatch; labourers; and the earnings of the days before the sim began.
+- **Materials:** when the stores issue the parts for a tray, the coupon is cut off its work tally and goes with the day's coupons to the Works Accounts Office. The second cost clerk prices it from the rate card and posts it to the card.
+- **Wages:** the day after the wages are made up, the cost clerk abstracts the week's time slips in the Wages Office. He allocates each hand's gross wages:
+  - to the sub-orders on their slips, at piece price for pieceworkers, or at time plus the Rowan bonus in the machine and press shops;
+  - the rest (make-up to the day rate, waiting time, the time of foremen, labourers, storemen and the engine house) to standing orders.
+  
+  The Wages Allocation agrees with the wages abstract to the farthing.
+- **The fortnight:** every two wages weeks, the Works Accountant:
+  - adds shop charges to each card at the current rate;
+  - writes the Works Expenditure sheet: indirect wages, the works staff's salaries, the firm's share of National Insurance, coal burnt, and works expenses accrued (est.);
+  - sets the actual expenditure against what the rate recovered, and revises the rate to the actual so far, to the nearest 5% (Hawkins: some manufacturers "use the same rate of Oncost year after year"). The first fortnight comes out at about 105%;
+  - closes the cards of sub-orders finished in the fortnight, at so much a machine.
+- **The Delivered Orders Cost Abstract:** each fortnight, every invoice with its machines' works cost:
+  - from the closed card of the machine's batch, found through its frame number;
+  - or at the Estimator's figure, for machines from stock or from batches not yet closed.
+  
+  Office oncost comes off the total. The Works Accountant takes it to the Managing Director himself, who initials it, and it goes into his guard book "for privacy".
+- **Salaries:** on the last working day of the month, the Secretary makes out the salaries list and the Cashier pays it in envelopes at four. Staff under £160 a year are insured: 4d. a week (3d. for a woman) is kept back, and the stamps are fixed on their cards for the month's weeks.
+- **The Journal:** on the first working day the Secretary accrues a month of the bills the sim doesn't model, at so much a year (est.): rates, insurance, gas and water, repairs, shop sundries, printing and advertising, travellers' expenses and directors' fees. Depreciation goes to a provision. Then comes the trial balance.
+- **The monthly statement:** on the third working day the Secretary makes out the month's trading for the Managing Director, after Dicksee's monthly account with "estimated stock". It shows:
+  - the month's invoices less the works cost of the machines invoiced;
+  - the fortnights' over- or under-recovered shop charges;
+  - the office and selling expenses;
+  - the estimated net profit or loss;
+  - the month's figures: machines made, stock, orders waiting, the bank balance, debtors and creditors.
+- **What the figures show:** at list less 25% (or 33⅓%), machines alone barely cover their works cost. The Popular sells below it, and the Standard and better models carry the firm. March and April come out at a loss of about £180–£260 a month. The research report's model needs spares and accessories for about a fifth of turnover. A spares trade is the next step.
+- **Not yet built:** petty cash on the imprest system, the Works Expenditure Book in its five parts, stock issue abstracts, and interlocking the cost and financial books through suspense accounts.
+
 ### Facsimiles
 
 Clicking a document opens a facsimile: an HTML/CSS rendering of the printed form, set in a period-style serif.
@@ -564,6 +604,8 @@ Layouts follow the column lists in Elbourne's specimen forms. The research had n
 - **Pay day:** suppliers are paid on the third Wednesday, less 2½%, and their statements agree with the ledger.
 - **The goods yard:** every crate carted to Warwick Road goes by a night goods, and the checker signs every consignment note.
 - **Coal:** every boat-load has its weight ticket and goods received note, and the boilers never run short.
+- **Cost accounts:** each week's wages allocation agrees with the gross wages; every coupon is priced and posted; finished batches close near the estimate; the cost abstracts take every invoice once.
+- **The month's end:** salaries are paid on the last working day; the trial balance agrees; the monthly statement adds up.
 
 ## 8. Simulation model
 
@@ -676,7 +718,7 @@ Each milestone runs on its own and ends with the invariant tests passing.
 3. **Works paper.** Work tallies, stage tickets, job tickets, time cards, the wages week through to Friday's pay tins, National Insurance stamps and lateness fines.
 4. **Commercial paper.** The post bag, agents' orders, the six-copy office order, despatch, consignment notes, the dray to Warwick Road, invoices, day books, ledgers, statements, cheques and the bank. *(Built; see "The commercial routine as built" in §7.)*
 5. **Purchasing and logistics.** Requisitions, purchase orders, goods received notes, invoice matching and supplier payment; LNWR cartage; the canal coal boat; the goods yard diorama. *(Built; see "Purchasing as built" and "The goods yard and the coal boat as built" in §7.)*
-6. **The year.** Seasonality, the show, the month-end routine, the cost abstract, stocktaking and the 31 August year end, the audit and the AGM, plus the inspector's visits and accidents.
+6. **The year.** Seasonality, the show, the month-end routine, the cost abstract, stocktaking and the 31 August year end, the audit and the AGM, plus the inspector's visits and accidents. *(The cost accounts and the month's end are built; see "The cost accounts and the month's end as built" in §7. Next: a spares trade, then the seasons, stocktaking and the year end, then the inspector and accidents.)*
 7. **Polish.** Full facsimiles, follow mode, lighting and the tilt-shift look, and the surroundings (terraces, tram, pub).
 
 Milestones 1–4 make a satisfying first thing to watch. I'd suggest a pull request at the end of milestone 2 or 3, and one per milestone after that.

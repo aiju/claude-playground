@@ -148,7 +148,9 @@ export class Paper {
     const b = this.books.get(bookId);
     const e = { t: this.world.sim.now, ...entry, from: from ? from.id : null, by: by ? by.name : null };
     b.entries.push(e);
-    if (from) this.note(from, `entered in the ${b.title}`);
+    // A list entered line by line gets one note, not one per line.
+    const text = `entered in the ${b.title}`;
+    if (from && from.history.at(-1)?.text !== text) this.note(from, text);
     return e;
   }
 

@@ -27,12 +27,13 @@ import { GROUPS } from './works.js';
 import { defineForms, PAPER_KINDS } from './forms.js';
 import { receiveRemittances, bankTrip, commercePapersForPlace, commercePapersForLot, ledgerViews } from './commerce.js';
 import { cashierPayments } from './purchasing.js';
+import { cashierSalaries } from './monthend.js';
 
 // Who is paid how. Coventry moved fast to piecework, "often gang piece-work";
 // setters and toolmakers stayed on time rates (Carr 1978). The machine and
 // press shops are on a Rowan premium bonus (choice).
-const PIECE_DEPTS = new Set(['frames', 'brazing', 'filing', 'polishing', 'plating', 'enamelling', 'lining', 'wheels', 'brakework', 'finishing', 'warehouse']);
-const BONUS_DEPTS = new Set(['machine', 'press']);
+export const PIECE_DEPTS = new Set(['frames', 'brazing', 'filing', 'polishing', 'plating', 'enamelling', 'lining', 'wheels', 'brakework', 'finishing', 'warehouse']);
+export const BONUS_DEPTS = new Set(['machine', 'press']);
 // Unemployment insurance: "mechanical engineering" and "construction of
 // vehicles" (Sixth Schedule). Treated as covering the machine, fitting and
 // frame shops; polishing, plating, enamelling, packing and stores are left
@@ -40,7 +41,7 @@ const BONUS_DEPTS = new Set(['machine', 'press']);
 const INSURED_DEPTS = new Set(['machine', 'press', 'toolroom', 'frames', 'brazing', 'filing', 'wheels', 'brakework', 'finishing', 'viewing', 'engine']);
 
 const PIECE_PREMIUM = 1.4; // piece prices set so a man kept busy earns about a quarter over his time rate (est.)
-const BONUS_ALLOWANCE = 1.25; // ratefixer's time allowed over the standard time (est.)
+export const BONUS_ALLOWANCE = 1.25; // ratefixer's time allowed over the standard time (est.)
 
 // Carter (1912) quotes Coventry piece prices; where one fits an operation
 // it's used as it is.
@@ -179,7 +180,7 @@ function syntheticDay(world, p, card, day) {
 // Packers and warehousemen work to the orders as they come, on day work.
 const DAY_TRADES = new Set(['Packer', 'Warehouseman']);
 
-function pieceOrBonus(p) {
+export function pieceOrBonus(p) {
   const inGroup = (GROUPS[p.trade] || p.trade === 'Enameller') && !DAY_TRADES.has(p.trade);
   return p.role === 'hand' && inGroup && (PIECE_DEPTS.has(p.dept) || BONUS_DEPTS.has(p.dept)) && p.trade !== 'Chief viewer';
 }
@@ -613,8 +614,9 @@ export function* cashier(world, p) {
       yield* walk(world, p, p.spot, { activity: 'going back to the Cashier’s office' });
       continue;
     }
-    // The suppliers' cheques on pay day.
+    // The suppliers' cheques on pay day, and the salaries at the month's end.
     if (yield* cashierPayments(world, p)) continue;
+    if (world.monthEnd && (yield* cashierSalaries(world, p))) continue;
     // Agents' cheques, as the post brings them; the bank before noon.
     if (world.commerce) {
       if (yield* receiveRemittances(world, p)) continue;
