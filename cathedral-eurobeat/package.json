@@ -1,0 +1,13 @@
+{
+  "name": "cathedral-eurobeat",
+  "version": "1.0.0",
+  "description": "Cathedral Overdrive: gothic pipe organ and eurobeat, synthesized from scratch in JavaScript",
+  "type": "module",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7"
+  }
+}
