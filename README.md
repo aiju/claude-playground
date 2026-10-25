@@ -6,6 +6,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 
 | Folder | What it is |
 | --- | --- |
+| [ecl-minicomputer](ecl-minicomputer) | Design exploration for a number-crunching minicomputer built from ECL logic: a 32-bit hardwired load/store RISC with an assembler, simulator and benchmark programs, and a chip-level MC10H netlist (710 packages, 32.6 MHz worst case) that runs them cycle for cycle as its pipeline model predicts |
 | [glass-tower-hymn](glass-tower-hymn) | An orchestral instrumental in the style of the Ar tonelico II and Umineko openings, synthesized from scratch in JavaScript |
 | [heart-sutra-music-video](heart-sutra-music-video) | A watercolour inkblot music video for a Heart Sutra song, painted live by WebGL shaders, with the lyrics brushed on in Japanese and Devanagari calligraphy |
 | [historical-factory-sim](historical-factory-sim) | A stylised 3D simulation of a fictional 1913 Coventry cycle works, accurate down to the carbon copies, pay tins and railway consignment notes |
