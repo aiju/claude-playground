@@ -314,11 +314,17 @@ export class UI {
   }
   renderTitle() {
     const t = this.titleState;
+    this.el.title.onclick = (e) => {
+      const o = e.target.closest('.opt');
+      if (!o || !this.titleState) return;
+      this.titleState.sel = +o.dataset.i;
+      this.input.fresh.add('action');
+    };
     this.el.title.innerHTML = `
       <div class="logo"><span class="fog">Fog</span><span class="light">light</span></div>
       <div class="sub">a little island adventure</div>
-      <div class="opts">${t.opts.map((o, i) => `<div class="opt${i === t.sel ? ' sel' : ''}">${o}</div>`).join('')}</div>
-      <div class="help">${this.input.usingTouch ? 'Tap to start' : this.input.usingPad ? 'Stick/D-pad and A' : 'Arrow keys or WASD, then Z, J, Space or Enter'}</div>`;
+      <div class="opts">${t.opts.map((o, i) => `<div class="opt${i === t.sel ? ' sel' : ''}" data-i="${i}">${o}</div>`).join('')}</div>
+      <div class="help">${this.input.usingTouch ? 'Tap to start' : this.input.usingPad ? 'Stick/D-pad and A' : 'Click to start, or use the arrow keys and Enter'}</div>`;
   }
   updateTitle(dt) {
     const t = this.titleState, inp = this.input;
@@ -345,8 +351,14 @@ export class UI {
   }
   renderGameOver() {
     const s = this.goState;
+    this.el.gameover.onclick = (e) => {
+      const o = e.target.closest('.opt');
+      if (!o || !this.goState) return;
+      this.goState.sel = +o.dataset.i;
+      this.input.fresh.add('action');
+    };
     this.el.gameover.innerHTML = `<div class="go-title">You fainted…</div><div class="go-sub">But Pip is a plucky sort of fox.</div>
-      <div class="opts">${['Get back up', 'Back to the title'].map((o, i) => `<div class="opt${i === s.sel ? ' sel' : ''}">${o}</div>`).join('')}</div>`;
+      <div class="opts">${['Get back up', 'Back to the title'].map((o, i) => `<div class="opt${i === s.sel ? ' sel' : ''}" data-i="${i}">${o}</div>`).join('')}</div>`;
   }
   updateGameOver(dt) {
     const s = this.goState, inp = this.input;

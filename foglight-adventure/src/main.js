@@ -19,6 +19,7 @@ try {
 const input = new Input();
 const audio = new Audio();
 const ui = new UI(document.getElementById('ui'), input, audio);
+input.onClick = () => { window.focus(); if (ui.dlg || ui.goState || ui.endingState) input.fresh.add('action'); };
 const models = new Models(renderer.gl);
 const game = new Game({ renderer, input, audio, ui, models });
 window.game = game; // handy for poking at things from the console

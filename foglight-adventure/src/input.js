@@ -96,9 +96,10 @@ export class Input {
     stick.addEventListener('pointercancel', end);
     // tapping the picture itself counts as "action" (handy for dialogs and menus)
     window.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'touch' || e.target.closest('#touch')) return;
-      on();
-      this.fresh.add('action');
+      if (e.target.closest('#touch') || e.target.closest('.opt')) return;
+      if (e.pointerType === 'touch') { on(); this.fresh.add('action'); return; }
+      // a mouse click moves dialogue along
+      if (this.onClick) this.onClick();
     });
   }
 
