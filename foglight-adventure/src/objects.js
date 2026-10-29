@@ -263,6 +263,19 @@ class Pot extends Liftable {
 
 class Rock extends Liftable {
   constructor(g, x, z, s) { super(g, x, z, 'rock'); this.hide = s.hide; }
+  // whatever was hidden under a rock turns up where the rock was lifted from
+  interact(p, lifting) {
+    if (!lifting) return false;
+    if (this.hide) {
+      revealHidden(this.game, { x: this.x, z: this.z, screenKey: this.screenKey, spawnId: this.spawnId }, this.hide);
+      this.hide = null;
+    }
+    return super.interact(p, lifting);
+  }
+  update(dt) {
+    // a rock with something under it glints now and then
+    if (this.hide && Math.random() < dt * 0.7) this.game.particles.twinkle(this.x + rand(-0.3, 0.3), 0.15, this.z + 0.35, [1, 0.9, 0.95], 0.28, 0.5);
+  }
   shatter(x, z) {
     const g = this.game;
     g.particles.debris(x, 0.3, z, g.models.get('chip'), 8);

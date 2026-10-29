@@ -90,6 +90,16 @@ function playthrough() {
   T.at('overworld', 37.4, 16.5); T.hold('right', 1.2);
   T.check('across the drawbridge', g.player.x > 41);
 
+  // Mill's lucky shell: lift the glinting rock in Sunny Cove
+  T.at('overworld', 55.5, 30.5); T.face('right'); T.killAll();
+  T.press('action'); T.secs(0.4);
+  T.check('lifting the cove rock uncovers the shell', T.ents((e) => e.kind === 'luckyShell').length === 1);
+  T.face('up'); T.press('action'); T.secs(0.8);
+  T.hold('right', 0.4); T.secs(0.6); T.dialogs();
+  T.check('Mill\'s lucky shell', !!g.save.items.luckyShell);
+  T.at('overworld', 27.5, 18.5); T.face('down'); T.press('sword'); T.dialogs(); T.secs(0.5); T.dialogs();
+  T.check('Mill gives a piece of heart', g.flag('millReward') && g.save.heartPieces === 1);
+
   // Old Ruins and Mirror Lake
   T.at('overworld', 44.5, 6.5); T.killAll();
   openChest(44.5, 4.4, 'up');

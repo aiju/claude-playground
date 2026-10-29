@@ -52,7 +52,7 @@ export const talk = {
       g.after(0.1, () => g.giveItem('heartPiece'));
       return ['My LUCKY SHELL! You found it! Where was it? ...Under a rock in Sunny Cove? Of course it was.', 'Here, I want you to have this. I found it in my cheese drawer. Don\'t ask.'];
     }
-    return ['I lost my LUCKY SHELL! I was paddling in Sunny Cove, way over in the south-east, and a crab chased me and I dropped it.', 'It\'s all swirly and shiny. If you find it, I\'ll give you something nice!'];
+    return ['I lost my LUCKY SHELL! I was paddling in Sunny Cove, way over in the south-east, and a crab chased me and I dropped it.', 'I think it rolled under one of the rocks down by the water. It\'s all swirly and shiny. If you find it, I\'ll give you something nice!'];
   },
 
   bramble(g) {
