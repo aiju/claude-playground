@@ -6,6 +6,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 
 | Folder | What it is |
 | --- | --- |
+| [foglight-adventure](foglight-adventure) | A little island adventure in the spirit of the 2D Zelda games, rendered in 3D like a toy diorama, with every model, sound and tune built from code in WebGL2 and WebAudio |
 | [glass-tower-hymn](glass-tower-hymn) | An orchestral instrumental in the style of the Ar tonelico II and Umineko openings, synthesized from scratch in JavaScript |
 | [heart-sutra-music-video](heart-sutra-music-video) | A watercolour inkblot music video for a Heart Sutra song, painted live by WebGL shaders, with the lyrics brushed on in Japanese and Devanagari calligraphy |
 | [historical-factory-sim](historical-factory-sim) | A stylised 3D simulation of a fictional 1913 Coventry cycle works, accurate down to the carbon copies, pay tins and railway consignment notes |
