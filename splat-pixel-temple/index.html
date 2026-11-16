@@ -1,0 +1,625 @@
+<title>Moon-Viewing Cat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+  /* Layout: one night scene, full width, with a single strip of controls under it. Single dark look on purpose. */
+  :root {
+    --night: #0d0b1e;
+    --panel: #1a1433;
+    --line: #45307a;
+    --text: #eadfd0;
+    --muted: #a79bc0;
+    --lantern: #f5b83d;
+    --vermilion: #de4a2a;
+    --display: "DotGothic16", "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", monospace;
+    --body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--night);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    padding-block: 20px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+  h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.5; margin: 0; letter-spacing: 0.06em; }
+  h1 rt { font-size: 11px; color: var(--lantern); letter-spacing: 0.2em; }
+  .en { font-family: var(--display); color: var(--muted); font-size: 16px; }
+  .lede { margin: 0; max-width: 65ch; color: var(--muted); }
+  .lede b { color: var(--text); font-weight: 700; }
+
+  .stage { position: relative; aspect-ratio: 16 / 10; max-width: 100%; border: 2px solid var(--line); background: #120e2c; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: grab; image-rendering: pixelated; }
+  canvas.smooth { image-rendering: auto; }
+  .stat { position: absolute; left: 8px; bottom: 6px; font-family: var(--display); font-size: 12px; color: var(--text);
+    background: rgba(13, 11, 30, 0.72); padding: 1px 7px; pointer-events: none; font-variant-numeric: tabular-nums; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 12px 26px; }
+  .group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .label { font-family: var(--display); font-size: 12px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  button { font-family: var(--display); font-size: 14px; color: var(--text); background: var(--panel);
+    border: 2px solid var(--line); padding: 5px 11px; cursor: pointer; border-radius: 0; }
+  button:hover { border-color: var(--muted); }
+  button[aria-pressed="true"] { background: var(--lantern); border-color: var(--lantern); color: var(--night); }
+  button:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+  ol.steps { margin: 4px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 26px; counter-reset: s; }
+  ol.steps li { counter-increment: s; color: var(--muted); min-width: 0; }
+  ol.steps li::before { content: counter(s) "　"; font-family: var(--display); color: var(--lantern); }
+  ol.steps b { color: var(--text); font-family: var(--display); font-weight: 400; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><ruby>月見猫<rt>つきみねこ</rt></ruby></h1>
+    <span class="en">Moon-Viewing Cat</span>
+  </header>
+  <p class="lede">Pixel art with no sprites in it. The temple, the maples and the <b>三毛猫</b> are a cloud of 3D Gaussian splats, redrawn every frame and snapped to a small palette. Drag across the picture to move the camera.</p>
+
+  <div class="stage">
+    <canvas id="view" width="256" height="160" aria-label="A three-storey pagoda at dusk under a full moon. A calico cat sits on a stone wall beside a stack of moon-viewing dumplings while maple leaves fall."></canvas>
+    <div class="stat" id="stat"></div>
+  </div>
+
+  <div class="controls">
+    <div class="group">
+      <span class="label">View 表示</span>
+      <div class="seg" id="mode">
+        <button id="mode-pixel" data-v="pixel" aria-pressed="true">ドット絵 Pixels</button>
+        <button id="mode-splat" data-v="splat" aria-pressed="false">Raw splats</button>
+        <button id="mode-ellipse" data-v="ellipse" aria-pressed="false">楕円 Ellipses</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label">Palette 色</span>
+      <div class="seg" id="pal">
+        <button id="pal-dusk" data-v="dusk" aria-pressed="true">夕暮れ Dusk</button>
+        <button id="pal-sumi" data-v="sumi" aria-pressed="false">墨 Ink</button>
+        <button id="pal-matcha" data-v="matcha" aria-pressed="false">抹茶 Matcha</button>
+        <button id="pal-moon" data-v="moon" aria-pressed="false">月光 1-bit</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label">Pixels 解像度</span>
+      <div class="seg" id="res">
+        <button id="res-160" data-v="160" aria-pressed="false">160×100</button>
+        <button id="res-256" data-v="256" aria-pressed="true">256×160</button>
+        <button id="res-384" data-v="384" aria-pressed="false">384×240</button>
+      </div>
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li><b>Splat.</b> Each Gaussian is a fuzzy 3D ellipsoid. Its covariance is projected through the camera into a 2D ellipse on the screen.</li>
+    <li><b>Blend.</b> Ellipses are painted back to front. Solid ones are cut off at half opacity so shapes get crisp pixel edges; sky, mist and lantern glow stay soft.</li>
+    <li><b>Snap.</b> Every pixel takes the nearest palette colour, with a 4×4 Bayer pattern deciding the ties. That is where the dithered sky comes from.</li>
+  </ol>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// ---------- small helpers ----------
+const hx = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+const lerp = (a, b, t) => a + (b - a) * t;
+const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const hash = (i, j) => { let h = (i * 374761393 + j * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+const frac = x => x - Math.floor(x);
+
+// ---------- the splat cloud ----------
+// A "hard" splat has opacity 8, so it saturates into a flat disc; K is where its alpha crosses 0.5.
+const HARD = 8, K = Math.sqrt(2 * Math.log(2 * HARD));
+const CAP = 20000;
+const P = new Float32Array(CAP * 3), COV = new Float32Array(CAP * 6), COL = new Float32Array(CAP * 3), OP = new Float32Array(CAP);
+let N = 0;
+
+// a, b, c are the three axis vectors of the ellipsoid, each one sigma long.
+function put(x, y, z, a, b, c, col, o) {
+  if (N >= CAP) return;
+  const i = N++;
+  P[i * 3] = x; P[i * 3 + 1] = y; P[i * 3 + 2] = z;
+  const k = i * 6;
+  COV[k] = a[0] * a[0] + b[0] * b[0] + c[0] * c[0];
+  COV[k + 1] = a[0] * a[1] + b[0] * b[1] + c[0] * c[1];
+  COV[k + 2] = a[0] * a[2] + b[0] * b[2] + c[0] * c[2];
+  COV[k + 3] = a[1] * a[1] + b[1] * b[1] + c[1] * c[1];
+  COV[k + 4] = a[1] * a[2] + b[1] * b[2] + c[1] * c[2];
+  COV[k + 5] = a[2] * a[2] + b[2] * b[2] + c[2] * c[2];
+  COL[i * 3] = Math.min(255, col[0]); COL[i * 3 + 1] = Math.min(255, col[1]); COL[i * 3 + 2] = Math.min(255, col[2]);
+  OP[i] = o;
+}
+function rot(v, yaw, pitch, roll) {
+  let [x, y, z] = v, c, s, t;
+  c = Math.cos(roll); s = Math.sin(roll); t = x * c - y * s; y = x * s + y * c; x = t;
+  c = Math.cos(pitch); s = Math.sin(pitch); t = y * c - z * s; z = y * s + z * c; y = t;
+  c = Math.cos(yaw); s = Math.sin(yaw); t = x * c + z * s; z = -x * s + z * c; x = t;
+  return [x, y, z];
+}
+function ellipsoid(x, y, z, sx, sy, sz, col, o, yaw = 0, pitch = 0, roll = 0) {
+  if (yaw || pitch || roll) put(x, y, z, rot([sx, 0, 0], yaw, pitch, roll), rot([0, sy, 0], yaw, pitch, roll), rot([0, 0, sz], yaw, pitch, roll), col, o);
+  else put(x, y, z, [sx, 0, 0], [0, sy, 0], [0, 0, sz], col, o);
+}
+// hard(): radii are the visible radii. soft(): radii are sigmas.
+const hard = (x, y, z, rx, ry, rz, col, yaw, pitch, roll) => ellipsoid(x, y, z, rx / K, ry / K, rz / K, col, HARD, yaw, pitch, roll);
+const soft = (x, y, z, sx, sy, sz, col, o, yaw, pitch, roll) => ellipsoid(x, y, z, sx, sy, sz, col, o, yaw, pitch, roll);
+
+// ---------- baked lighting ----------
+const AMB = [0.50, 0.50, 0.74], MOON_DIR = norm([-0.5, 0.62, 0.6]), MOON_COL = [0.58, 0.62, 0.72];
+const LIGHTS = [];
+function shade(col, x, y, z, nx, ny, nz) {
+  const d = Math.max(0, nx * MOON_DIR[0] + ny * MOON_DIR[1] + nz * MOON_DIR[2]);
+  let r = AMB[0] + MOON_COL[0] * d, g = AMB[1] + MOON_COL[1] * d, b = AMB[2] + MOON_COL[2] * d;
+  for (const L of LIGHTS) {
+    const dx = L.x - x, dy = L.y - y, dz = L.z - z, d2 = dx * dx + dy * dy + dz * dz, dist = Math.sqrt(d2) || 1;
+    const w = L.k / (1 + d2 / (L.rad * L.rad)) * (0.4 + 0.6 * Math.max(0, (nx * dx + ny * dy + nz * dz) / dist));
+    r += 1.0 * w; g += 0.62 * w; b += 0.22 * w;
+  }
+  return [col[0] * r, col[1] * g, col[2] * b];
+}
+const GEN_N = norm([-0.25, 0.5, 0.8]);
+const lit = (col, x, y, z) => shade(col, x, y, z, GEN_N[0], GEN_N[1], GEN_N[2]);
+const hardLit = (x, y, z, rx, ry, rz, col, yaw, pitch, roll) => hard(x, y, z, rx, ry, rz, lit(col, x, y, z), yaw, pitch, roll);
+
+// ---------- camera ----------
+const PIVOT = [0, 4, -3], DIST = 19, BASE_PITCH = -0.12, FOV = 38 * Math.PI / 180;
+function camera(yaw, pitch) {
+  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const eye = [PIVOT[0] + DIST * Math.sin(yaw) * cp, PIVOT[1] + DIST * sp, PIVOT[2] + DIST * Math.cos(yaw) * cp];
+  const f = norm([PIVOT[0] - eye[0], PIVOT[1] - eye[1], PIVOT[2] - eye[2]]);
+  const r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  return { eye, f, r, u };
+}
+const CAM0 = camera(0, BASE_PITCH).eye;
+
+// A parametric surface tiled with flat hard splats. fn(u, v) -> [x, y, z]; colFn may return null to leave a hole,
+// or a 4-element colour to mark it as glowing (not lit).
+function surf(fn, nu, nv, colFn, ov = 1.5) {
+  for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+    const u = (i + 0.5) / nu, v = (j + 0.5) / nv, p = fn(u, v);
+    const base = colFn(u, v, p, i, j, nu, nv);
+    if (!base) continue;
+    const a0 = fn(u - 0.5 / nu, v), a1 = fn(u + 0.5 / nu, v), b0 = fn(u, v - 0.5 / nv), b1 = fn(u, v + 0.5 / nv);
+    const pu = [a1[0] - a0[0], a1[1] - a0[1], a1[2] - a0[2]], pv = [b1[0] - b0[0], b1[1] - b0[1], b1[2] - b0[2]];
+    let n = norm(cross(pu, pv));
+    if (n[0] * (CAM0[0] - p[0]) + n[1] * (CAM0[1] - p[1]) + n[2] * (CAM0[2] - p[2]) < 0) n = [-n[0], -n[1], -n[2]];
+    const col = base.length > 3 ? base : shade(base, p[0], p[1], p[2], n[0], n[1], n[2]);
+    const s = 0.5 * ov / K;
+    put(p[0], p[1], p[2], mul(pu, s), mul(pv, s), mul(n, 0.02), col, HARD);
+  }
+}
+function box(x0, y0, z0, x1, y1, z1, cell, colFn, faces = 'ftlr') {
+  const nx = Math.max(1, Math.round((x1 - x0) / cell)), ny = Math.max(1, Math.round((y1 - y0) / cell)), nz = Math.max(1, Math.round((z1 - z0) / cell));
+  if (faces.includes('f')) surf((u, v) => [lerp(x0, x1, u), lerp(y0, y1, v), z1], nx, ny, (u, v, p, i, j) => colFn('f', u, v, i, j, p));
+  if (faces.includes('t')) surf((u, v) => [lerp(x0, x1, u), y1, lerp(z0, z1, v)], nx, nz, (u, v, p, i, j) => colFn('t', u, v, i, j, p));
+  if (faces.includes('l')) surf((u, v) => [x0, lerp(y0, y1, v), lerp(z0, z1, u)], nz, ny, (u, v, p, i, j) => colFn('l', u, v, i, j, p));
+  if (faces.includes('r')) surf((u, v) => [x1, lerp(y0, y1, v), lerp(z0, z1, u)], nz, ny, (u, v, p, i, j) => colFn('r', u, v, i, j, p));
+}
+
+// ---------- colours of the scene ----------
+const C = {
+  verm: hx('#c8322a'), vermD: hx('#8a1f24'), maroon: hx('#4a1820'), plaster: hx('#e6dcc6'), green: hx('#3f7a4c'), greenD: hx('#25503a'),
+  glow: [255, 226, 130, 1], glowDim: [245, 170, 70, 1], tile: hx('#33507c'), tileD: hx('#28406a'), eave: [170, 190, 205, 1],
+  stone: hx('#8d8a99'), stoneD: hx('#62607a'), stoneL: hx('#a9a8b4'), moss: hx('#3a6a40'), mossD: hx('#27503a'),
+  gold: hx('#d8ae4e'), bronze: hx('#7a5c2c'), wood: hx('#b08a5a'), bark: hx('#3a2228'),
+  catW: hx('#f3ecda'), catS: hx('#b9b2c8'), ginger: hx('#e38a3c'), catB: hx('#2b2336'), pink: hx('#e79aa2'),
+  leaves: ['#b22a26', '#de4a2a', '#f07a2e', '#de4a2a', '#8a1f24', '#f5b83d'].map(hx),
+};
+
+// ---------- scene pieces ----------
+function sky() {
+  const bands = [[-8, 9, '#f8cf9a', 0.95], [5, 7, '#f2a27c', 0.9], [16, 8, '#dc7a84', 0.85], [29, 10, '#b85c8e', 0.8], [45, 12, '#8c4a94', 0.75], [64, 15, '#643a8c', 0.7], [88, 18, '#45307a', 0.6]];
+  for (const [y, sy, c, o] of bands) soft(0, y, -200 - y * 0.3, 600, sy, 1, hx(c), o);
+  // the moon, its halo and its seas
+  const mx = -50, my = 55, mz = -150;
+  soft(mx, my, mz - 2, 34, 34, 1, hx('#b85c8e'), 0.2);
+  soft(mx, my, mz - 1, 17, 17, 1, hx('#f2a27c'), 0.32);
+  hard(mx, my, mz, 10.5, 10.5, 1, hx('#fff6d6'));
+  soft(mx - 3.2, my + 2.6, mz + 0.5, 2.6, 2.1, 1, hx('#d9cdb8'), 0.75);
+  soft(mx + 2.4, my - 1.2, mz + 0.5, 2.2, 3.0, 1, hx('#d9cdb8'), 0.6, 0, 0, 0.5);
+  soft(mx - 1.5, my - 4.6, mz + 0.5, 2.0, 1.4, 1, hx('#d9cdb8'), 0.55);
+}
+function ridge(z, base, amp, seed, col, r, step, span) {
+  const R = rng(seed), ph = [R() * 9, R() * 9, R() * 9];
+  let lo = 1e9;
+  for (let x = -span; x <= span; x += step) {
+    const h = base + amp * (0.55 * Math.sin(x * 0.021 + ph[0]) + 0.3 * Math.sin(x * 0.053 + ph[1]) + 0.15 * Math.sin(x * 0.13 + ph[2]));
+    lo = Math.min(lo, h);
+    hard(x, h - r, z, r, r, 1, mix(col, hx('#dc7a84'), 0.08 * R()));
+  }
+  hard(0, lo - r - 40, z + 0.5, span * 1.5, 41, 1, col);
+}
+function ground() {
+  surf((u, v) => [lerp(-30, 30, u), 0, lerp(-36, 13, v)], 44, 38, (u, v, p, i, j) => {
+    const h = hash(i, j);
+    return h < 0.5 ? mix(C.mossD, C.moss, h * 1.6) : mix(hx('#2c3a52'), C.mossD, h);
+  });
+  // 石畳, the paved approach
+  surf((u, v) => [lerp(-2.45, -0.55, u), 0.03, lerp(-2.6, 13, v)], 4, 34, (u, v, p, i, j) => {
+    const h = hash(i + 40, j + (i & 1) * 7);
+    return (j + (i >> 1)) % 4 === 0 && h < 0.5 ? C.stoneD : mix(C.stone, C.stoneL, h);
+  }, 1.42);
+}
+function wallCol(storey) {
+  return (u, v, p, i, j, nu) => {
+    if (v > 0.84) return (i + j) % 2 ? C.plaster : C.maroon;          // 組物, the bracket band under the eaves
+    if (v < 0.1) return C.vermD;
+    const bay = u * 3, fr = bay - Math.floor(bay), mid = Math.floor(bay) === 1;
+    if (i === 0 || i === nu - 1 || fr < 0.09 || fr > 0.91) return C.verm;
+    if (v > 0.6 && v < 0.7) return C.verm;                             // 長押, the tie beam
+    if (mid) {
+      if (storey === 0) return Math.abs(u - 0.5) < 0.04 ? C.glow : (v > 0.7 ? C.glowDim : C.maroon);
+      return v > 0.2 && v < 0.6 ? C.glow : C.plaster;
+    }
+    if (v > 0.22 && v < 0.6 && fr > 0.22 && fr < 0.78) return i & 1 ? C.green : C.greenD;   // 連子窓, the green lattice windows
+    return C.plaster;
+  };
+}
+function roof(cx, cz, ye, r, inner, drop) {
+  for (const [dx, dz, nu] of [[0, 1, 30], [-1, 0, 16], [1, 0, 16]]) {
+    const px = dz, pz = -dx;
+    surf((u, v) => {
+      const w = u * 2 - 1, half = inner + (r - inner) * v;
+      const y = ye + drop * (1 - v) * (1 - v) + 0.6 * Math.pow(Math.abs(w), 4) * v * v;   // 反り, the upturned corners
+      return [cx + dx * half + px * w * half, y, cz + dz * half + pz * w * half];
+    }, nu, 9, (u, v, p, i, j) => j === 8 ? C.eave : (i & 1 ? C.tile : C.tileD), 1.6);
+  }
+}
+function pagoda(cx, cz) {
+  const st = [{ b: 1.7, y: 0.5, h: 2.2, r: 3.75, drop: 0.9 }, { b: 1.35, y: 3.5, h: 1.6, r: 3.2, drop: 0.8 }, { b: 1.05, y: 5.8, h: 1.5, r: 2.75, drop: 1.5 }];
+  const stoneFn = (f, u, v, i, j) => f === 't' ? mix(C.stone, C.stoneL, hash(i, j)) : (j === 0 || i % 4 === 0 ? C.stoneD : C.stone);
+  box(cx - 2.7, 0, cz - 2.7, cx + 2.7, 0.5, cz + 2.7, 0.25, stoneFn);
+  box(cx - 1.0, 0, cz + 2.7, cx + 1.0, 0.34, cz + 3.1, 0.2, stoneFn);
+  box(cx - 1.0, 0, cz + 3.1, cx + 1.0, 0.17, cz + 3.5, 0.2, stoneFn);
+  st.forEach((s, k) => {
+    const { b, y, h } = s, nu = Math.round(2 * b / 0.17), nv = Math.round(h / 0.17), wc = wallCol(k);
+    surf((u, v) => [cx - b + 2 * b * u, y + h * v, cz + b], nu, nv, wc);
+    surf((u, v) => [cx - b, y + h * v, cz - b + 2 * b * u], nu, nv, wc);
+    surf((u, v) => [cx + b, y + h * v, cz - b + 2 * b * u], nu, nv, wc);
+    if (k > 0) {                                                       // 高欄, the balcony rail
+      const e = b + 0.32, n = Math.round(2 * e / 0.15);
+      const rail = (u, v, p, i, j) => j === 2 || i % 3 === 0 ? C.verm : (j === 0 ? C.maroon : null);
+      surf((u, v) => [cx - e + 2 * e * u, y - 0.08 + 0.42 * v, cz + e], n, 3, rail);
+      surf((u, v) => [cx - e, y - 0.08 + 0.42 * v, cz - e + 2 * e * u], n, 3, rail);
+      surf((u, v) => [cx + e, y - 0.08 + 0.42 * v, cz - e + 2 * e * u], n, 3, rail);
+    }
+    roof(cx, cz, y + h, s.r, k < 2 ? st[k + 1].b + 0.05 : 0.08, s.drop);
+  });
+  // 相輪, the spire
+  const top = 5.8 + 1.5 + 1.5;
+  hardLit(cx, top + 0.12, cz, 0.3, 0.16, 0.3, C.bronze);
+  hardLit(cx, top + 1.0, cz, 0.05, 0.95, 0.05, C.bronze);
+  for (let k = 0; k < 6; k++) hardLit(cx, top + 0.46 + k * 0.2, cz, 0.21 - 0.018 * k, 0.065, 0.21 - 0.018 * k, C.gold);
+  hardLit(cx, top + 1.8, cz, 0.13, 0.2, 0.05, C.gold);
+  hard(cx, top + 2.08, cz, 0.08, 0.1, 0.08, hx('#fde68a'));
+}
+function lantern(x, z, s) {
+  hardLit(x, 0.12 * s, z, 0.5 * s, 0.14 * s, 0.5 * s, C.stoneD);
+  hardLit(x, 0.75 * s, z, 0.15 * s, 0.6 * s, 0.15 * s, C.stone);
+  hardLit(x, 1.36 * s, z, 0.42 * s, 0.1 * s, 0.42 * s, C.stoneD);
+  hardLit(x, 1.7 * s, z, 0.27 * s, 0.27 * s, 0.27 * s, C.stoneD);
+  hard(x, 1.7 * s, z + 0.2 * s, 0.15 * s, 0.17 * s, 0.1 * s, hx('#fde68a'));
+  hard(x, 1.7 * s, z + 0.22 * s, 0.07 * s, 0.1 * s, 0.1 * s, hx('#ffffff'));
+  hardLit(x, 2.06 * s, z, 0.64 * s, 0.13 * s, 0.64 * s, C.stone);
+  hardLit(x - 0.08 * s, 2.17 * s, z, 0.4 * s, 0.13 * s, 0.4 * s, C.stoneL);
+  hardLit(x, 2.4 * s, z, 0.11 * s, 0.15 * s, 0.11 * s, C.stoneL);
+  hard(x + 0.2 * s, 2.2 * s, z + 0.3 * s, 0.2 * s, 0.05 * s, 0.15 * s, C.moss);
+}
+function cedar(x, z, h, R) {
+  const far = Math.min(1, Math.max(0, (-z - 8) / 18));
+  const dark = mix(hx('#14302a'), hx('#27365c'), far * 0.7), light = mix(hx('#2c6650'), hx('#44608a'), far * 0.7);
+  hard(x, h * 0.12, z, 0.22, h * 0.14, 0.22, C.bark);
+  for (let k = 0; k < 10; k++) {
+    const t = k / 9, y = h * (0.2 + 0.8 * t), r = (1 - t) * h * 0.19 + 0.22, j = (R() - 0.5) * 0.3;
+    hard(x + j, y, z, r, h * 0.085, r * 0.8, dark);
+    hard(x + j - r * 0.42, y + h * 0.02, z + 0.3, r * 0.5, h * 0.05, r * 0.4, light, 0, 0, -0.3);
+  }
+}
+const MAPLE_CLUSTERS = [[4.9, 5.0, 6.4, 1.2], [3.5, 5.3, 6.9, 1.1], [2.2, 5.15, 7.3, 1.0], [1.15, 4.75, 7.2, 0.8], [2.9, 4.5, 7.8, 0.8], [4.3, 4.3, 7.5, 0.9], [5.4, 4.2, 6.6, 1.0], [0.5, 4.2, 7.5, 0.45]];
+function maple() {
+  const R = rng(77);
+  // branches
+  const br = (a, b, r0, r1, n) => { for (let i = 0; i <= n; i++) { const t = i / n; hard(lerp(a[0], b[0], t), lerp(a[1], b[1], t) + 0.25 * Math.sin(t * Math.PI), lerp(a[2], b[2], t), lerp(r0, r1, t) * 1.6, lerp(r0, r1, t), lerp(r0, r1, t), C.bark); } };
+  br([6.2, 2.6, 6.6], [3.4, 4.6, 7.0], 0.2, 0.09, 16);
+  br([3.4, 4.6, 7.0], [0.9, 4.5, 7.3], 0.09, 0.04, 12);
+  br([4.4, 4.0, 6.9], [2.6, 3.9, 7.7], 0.07, 0.03, 9);
+  for (const [cx, cy, cz, r] of MAPLE_CLUSTERS) {
+    const n = Math.round(95 * r * r);
+    for (let i = 0; i < n; i++) {
+      let x, y, z; do { x = R() * 2 - 1; y = R() * 2 - 1; z = R() * 2 - 1; } while (x * x + y * y + z * z > 1);
+      const col = C.leaves[(R() * C.leaves.length) | 0], k = 0.72 + 0.3 * (y * 0.5 + 0.5) + 0.12 * R();
+      hard(cx + x * r, cy + y * r * 0.62, cz + z * r * 0.7, 0.1 + R() * 0.07, 0.05 + R() * 0.04, 0.1, mul(col, k), R() * 6, 0, (R() - 0.5) * 1.6);
+    }
+  }
+}
+function stoneWall() {
+  const x0 = 0.15, x1 = 5.2, y0 = -0.2, y1 = 1.0, z0 = 8.4, z1 = 9.7;
+  box(x0, y0, z0, x1, y1, z1, 0.115, (f, u, v, i, j, p) => {
+    if (f === 't') { const h = hash(i >> 1, j >> 1); return h < 0.22 ? mix(C.mossD, C.moss, h * 4) : mix(C.stone, C.stoneL, h); }
+    const row = Math.floor(p[1] / 0.35 + 4), bx = (f === 'f' ? p[0] : p[2]) / 0.7 + row * 0.47, id = Math.floor(bx);
+    if (frac(bx) < 0.15 || frac(p[1] / 0.35 + 4) < 0.3) return hx('#34314e');
+    const h = hash(id, row);
+    return h > 0.82 ? mix(C.stoneD, C.moss, 0.6) : mix(hx('#54526e'), C.stone, h);
+  }, 'ftl');
+}
+function fallenLeaves() {
+  const R = rng(5);
+  for (let i = 0; i < 90; i++) {
+    const onWall = i < 18, x = onWall ? 0.4 + R() * 4 : -6 + R() * 12, z = onWall ? 8.6 + R() * 1.0 : -1 + R() * 9;
+    if (onWall && Math.abs(x - 2.1) < 0.8) continue;
+    const col = mul(C.leaves[(R() * 5) | 0], 0.8 + R() * 0.3);
+    hard(x, onWall ? 1.02 : 0.04, z, 0.1 + R() * 0.05, 0.02, 0.08 + R() * 0.04, col, R() * 6);
+  }
+}
+// 月見団子: fifteen is traditional, six fit
+function dango(x, y, z) {
+  hardLit(x, y + 0.07, z, 0.11, 0.08, 0.11, C.bronze);
+  hardLit(x, y + 0.17, z, 0.27, 0.04, 0.24, C.wood);
+  const c = hx('#fff8e6');
+  for (const [dx, dy, dz] of [[-0.16, 0, 0], [0, 0, 0.02], [0.16, 0, 0], [-0.08, 0.14, 0], [0.08, 0.14, 0], [0, 0.28, 0]]) {
+    hard(x + dx * 1.2 + 0.02, y + 0.3 + dy * 1.2 - 0.02, z + dz - 0.02, 0.105, 0.105, 0.105, hx('#9c94b4'));
+    hard(x + dx * 1.2, y + 0.3 + dy * 1.2, z + dz, 0.088, 0.088, 0.088, c);
+  }
+}
+
+// ---------- build the static part ----------
+LIGHTS.push({ x: -3.4, y: 1.7, z: 1.3, rad: 2.6, k: 1.5 }, { x: 0.45, y: 1.7, z: 1.3, rad: 2.6, k: 1.5 }, { x: -1.5, y: 1.4, z: -2.6, rad: 2.2, k: 0.9 });
+sky();
+ridge(-125, 15, 7, 3, hx('#6a5a9c'), 9, 4, 150);
+ridge(-70, 5.5, 3.2, 11, hx('#3d4478'), 5, 2.4, 90);
+ground();
+{
+  const R = rng(21);
+  for (const [x, z, h] of [[-13.5, -15, 7.5], [-10.5, -18, 9], [-8, -13, 6.5], [-5.6, -17, 8.5], [3.2, -16, 9.5], [5.8, -12, 8], [8.6, -17, 11], [11.5, -13, 9], [14.5, -16, 10.5], [-16.5, -12, 6], [-11.8, -10, 4.6], [9.8, -8, 5.5]]) cedar(x, z, h, R);
+}
+pagoda(-1.5, -6);
+lantern(-3.4, 1, 1);
+lantern(0.45, 1, 1);
+fallenLeaves();
+stoneWall();
+maple();
+dango(0.95, 1.0, 9.1);
+const N_STATIC = N;
+
+// ---------- the moving part ----------
+const CAT_O = [2.15, 1.0, 9.05], CF = norm([-0.92, 0, -0.39]), CS = norm([-0.39, 0, 0.92]);
+function cb(lf, lu, ls, rf, ru, rs, col, tilt = 0) {
+  const c = Math.cos(tilt), s = Math.sin(tilt);
+  const f = [CF[0] * c, s, CF[2] * c], u = [-CF[0] * s, c, -CF[2] * s];
+  put(CAT_O[0] + CF[0] * lf + CS[0] * ls, CAT_O[1] + lu, CAT_O[2] + CF[2] * lf + CS[2] * ls,
+    mul(f, rf / K), mul(u, ru / K), mul(CS, rs / K), col, HARD);
+}
+function cat(t) {
+  const br = Math.sin(t * 1.6) * 0.008, W = C.catW, S = C.catS, G = C.ginger, B = C.catB;
+  const twitch = Math.max(0, Math.sin(t * 0.9) - 0.96) * 9;
+  // tail first: it lies behind the body
+  for (let k = 0; k < 10; k++) {
+    const q = k / 9, sw = Math.sin(t * 1.4 + q * 1.5);
+    cb(-0.42 - 0.66 * q, 0.1 + 0.5 * Math.pow(q, 2.2) * (0.75 + 0.25 * sw), 0.1 + 0.1 * q * sw, 0.1, 0.085 - 0.02 * q, 0.085 - 0.02 * q, k > 7 ? B : (k % 3 === 1 ? G : W), 0);
+  }
+  cb(-0.3, 0.33, -0.12, 0.36, 0.32, 0.3, S);
+  cb(-0.14, 0.37 + br, 0, 0.44, 0.38, 0.38, W);
+  cb(0.31, 0.26, -0.11, 0.085, 0.28, 0.085, S);
+  cb(0.14, 0.65 + br, 0, 0.27, 0.38, 0.27, W, 0.25);
+  cb(-0.24, 0.6 + br, 0.17, 0.25, 0.2, 0.22, G);
+  cb(-0.44, 0.3, 0.14, 0.16, 0.17, 0.22, B);
+  cb(0.08, 0.08, 0.3, 0.2, 0.085, 0.1, W);
+  cb(0.3, 0.27, 0.13, 0.085, 0.28, 0.085, W);
+  cb(0.37, 0.06, 0.13, 0.11, 0.07, 0.09, W);
+  // head, tipped back to look at the moon
+  const hy = 1.04 + br;
+  cb(0.15, hy + 0.27, -0.16, 0.085, 0.19, 0.1, B, -0.1);
+  cb(0.26, hy, 0, 0.25, 0.225, 0.26, W, 0.35);
+  cb(0.2, hy + 0.11, -0.12, 0.14, 0.11, 0.13, B);
+  cb(0.12, hy + 0.12, 0.12, 0.15, 0.12, 0.15, G);
+  cb(0.45, hy + 0.01, 0.03, 0.1, 0.085, 0.12, hx('#fffaf0'), 0.35);
+  cb(0.535, hy + 0.045, 0.04, 0.03, 0.026, 0.04, C.pink);
+  cb(0.15, hy + 0.27, 0.16, 0.085, 0.19, 0.1, G, -0.1 - twitch * 0.5);
+  cb(0.18, hy + 0.25, 0.19, 0.04, 0.1, 0.05, C.pink, -0.1 - twitch * 0.5);
+  if (frac(t / 5.3) > 0.035) cb(0.38, hy + 0.065, 0.19, 0.05, 0.06, 0.03, B);
+}
+const LEAVES = (() => { const R = rng(9), a = []; for (let i = 0; i < 30; i++) a.push({ x: -3.5 + R() * 9, z: 3 + R() * 6.8, ph: R(), sp: 0.035 + R() * 0.03, col: mul(C.leaves[(R() * 4) | 0], 1.05), s: 0.09 + R() * 0.05 }); return a; })();
+const STARS = (() => { const R = rng(4), a = []; for (let i = 0; i < 70; i++) a.push({ x: -150 + R() * 300, y: 34 + R() * 75, ph: R() * 6.28, r: 0.35 + R() * 0.5 }); return a; })();
+const GRASS = (() => { const R = rng(31), a = []; for (let i = 0; i < 9; i++) a.push({ x: -2.95 + R() * 1.25, z: 10.4 + R() * 1.0, h: 1.0 + R() * 1.0, ph: R() * 6, lean: -0.1 + R() * 0.35 }); return a; })();
+function dynamic(t) {
+  N = N_STATIC;
+  for (const s of STARS) { const tw = 0.5 + 0.5 * Math.sin(t * 1.7 + s.ph); if (tw > 0.18) hard(s.x, s.y, -190, s.r, s.r, 0.1, hx(tw > 0.6 ? '#fff6d6' : '#b85c8e')); }
+  // drifting cloud streaks and valley mist
+  for (let i = 0; i < 6; i++) { const x = frac(i * 0.37 + t * 0.0035) * 360 - 180; soft(x, 12 + i * 8.5, -160 + i, 26 + 6 * (i % 3), 1.5, 1, hx(i % 2 ? '#f2a27c' : '#8c4a94'), 0.5); }
+  for (let i = 0; i < 6; i++) { const x = frac(i * 0.29 + t * 0.006) * 200 - 100; soft(x, 3.5 + (i % 3) * 2.2, -30 - i * 9, 20, 1.2, 1, hx('#c9b4d8'), 0.3); }
+  // lantern flames
+  const fl = 0.85 + 0.15 * Math.sin(t * 9) * Math.sin(t * 5.3);
+  for (const lx of [-3.4, 0.45]) { soft(lx, 1.7, 1.35, 0.75, 0.75, 0.5, hx('#f5b83d'), 0.26 * fl); soft(lx, 1.7, 1.4, 0.3, 0.3, 0.3, hx('#fde68a'), 0.4 * fl); }
+  soft(-1.5, 1.5, -4.2, 0.9, 1.0, 0.5, hx('#f5b83d'), 0.2 * fl);
+  for (const L of LEAVES) {
+    const q = frac(t * L.sp + L.ph), y = 6.3 - q * 6.4, x = L.x + Math.sin(t * 1.1 + L.ph * 40) * 0.45 - q * 1.6;
+    const floor = x > 0.15 && L.z > 8.4 ? 1.0 : 0;
+    if (y > floor) hard(x, y, L.z, L.s, 0.03, L.s * 0.8, L.col, t * 1.7 + L.ph * 9, Math.sin(t * 2.3 + L.ph * 20) * 1.2, 0.6);
+  }
+  cat(t);
+  // ススキ, pampas grass in the near corner
+  for (const g of GRASS) {
+    const sway = Math.sin(t * 0.9 + g.ph) * 0.12 + g.lean;
+    for (let k = 0; k < 7; k++) { const q = (k + 0.5) / 7; hard(g.x + sway * q * q * g.h, 0.3 + q * g.h, g.z, 0.022, g.h / 11, 0.022, hx('#7d8a52'), 0, 0, -sway * q * 1.6); }
+    for (let k = 0; k < 6; k++) {
+      const q = k / 5, bx = g.x + sway * g.h + (0.1 + 0.35 * sway) * q * 1.6, by = 0.3 + g.h + 0.34 * Math.sin(q * 2.3) - 0.12 * q;
+      hard(bx, by, g.z, 0.05 - 0.02 * q, 0.13, 0.04, hx(k % 2 ? '#f8e2b4' : '#d9cdb8'), 0, 0, -0.6 - q * 0.9 - sway);
+    }
+  }
+}
+
+// ---------- rasteriser ----------
+const BG = [20, 15, 48], LP = 0.15;
+const EXP_N = 4096, EXP_MAX = 26, EXP = new Float32Array(EXP_N + 1);
+for (let i = 0; i <= EXP_N; i++) EXP[i] = Math.exp(-0.5 * i / EXP_N * EXP_MAX);
+const SU = new Float32Array(CAP), SV = new Float32Array(CAP), CA = new Float32Array(CAP), CB = new Float32Array(CAP), CC = new Float32Array(CAP), DEP = new Float32Array(CAP);
+const ORDER = new Uint32Array(CAP);
+let M = 0;
+function project(W, H, cam) {
+  const F = H / 2 / Math.tan(FOV / 2), { eye, f, r, u } = cam;
+  M = 0;
+  for (let i = 0; i < N; i++) {
+    const dx = P[i * 3] - eye[0], dy = P[i * 3 + 1] - eye[1], dz = P[i * 3 + 2] - eye[2];
+    const z = dx * f[0] + dy * f[1] + dz * f[2];
+    if (z < 1) continue;
+    const x = dx * r[0] + dy * r[1] + dz * r[2], y = dx * u[0] + dy * u[1] + dz * u[2];
+    const s = F / z, sx = F * x / (z * z), sy = F * y / (z * z);
+    const t0x = s * r[0] - sx * f[0], t0y = s * r[1] - sx * f[1], t0z = s * r[2] - sx * f[2];
+    const t1x = -s * u[0] + sy * f[0], t1y = -s * u[1] + sy * f[1], t1z = -s * u[2] + sy * f[2];
+    const k = i * 6, xx = COV[k], xy = COV[k + 1], xz = COV[k + 2], yy = COV[k + 3], yz = COV[k + 4], zz = COV[k + 5];
+    const m0 = xx * t0x + xy * t0y + xz * t0z, m1 = xy * t0x + yy * t0y + yz * t0z, m2 = xz * t0x + yz * t0y + zz * t0z;
+    const n0 = xx * t1x + xy * t1y + xz * t1z, n1 = xy * t1x + yy * t1y + yz * t1z, n2 = xz * t1x + yz * t1y + zz * t1z;
+    SU[i] = W / 2 + s * x; SV[i] = H / 2 - s * y;
+    CA[i] = m0 * t0x + m1 * t0y + m2 * t0z; CB[i] = m0 * t1x + m1 * t1y + m2 * t1z; CC[i] = n0 * t1x + n1 * t1y + n2 * t1z;
+    DEP[i] = z;
+    ORDER[M++] = i;
+  }
+  ORDER.subarray(0, M).sort((a, b) => DEP[b] - DEP[a]);
+}
+function raster(buf, W, H, crisp) {
+  for (let i = 0, n = W * H * 3; i < n; i += 3) { buf[i] = BG[0]; buf[i + 1] = BG[1]; buf[i + 2] = BG[2]; }
+  const ES = EXP_N / EXP_MAX;
+  for (let m = 0; m < M; m++) {
+    const i = ORDER[m], o = OP[i], isHard = o > 1, test = crisp && isHard;
+    const a = CA[i] + LP, b = CB[i], c = CC[i] + LP, det = a * c - b * b;
+    if (det <= 0) continue;
+    const qmax = Math.min(EXP_MAX - 0.01, 2 * Math.log(test ? 2 * o : 255 * o));
+    const ex = Math.sqrt(qmax * a), ey = Math.sqrt(qmax * c), u = SU[i], v = SV[i];
+    const x0 = Math.max(0, Math.floor(u - ex)), x1 = Math.min(W - 1, Math.ceil(u + ex));
+    const y0 = Math.max(0, Math.floor(v - ey)), y1 = Math.min(H - 1, Math.ceil(v + ey));
+    if (x0 > x1 || y0 > y1) continue;
+    const A = c / det, B2 = -2 * b / det, Cc = a / det;
+    const cr = COL[i * 3], cg = COL[i * 3 + 1], cbb = COL[i * 3 + 2];
+    for (let y = y0; y <= y1; y++) {
+      const dy = y + 0.5 - v, qy = Cc * dy * dy, by = B2 * dy;
+      let k = (y * W + x0) * 3;
+      for (let x = x0; x <= x1; x++, k += 3) {
+        const dx = x + 0.5 - u, q = A * dx * dx + by * dx + qy;
+        if (q >= qmax) continue;
+        if (test) { buf[k] = cr; buf[k + 1] = cg; buf[k + 2] = cbb; continue; }
+        let al = o * EXP[(q * ES) | 0];
+        if (al >= 1) { buf[k] = cr; buf[k + 1] = cg; buf[k + 2] = cbb; continue; }
+        buf[k] += (cr - buf[k]) * al; buf[k + 1] += (cg - buf[k + 1]) * al; buf[k + 2] += (cbb - buf[k + 2]) * al;
+      }
+    }
+  }
+}
+
+// ---------- palettes ----------
+const luma = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+function nearest(cols) {
+  return (r, g, b) => { let best = 0, bd = 1e9; for (let i = 0; i < cols.length; i++) { const c = cols[i], dr = r - c[0], dg = g - c[1], db = b - c[2], d = 2 * dr * dr + 4 * dg * dg + 3 * db * db; if (d < bd) { bd = d; best = i; } } return best; };
+}
+function ramp(n, gamma, accent) {
+  return (r, g, b) => accent && r > 105 && r > 1.75 * g && r > 1.5 * b ? n : Math.min(n - 1, Math.max(0, Math.round(Math.pow(luma(r, g, b), gamma) * (n - 1))));
+}
+const PALS = {
+  dusk: { spread: 13, cols: ['#0d0b1e', '#1a1433', '#241b47', '#2f2460', '#45307a', '#643a8c', '#8c4a94', '#b85c8e', '#dc7a84', '#f2a27c', '#f8cf9a',
+    '#1c2b4a', '#2c4268', '#44608a', '#6d8aa8', '#a3b8c4', '#12261f', '#1f3d2c', '#36593a', '#5d7d44', '#4a1420', '#7d1c24', '#b22a26', '#de4a2a', '#f07a2e',
+    '#f5b83d', '#fde68a', '#fff6d6', '#d9cdb8', '#a09cb4', '#7a7694', '#5a5878', '#3d3a56', '#3a2a3a', '#b08a5a', '#e38a3c', '#17332e', '#1d4a40', '#2c6650'] },
+  sumi: { spread: 30, cols: ['#161412', '#2e2b28', '#5c564e', '#938b7d', '#c9c0ab', '#f2ebda', '#c8372d'], map: ramp(6, 0.72, true) },
+  matcha: { spread: 52, cols: ['#0f2419', '#2c5535', '#7ba24e', '#e6efb4'], map: ramp(4, 0.7, false) },
+  moon: { spread: 150, cols: ['#0e1024', '#ece6c8'], map: ramp(2, 0.62, false) },
+};
+for (const k in PALS) {
+  const p = PALS[k]; p.rgb = p.cols.map(hx);
+  const map = p.map || nearest(p.rgb), lut = p.lut = new Uint8Array(32768);
+  for (let r = 0; r < 32; r++) for (let g = 0; g < 32; g++) for (let b = 0; b < 32; b++) lut[r << 10 | g << 5 | b] = map(r * 8 + 4, g * 8 + 4, b * 8 + 4);
+}
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16 - 0.5);
+
+// ---------- drawing ----------
+const canvas = document.getElementById('view'), ctx = canvas.getContext('2d'), stat = document.getElementById('stat');
+const state = { mode: 'pixel', pal: 'dusk', res: 256 };
+let buf = null, img = null, bw = 0, bh = 0;
+function size(w, h) {
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  if (bw !== w || bh !== h) { bw = w; bh = h; buf = new Float32Array(w * h * 3); img = ctx.createImageData(w, h); for (let i = 3; i < img.data.length; i += 4) img.data[i] = 255; }
+}
+function drawPixels(cam) {
+  const W = state.res, H = W * 5 / 8, pal = PALS[state.pal];
+  size(W, H); project(W, H, cam); raster(buf, W, H, true);
+  const d = img.data, lut = pal.lut, rgb = pal.rgb, sp = pal.spread;
+  for (let y = 0, k = 0, j = 0; y < H; y++) for (let x = 0; x < W; x++, k += 3, j += 4) {
+    const t = BAYER[(x & 3) | (y & 3) << 2] * sp;
+    let r = buf[k] + t, g = buf[k + 1] + t, b = buf[k + 2] + t;
+    r = r < 0 ? 0 : r > 255 ? 255 : r; g = g < 0 ? 0 : g > 255 ? 255 : g; b = b < 0 ? 0 : b > 255 ? 255 : b;
+    const c = rgb[lut[(r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)]];
+    d[j] = c[0]; d[j + 1] = c[1]; d[j + 2] = c[2];
+  }
+  ctx.putImageData(img, 0, 0);
+  stat.textContent = `${N.toLocaleString('en')} gaussians → ${W}×${H} px · ${rgb.length} colours`;
+}
+function drawSplats(cam) {
+  const W = 512, H = 320;
+  size(W, H); project(W, H, cam); raster(buf, W, H, false);
+  const d = img.data;
+  for (let k = 0, j = 0, n = W * H * 3; k < n; k += 3, j += 4) { d[j] = buf[k]; d[j + 1] = buf[k + 1]; d[j + 2] = buf[k + 2]; }
+  ctx.putImageData(img, 0, 0);
+  stat.textContent = `${N.toLocaleString('en')} gaussians, blended without the pixel step`;
+}
+function drawEllipses(cam) {
+  const W = 1024, H = 640;
+  if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
+  project(W, H, cam);
+  ctx.fillStyle = `rgb(${BG})`; ctx.fillRect(0, 0, W, H);
+  ctx.lineWidth = 1;
+  for (let m = 0; m < M; m++) {
+    const i = ORDER[m], a = CA[i], b = CB[i], c = CC[i], mid = (a + c) / 2, d = Math.sqrt(Math.max(0, (a - c) * (a - c) / 4 + b * b));
+    const k = OP[i] > 1 ? K : 1.2, r1 = k * Math.sqrt(Math.max(0.02, mid + d)), r2 = k * Math.sqrt(Math.max(0.02, mid - d));
+    if (r1 > 4000) continue;
+    const col = `${COL[i * 3] | 0},${COL[i * 3 + 1] | 0},${COL[i * 3 + 2] | 0}`;
+    ctx.beginPath(); ctx.ellipse(SU[i], SV[i], r1, r2, 0.5 * Math.atan2(2 * b, a - c), 0, 6.2832);
+    ctx.fillStyle = `rgba(${BG},0.55)`; ctx.fill();
+    ctx.strokeStyle = `rgb(${col})`; ctx.stroke();
+  }
+  stat.textContent = `${N.toLocaleString('en')} gaussians, outlined where each one fades to half`;
+}
+
+// ---------- camera control and the loop ----------
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let yaw = 0, pitch = 0, tYaw = 0, tPitch = 0, hover = false, last = 0, dirty = true;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (still && !dirty) return;
+  if (now - last < 31) return;
+  last = now;
+  const t = still ? 7.5 : now / 1000;
+  if (!hover && !still) { tYaw = Math.sin(t * 0.22) * 0.07; tPitch = Math.sin(t * 0.15) * 0.012; }
+  yaw += (tYaw - yaw) * (still ? 1 : 0.12); pitch += (tPitch - pitch) * (still ? 1 : 0.12);
+  dynamic(t);
+  const cam = camera(yaw, BASE_PITCH + pitch);
+  if (state.mode === 'pixel') drawPixels(cam); else if (state.mode === 'splat') drawSplats(cam); else drawEllipses(cam);
+  dirty = false;
+}
+canvas.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  hover = true; dirty = true;
+  tYaw = -((e.clientX - r.left) / r.width - 0.5) * 0.36;
+  tPitch = ((e.clientY - r.top) / r.height - 0.5) * 0.07;
+});
+for (const ev of ['pointerleave', 'pointercancel', 'pointerup']) canvas.addEventListener(ev, e => { if (ev !== 'pointerup' || e.pointerType !== 'mouse') hover = false; });
+
+for (const key of ['mode', 'pal', 'res']) {
+  document.getElementById(key).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[key] = key === 'res' ? +b.dataset.v : b.dataset.v;
+    for (const o of b.parentNode.children) o.setAttribute('aria-pressed', o === b);
+    canvas.classList.toggle('smooth', state.mode !== 'pixel');
+    bw = 0; dirty = true;
+  });
+}
+window.__scene = { state, redraw: () => { dirty = true; } };
+requestAnimationFrame(frame);
+})();
+</script>
