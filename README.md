@@ -12,6 +12,7 @@ A home for small projects made with Claude: experiments, toys, one-off tools, ge
 | [old-maths-typesetter](old-maths-typesetter) | A JavaScript typesetter that sets mathematics the way Oxford books of the 1940s did, checked against the pages of Hardy's *Divergent Series* |
 | [pdp10-death-star](pdp10-death-star) | The Death Star firing its superlaser, ray traced by a MACRO-10 program running under TOPS-10 on a simulated PDP-10 (KA10) |
 | [pdp10-still-life](pdp10-still-life) | A still life of a ceramic Clawd and a glass of water on a gingham tablecloth, drawn by a recursive ray tracer with soft shadows and procedural textures in MACRO-10 on a simulated PDP-10 (KA10) |
+| [rts-crowd-pathfinding](rts-crowd-pathfinding) | A crowd pathfinding toy where little walkers route around walls and each other, with flow fields, signals for one-lane corridors and ORCA avoidance, on a floor plan you can redraw |
 | [sunken-bell-song](sunken-bell-song) | A layered orchestral, ethnic and electronic instrumental with choir, duduk and erhu, synthesized from scratch in JavaScript |
 
 ## House rules

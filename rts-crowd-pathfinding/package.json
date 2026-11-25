@@ -1,0 +1,9 @@
+{
+  "name": "rts-crowd-pathfinding",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A crowd pathfinding toy: flow fields, one-lane signals and ORCA avoidance on a canvas",
+  "scripts": {
+    "test": "node test/soak.js 30 160"
+  }
+}

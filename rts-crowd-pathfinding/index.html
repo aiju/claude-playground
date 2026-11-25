@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coming Through</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="sign">
+    <div class="brand">
+      <span class="roundel" aria-hidden="true"></span>
+      <h1>Coming Through</h1>
+      <span class="jp" lang="ja">すみません、通ります</span>
+    </div>
+    <dl class="readouts" aria-live="off">
+      <div><dt>Walkers</dt><dd id="r-agents">0</dd></div>
+      <div><dt>Arrivals / min</dt><dd id="r-rate">0</dd></div>
+      <div><dt>Pace</dt><dd id="r-pace">100%</dd></div>
+      <div><dt>Queuing</dt><dd id="r-wait">0</dd></div>
+      <div><dt>Stuck</dt><dd id="r-stuck">0</dd></div>
+    </dl>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="floor" aria-label="Top-down view of a crowd finding its way around walls"></canvas>
+    <p class="hint" id="hint">Drag on the floor to build walls, on a wall to erase. Drag the markers. Tap a walker to see its route.</p>
+  </main>
+
+  <aside class="rail" aria-label="Controls">
+    <section>
+      <h2>Traffic</h2>
+      <div class="choices" id="patterns" role="radiogroup" aria-label="Traffic pattern"></div>
+    </section>
+
+    <section>
+      <h2>Floor plan</h2>
+      <div class="chips" id="maps" role="radiogroup" aria-label="Floor plan"></div>
+    </section>
+
+    <section>
+      <h2>Crowd</h2>
+      <label class="slider" for="count">
+        <span>Walkers</span><output id="count-out" for="count">140</output>
+        <input type="range" id="count" min="10" max="400" step="10" value="140">
+      </label>
+      <div class="seg" id="speed" role="radiogroup" aria-label="Speed">
+        <button type="button" data-speed="0" role="radio" aria-checked="false" id="speed-0">Pause</button>
+        <button type="button" data-speed="1" role="radio" aria-checked="true" id="speed-1">1×</button>
+        <button type="button" data-speed="2" role="radio" aria-checked="false" id="speed-2">2×</button>
+        <button type="button" data-speed="4" role="radio" aria-checked="false" id="speed-4">4×</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Rules</h2>
+      <label class="toggle" for="opt-signals"><input type="checkbox" id="opt-signals" checked><span>One-lane signals</span><small>Corridors one walker wide take turns by direction</small></label>
+      <label class="toggle" for="opt-reroute"><input type="checkbox" id="opt-reroute" checked><span>Route around jams</span><small>Paths cost more through crowds and against the flow</small></label>
+    </section>
+
+    <section>
+      <h2>Show</h2>
+      <label class="toggle" for="opt-trails"><input type="checkbox" id="opt-trails" checked><span>Worn paths</span></label>
+      <label class="toggle" for="opt-arrows"><input type="checkbox" id="opt-arrows"><span>Flow field</span><small>Every cell's way to one goal. Tap a walker to pick whose</small></label>
+      <label class="toggle" for="opt-heat"><input type="checkbox" id="opt-heat"><span>Congestion</span></label>
+    </section>
+
+    <section class="actions">
+      <button type="button" id="restart">Restart traffic</button>
+      <button type="button" id="clear">Clear walls</button>
+    </section>
+  </aside>
+</div>
+<script src="sim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
